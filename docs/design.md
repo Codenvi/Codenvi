@@ -651,7 +651,7 @@ Packages: `CommunityToolkit.Mvvm`, `Microsoft.Extensions.Hosting` (DI plus backg
      - **Memory**: edit `CLAUDE.md`.
      - **Settings**: permission mode, allowed tools, max turns, timeout, default model and effort.
    - Buttons: **Register project**, **Rename**, **Relocate**, **Delete**.
-4. **Settings**: paired installs with **Revoke**, **Connect a phone**, **Pair another PC**, **Disconnect this PC**, start with Windows (`HKCU\...\Run`), minimize to tray on close, max parallel projects (default 2), git author name/email for Codenvi commits, default dev branch name (`codenvi-dev`), stale job limit, and whether to delete old Claude transcripts on clear (§8.7).
+4. **Settings**: paired installs with **Revoke**, **Connect a phone**, **Pair another PC**, **Disconnect this PC**, start with Windows (`HKCU\...\Run`), minimize to tray on close, max parallel projects (default 3), git author name/email for Codenvi commits, default dev branch name (`codenvi-dev`), stale job limit, and whether to delete old Claude transcripts on clear (§8.7).
 5. **About**: app version, MIT license notice, link to the repository, third-party notices and the disclaimer (§0.3).
 
 ### 8.5 Project management

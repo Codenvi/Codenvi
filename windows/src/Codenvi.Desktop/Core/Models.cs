@@ -71,7 +71,7 @@ public sealed class AppSettings
 {
     public bool StartWithWindows { get; set; }
     public bool MinimizeToTray { get; set; } = true;
-    public int MaxParallelProjects { get; set; } = 2;
+    public int MaxParallelProjects { get; set; } = 3;
     public string GitAuthorName { get; set; } = "Codenvi";
     public string GitAuthorEmail { get; set; } = "codenvi@local";
     public string DefaultDevBranch { get; set; } = "codenvi-dev";

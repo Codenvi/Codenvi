@@ -60,7 +60,7 @@ public partial class SettingsView : UserControl
         s.MinimizeToTray = MinimizeToTray.IsChecked == true;
         s.AutoSwitchBranch = AutoSwitchBranch.IsChecked == true;
         s.DeleteTranscriptsOnClear = DeleteTranscripts.IsChecked == true;
-        s.MaxParallelProjects = int.TryParse(MaxParallel.Text, out var mp) ? Math.Clamp(mp, 1, 16) : 2;
+        s.MaxParallelProjects = int.TryParse(MaxParallel.Text, out var mp) ? Math.Clamp(mp, 1, 16) : 3;
         s.GitAuthorName = string.IsNullOrWhiteSpace(GitName.Text) ? "Codenvi" : GitName.Text.Trim();
         s.GitAuthorEmail = string.IsNullOrWhiteSpace(GitEmail.Text) ? "codenvi@local" : GitEmail.Text.Trim();
         s.DefaultDevBranch = string.IsNullOrWhiteSpace(DevBranch.Text) ? "codenvi-dev" : DevBranch.Text.Trim();
