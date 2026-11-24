@@ -9,7 +9,10 @@ namespace Codenvi.Desktop.Views;
 public partial class AboutWindow : Window
 {
     /// <summary>Set to the public repository URL.</summary>
-    public const string RepositoryUrl = "https://github.com/Irakli Gzirishvili/codenvi";
+    public const string RepositoryUrl = "https://github.com/Codenvi/Codenvi";
+
+    /// <summary>The project website.</summary>
+    public const string WebsiteUrl = "https://codenvi.github.io/Codenvi/";
 
     public AboutWindow()
     {
@@ -18,10 +21,14 @@ public partial class AboutWindow : Window
         VersionText.Text = $"Version {AppPaths.AppVersion} (build {AppPaths.AppBuild})";
         Disclaimer.Text = DisclaimerText.Text;
         RepoLink.Content = RepositoryUrl;
+        WebLink.Content = WebsiteUrl;
     }
 
     private void OnRepo(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo(RepositoryUrl) { UseShellExecute = true });
+
+    private void OnWebsite(object sender, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo(WebsiteUrl) { UseShellExecute = true });
 
     private void OnClose(object sender, RoutedEventArgs e) => Close();
 }

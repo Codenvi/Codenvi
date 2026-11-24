@@ -14,9 +14,11 @@
         </Border>
         <TextBlock Text="License" FontWeight="SemiBold" />
         <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,14"
-                   Text="MIT License. Copyright (c) 2026 &lt;owner name&gt;. See LICENSE in the repository." />
+                   Text="MIT License. Copyright (c) 2026 Irakli Gzirishvili. See LICENSE in the repository." />
         <TextBlock Text="Repository" FontWeight="SemiBold" />
         <Button x:Name="RepoLink" Style="{StaticResource LinkButton}" HorizontalAlignment="Left" Margin="0,4,0,14" Click="OnRepo" />
+        <TextBlock Text="Website" FontWeight="SemiBold" />
+        <Button x:Name="WebLink" Style="{StaticResource LinkButton}" HorizontalAlignment="Left" Margin="0,4,0,14" Click="OnWebsite" />
         <TextBlock Text="Third-party notices" FontWeight="SemiBold" />
         <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" xml:space="preserve">.NET, WPF, Windows Forms, Microsoft.Extensions.*, Microsoft.Data.Sqlite - MIT (Microsoft)
 CommunityToolkit.Mvvm - MIT (.NET Foundation)

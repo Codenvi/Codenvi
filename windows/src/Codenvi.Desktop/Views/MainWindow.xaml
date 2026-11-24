@@ -61,7 +61,7 @@
           <Button Content="Register project" Command="{Binding RegisterProjectCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,0,8" HorizontalAlignment="Stretch" />
           <UniformGrid Columns="3">
             <Button Content="Rename" Command="{Binding RenameProjectCommand}" Margin="0,0,4,0" />
-            <Button Content="Change folder" Command="{Binding ChangeFolderCommand}" Margin="2,0" />
+            <Button Content="Relocate" Command="{Binding ChangeFolderCommand}" Margin="2,0" />
             <Button Content="Delete" Command="{Binding DeleteProjectCommand}" Style="{StaticResource DangerButton}" Margin="4,0,0,0" />
           </UniformGrid>
         </StackPanel>

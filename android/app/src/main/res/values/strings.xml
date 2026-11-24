@@ -2,7 +2,8 @@
 <resources>
     <string name="app_name">Codenvi</string>
     <string name="disclaimer">Codenvi is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by Anthropic, PBC. \"Claude\" and \"Claude Code\" are trademarks of Anthropic, PBC.\n\nCodenvi runs the official Claude Code CLI that you install and sign in to yourself on each PC. Codenvi never sees or stores your Claude credentials. Your use of Claude Code is governed by Anthropic\'s terms, and you are responsible for complying with them.\n\nCodenvi is intended for personal use on your own devices and your own server. It lets an AI agent change files and run commands on your PCs. Use it at your own risk and review its changes before merging them.\n\nCodenvi is provided \"as is\", without warranty of any kind, under the MIT License.</string>
-    <string name="license_notice">MIT License. Copyright (c) 2026 &lt;owner name&gt;.</string>
-    <string name="repository_url">https://github.com/&lt;owner&gt;/codenvi</string>
+    <string name="license_notice">MIT License. Copyright (c) 2026 Irakli Gzirishvili.</string>
+    <string name="repository_url">https://github.com/Codenvi/Codenvi</string>
+    <string name="website_url">https://codenvi.github.io/Codenvi/</string>
     <string name="third_party">AndroidX, Jetpack Compose, Room, DataStore, Navigation, Lifecycle - Apache-2.0 (Google)\nKotlin, kotlinx.coroutines - Apache-2.0 (JetBrains)\nOkHttp, Retrofit, Moshi - Apache-2.0 (Square)</string>
 </resources>

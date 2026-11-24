@@ -10,6 +10,8 @@
 >
 > Codenvi is provided "as is", without warranty of any kind, under the MIT License.
 
+**Website:** <https://codenvi.github.io/Codenvi/> · **Repository:** <https://github.com/Codenvi/Codenvi>
+
 Codenvi lets one person drive Claude Code on several Windows PCs from an Android phone. Each PC has registered project folders. The phone sends a prompt to a project; the PC runs Claude Code on it, commits the result to a development branch (`codenvi-dev`) and sends the answer back. Prompts, replies, project names and commit messages are **end-to-end encrypted** with a key that only the PC and the phone hold - your server only relays ciphertext.
 
 ```
@@ -75,10 +77,9 @@ Rollback is `git revert` of the commits after the good one, then push with the t
 | Q2 Tags | `[server]`, `[windows]` and `[android]` in any commit of the push. | Edit the `if:` lines in the workflows |
 | Q3 Binaries | Committed as `windows/Codenvi.exe` and `android/Codenvi.apk`; the Windows workflow fails above 95 MB with a pointer to Git LFS. Each run also uploads the build as a workflow artifact. | Enable the LFS line in `windows/.gitattributes` |
 | Q4 Permissions | `acceptEdits` + per-project allowed tools (`Read Edit Write Glob Grep`), `--permission-prompts none`. `bypassPermissions` needs an explicit confirmation. | Project → Settings tab on the PC |
-| Q5 Copyright | `Irakli Gzirishvili` placeholder in `LICENSE` and About screens. | Replace the placeholder |
+| Q5 Copyright | `Irakli Gzirishvili` in `LICENSE` and the About screens. | Edit those files |
 | Q6 App ID | `app.codenvi` | `android/app/build.gradle.kts` (before the first release) |
 
-Replace `Irakli Gzirishvili` in this README, `windows/src/Codenvi.Desktop/Views/AboutWindow.xaml.cs` and `android/app/src/main/res/values/strings.xml` with your GitHub account.
 
 ## Security model in one paragraph
 

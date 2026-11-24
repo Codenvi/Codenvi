@@ -117,6 +117,8 @@ fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
             Text(stringResource(R.string.license_notice))
             val url = stringResource(R.string.repository_url)
             TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }) { Text(url, color = Tokens.Primary) }
+            val site = stringResource(R.string.website_url)
+            TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(site))) }) { Text(site, color = Tokens.Primary) }
             Text("Third-party notices", style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.third_party), color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelSmall)
         }

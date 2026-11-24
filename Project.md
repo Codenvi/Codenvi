@@ -650,7 +650,7 @@ Packages: `CommunityToolkit.Mvvm`, `Microsoft.Extensions.Hosting` (DI plus backg
      - **Commits**: table of hash, time, message, files, a **Roll back to here** button and a "Reverted" marker.
      - **Memory**: edit `CLAUDE.md`.
      - **Settings**: permission mode, allowed tools, max turns, timeout, default model and effort.
-   - Buttons: **Register project**, **Rename**, **Change folder**, **Delete**.
+   - Buttons: **Register project**, **Rename**, **Relocate**, **Delete**.
 4. **Settings**: paired installs with **Revoke**, **Connect a phone**, **Pair another PC**, **Disconnect this PC**, start with Windows (`HKCU\...\Run`), minimize to tray on close, max parallel projects (default 2), git author name/email for Codenvi commits, default dev branch name (`codenvi-dev`), stale job limit, and whether to delete old Claude transcripts on clear (§8.7).
 5. **About**: app version, MIT license notice, link to the repository, third-party notices and the disclaimer (§0.3).
 
