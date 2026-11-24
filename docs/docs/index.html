@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documentation: Self-host, Install and Pair Apps | Codenvi</title>
+<meta name="description" content="Codenvi documentation: how it works, installing the Windows and Android apps, self-hosting the server, configuration, security, admin commands and builds.">
+<meta name="keywords" content="Codenvi documentation, Codenvi install, self-host Codenvi, Claude Code Android, Claude Code remote, codenvi-admin, end-to-end encryption, MIT license, Windows app, Android app">
+<meta name="author" content="Irakli Gzirishvili">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="canonical" href="https://codenvi.github.io/Codenvi/docs/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Codenvi">
+<meta property="og:title" content="Documentation: Self-host, Install and Pair Apps | Codenvi">
+<meta property="og:description" content="Codenvi documentation: how it works, installing the Windows and Android apps, self-hosting the server, configuration, security, admin commands and builds.">
+<meta property="og:url" content="https://codenvi.github.io/Codenvi/docs/">
+<meta property="og:image" content="https://codenvi.github.io/Codenvi/assets/github.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Codenvi: run Claude Code on your PCs from your Android phone">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Documentation: Self-host, Install and Pair Apps | Codenvi">
+<meta name="twitter:description" content="Codenvi documentation: how it works, installing the Windows and Android apps, self-hosting the server, configuration, security, admin commands and builds.">
+<meta name="twitter:image" content="https://codenvi.github.io/Codenvi/assets/github.png">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Codenvi documentation",
+  "description": "Codenvi documentation: how it works, installing the Windows and Android apps, self-hosting the server, configuration, security, admin commands and builds.",
+  "url": "https://codenvi.github.io/Codenvi/docs/",
+  "image": "https://codenvi.github.io/Codenvi/assets/github.png",
+  "inLanguage": "en",
+  "author": {
+    "@type": "Person",
+    "name": "Irakli Gzirishvili",
+    "jobTitle": "Full-Stack Software Engineer",
+    "url": "https://github.com/IG-onGit",
+    "sameAs": [
+      "https://github.com/IG-onGit",
+      "https://www.linkedin.com/in/ig-link",
+      "https://x.com/IG_onX",
+      "https://www.linkedin.com/newsletters/creatron-7275978973124132864"
+    ]
+  }
+}
+</script>
+<script src="../assets/main.js" defer></script>
+</head>
+<body class="docs-page">
+<a class="skip" href="#main">Skip to content</a>
+<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol><symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol><symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol><symbol id="i-scale" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></symbol><symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol><symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></symbol><symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol><symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></symbol><symbol id="i-branch" viewBox="0 0 24 24"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol><symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></symbol><symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol><symbol id="i-qr" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-1"/></symbol><symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol><symbol id="i-twitter-x" viewBox="0 0 24 24"><path d="M4 4l11.733 16h4.267l-11.733 -16z"/><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"/></symbol><symbol id="i-linkedin" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></symbol></svg>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="../"><img src="../assets/logo.svg" width="34" height="34" alt="">Codenvi</a>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <a href="../#features">Features</a>
+      <a href="../#how">How it works</a>
+      <a href="../#selfhost">Self-host</a>
+      <a href="../#faq">FAQ</a>
+      <a href="./">Docs</a>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/Codenvi/Codenvi" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg> GitHub</a>
+    </nav>
+    <button class="burger" type="button" aria-controls="docs-nav" aria-expanded="false" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+  </div>
+</header>
+<div class="container docs">
+  <aside class="docs-nav" id="docs-nav" aria-label="Documentation sections">
+<h2>Getting started</h2>
+<a href="#general" data-section="general">General</a>
+<a href="#how-it-works" data-section="how-it-works">How it works</a>
+<a href="#installation" data-section="installation">Installation</a>
+<a href="#configuration" data-section="configuration">Configuration</a>
+<h2>Reference</h2>
+<a href="#security" data-section="security">Security</a>
+<a href="#admin" data-section="admin">Admin commands</a>
+<a href="#release-tags" data-section="release-tags">Release tags</a>
+<a href="#building" data-section="building">Build from source</a>
+<h2>Project</h2>
+<a href="#requirements" data-section="requirements">System requirements</a>
+<a href="#license" data-section="license">License</a>
+<a href="#author" data-section="author">About the author</a>
+<div class="docs-nav-extra"><h2>Site</h2>
+<a href="../">Back to home</a>
+<a href="https://github.com/Codenvi/Codenvi" rel="noopener">GitHub</a></div>  </aside>
+  <main class="docs-content" id="main">
+<article class="doc-section" id="general">
+<h1>General</h1>
+
+<p>Codenvi lets one person drive Claude Code on several Windows PCs from an Android phone. Each PC has registered project folders. The phone sends a prompt to a project, the PC runs Claude Code on it, commits the result to a development branch and sends the answer back.</p>
+<h2>Why Codenvi</h2>
+<ul>
+<li><strong>You own the server.</strong> One owner per installation. Prompts, replies, project names and commit messages are end-to-end encrypted, so the server only relays ciphertext.</li>
+<li><strong>No accounts.</strong> You choose one password. Each app links once with the host name and that password and then holds its own revocable credential.</li>
+<li><strong>No open ports on your PCs.</strong> Both apps connect outbound.</li>
+<li><strong>Safe by default.</strong> Work lands on <code>codenvi-dev</code>. Codenvi never pushes, never merges to <code>main</code> and never rewrites history.</li>
+<li><strong>Free and open source.</strong> MIT License, for personal use.</li>
+</ul>
+<div class="callout"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><div>Start with <a href="#how-it-works" data-goto="how-it-works">How it works</a>, then follow <a href="#installation" data-goto="installation">Installation</a> to set up the server, a PC and your phone.</div></div>
+<div class="callout warn"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><div>Codenvi is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by Anthropic, PBC. "Claude" and "Claude Code" are trademarks of Anthropic, PBC. Codenvi runs the official Claude Code CLI that you install and sign in to yourself on each PC, and never sees or stores your Claude credentials. It lets an AI agent change files and run commands on your PCs, so use it at your own risk and review its changes before merging them.</div></div>
+
+<div class="pager"><a class="btn btn-ghost next" href="#how-it-works" data-goto="how-it-works"><span><small>Next</small>How it works</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="how-it-works">
+<h1>How it works</h1>
+
+<p>Three parts work together: the Android app, a relay server you host, and the Windows app that runs Claude Code.</p>
+<pre><code data-lang="text" data-title="data flow">
+Android app ──HTTPS/WSS──▶ your VPS (nginx → Node.js server → PostgreSQL) ◀──HTTPS/WSS── Windows app ──▶ claude -p
+   encrypts prompt                  relays ciphertext only                      decrypts, runs Claude Code,
+   decrypts reply                                                               commits, encrypts reply
+</code></pre>
+<ol>
+<li>On the phone you pick a project and send a prompt. The app encrypts it with the key of that PC.</li>
+<li>The server relays the ciphertext. If the PC is offline the job waits and runs when the PC reconnects.</li>
+<li>The Windows app decrypts the prompt and runs Claude Code in the project folder (<code>claude -p</code>, prompt sent on stdin). Progress streams back live.</li>
+<li>The result is committed to the development branch (<code>codenvi-dev</code> by default). The reply is encrypted and sent to the phone.</li>
+<li>The phone decrypts and shows the reply. You can have it read aloud, or roll back to any earlier commit from the Commits list.</li>
+</ol>
+<h2>On the phone</h2>
+<p>Besides the chat per project, <strong>Multimode</strong> lists every project of every connected PC on one screen and sends your message to the selected one. Voice input uses the system speech recognizer and never auto-sends: you review the text first. Read aloud uses the system text-to-speech engine.</p>
+<h2>What the dev branch means</h2>
+<p>Codenvi creates and checks out <code>codenvi-dev</code> when you register a project. Rolling back runs <code>git revert</code> on the later commits, so history is never rewritten. Merging the branch is left to you.</p>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#general" data-goto="general"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>General</span></a><a class="btn btn-ghost next" href="#installation" data-goto="installation"><span><small>Next</small>Installation</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="installation">
+<h1>Installation</h1>
+
+<p>Setup has three parts: the server on a VPS, the Windows app on each PC, and the Android app on your phone.</p>
+<h2>1. Server</h2>
+<p>Fork the repository, then add these GitHub secrets (Settings, Secrets and variables, Actions): <code>VPS_HOST</code>, <code>VPS_USER</code>, <code>VPS_SSH_PRIVATE_KEY</code> and <code>ENV_VARS</code>. <code>ENV_VARS</code> holds three lines that name your server:</p>
+<pre><code data-lang="env" data-title="ENV_VARS">
+CODENVI_APP_NAME=codenvi
+CODENVI_HOST=codenvi.example.com
+CODENVI_PORT=3005
+</code></pre>
+<p>Point a DNS A record for the host name at the VPS, then push to <code>main</code> with <code>[server]</code> in the commit message:</p>
+<pre><code data-lang="bash" data-title="deploy">
+git commit -am &quot;Update server [server]&quot;
+git push origin main
+</code></pre>
+<p>You can also run <strong>Actions, publish, Run workflow</strong> and tick <strong>server</strong>. The JWT secret, the database password and the server password are generated on the first deploy. Read the password once on the VPS:</p>
+<pre><code data-lang="bash" data-title="on the VPS">
+codenvi-admin password          # &lt;name&gt;-admin password
+</code></pre>
+<p>A key for the deploy can be created like this, then paste the private key into <code>VPS_SSH_PRIVATE_KEY</code>:</p>
+<pre><code data-lang="bash" data-title="deploy key">
+ssh-keygen -t ed25519 -C &quot;codenvi-deploy&quot; -f ~/.ssh/codenvi_deploy
+cat ~/.ssh/codenvi_deploy.pub | ssh &lt;user&gt;@&lt;vps&gt; &#x27;mkdir -p ~/.ssh &amp;&amp; cat &gt;&gt; ~/.ssh/authorized_keys &amp;&amp; chmod 700 ~/.ssh &amp;&amp; chmod 600 ~/.ssh/authorized_keys&#x27;
+</code></pre>
+<h2>2. Windows PC</h2>
+<ol>
+<li>Install <a href="https://git-scm.com/download/win" rel="noopener">Git for Windows</a> and Claude Code, and sign in to Claude Code yourself in a terminal.</li>
+<li>Download <a href="https://github.com/Codenvi/Codenvi/raw/main/windows/Codenvi.exe" rel="noopener"><code>Codenvi.exe</code></a> and run it. SmartScreen warns because the exe is unsigned: choose <em>More info, Run anyway</em>, or build it yourself.</li>
+<li>Read the disclaimer, enter the <strong>host name</strong> (<code>CODENVI_HOST</code>) and the <strong>password</strong> in <em>Connect to server</em>, and pick a name for the PC.</li>
+<li>Press <strong>Generate key and register this PC</strong>.</li>
+<li>Press <strong>Register project</strong> and pick a folder. Codenvi creates the <code>codenvi-dev</code> branch.</li>
+</ol>
+<h2>3. Android phone</h2>
+<ol>
+<li>Download <a href="https://github.com/Codenvi/Codenvi/raw/main/android/Codenvi.apk" rel="noopener"><code>Codenvi.apk</code></a> and install it (allow installing from unknown sources). Install new versions over the old one and never uninstall, so the phone stays paired.</li>
+<li>On the PC press <strong>Connect a phone</strong>. On the phone tap <strong>Scan QR code from the PC</strong>, or paste the string.</li>
+<li>Send your first prompt.</li>
+</ol>
+<h2>More PCs</h2>
+<p>Install <code>Codenvi.exe</code> on each PC and enter the same host name and password. Every PC links on its own and can be revoked on its own. The phone needs each PC's encryption key once: use that PC's <strong>Show encryption key</strong> and paste the key-only string into the phone.</p>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#how-it-works" data-goto="how-it-works"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>How it works</span></a><a class="btn btn-ghost next" href="#configuration" data-goto="configuration"><span><small>Next</small>Configuration</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="configuration">
+<h1>Configuration</h1>
+
+<p>What you choose when you set up the server, and the defaults the apps ship with.</p>
+<h2>Server settings (<code>ENV_VARS</code> secret)</h2>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>Meaning</th><th>Rules</th></tr></thead><tbody><tr><td><code>CODENVI_APP_NAME</code></td><td>Folder <code>/var/www/&lt;name&gt;</code>, PM2 process, nginx site, admin command <code>&lt;name&gt;-admin</code>, and the PostgreSQL database and role.</td><td>2-40 lowercase letters, digits or hyphens, starting with a letter. Hyphens become underscores in the database name.</td></tr><tr><td><code>CODENVI_HOST</code></td><td>Public host name. nginx serves it with a Let's Encrypt certificate. This is also the <strong>Host name</strong> you type in the apps.</td><td>Not the bare domain if you use a subdomain.</td></tr><tr><td><code>CODENVI_PORT</code></td><td>Local port the server listens on, on 127.0.0.1 only. nginx proxies to it.</td><td>1024-65535, unused by other projects.</td></tr><tr><td><code>CODENVI_ACCESS_KEY</code></td><td>Optional. The password for linking apps. Generated if you leave it out.</td><td>At least 16 characters.</td></tr><tr><td><code>JWT_SECRET</code></td><td>Optional. Signs sign-in tokens. Generated if you leave it out.</td><td>At least 32 characters.</td></tr></tbody></table></div>
+<h2>GitHub secrets</h2>
+<div class="table-wrap"><table><thead><tr><th>Secret</th><th>Value</th></tr></thead><tbody><tr><td><code>VPS_HOST</code></td><td>IP address or host name of the VPS.</td></tr><tr><td><code>VPS_USER</code></td><td>SSH user: <code>root</code>, or a user with password-less <code>sudo</code>.</td></tr><tr><td><code>VPS_SSH_PRIVATE_KEY</code></td><td>Private key whose public key is in that user's <code>authorized_keys</code>.</td></tr><tr><td><code>ENV_VARS</code></td><td>The lines above, one <code>KEY=VALUE</code> per line.</td></tr><tr><td><code>ANDROID_KEYSTORE_B64</code>, <code>ANDROID_KEYSTORE_PASSWORD</code></td><td>Only for building the APK yourself: your release keystore, Base64-encoded, and its password.</td></tr></tbody></table></div>
+<h2>App defaults</h2>
+<div class="table-wrap"><table><thead><tr><th>Setting</th><th>Default</th><th>Where</th></tr></thead><tbody><tr><td>Development branch</td><td><code>codenvi-dev</code></td><td>Settings on the PC</td></tr><tr><td>Max parallel projects</td><td>3</td><td>Settings on the PC</td></tr><tr><td>Permission mode</td><td><code>acceptEdits</code> with allowed tools <code>Read Edit Write Glob Grep</code></td><td>Project, Settings tab on the PC. <code>bypassPermissions</code> needs an explicit confirmation.</td></tr><tr><td>Start with Windows, minimize to tray on close</td><td>Options in Settings</td><td>Settings on the PC</td></tr></tbody></table></div>
+<div class="callout"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><div>Changing <code>CODENVI_ACCESS_KEY</code> later affects only new apps. Apps that are already linked keep working, because each holds its own credential.</div></div>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#installation" data-goto="installation"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>Installation</span></a><a class="btn btn-ghost next" href="#security" data-goto="security"><span><small>Next</small>Security</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="security">
+<h1>Security</h1>
+
+<p>The server is a blind relay for content. It knows metadata such as installs, devices, project IDs, timestamps and job states, but it cannot read prompts, replies, project names, session names, commit messages or folder paths.</p>
+<div class="table-wrap"><table><thead><tr><th>Layer</th><th>How</th></tr></thead><tbody><tr><td>Transport</td><td>TLS on every hop (HTTPS and WSS).</td></tr><tr><td>Message encryption</td><td>AES-256-GCM per message, with a 256-bit device key derived per PC (HKDF).</td></tr><tr><td>Binding</td><td>The AAD ties each ciphertext to its device, object, direction and time, so the server cannot move a prompt to another project, swap a prompt and a reply, or replay it under another ID.</td></tr><tr><td>Replay protection</td><td>The desktop refuses job and prompt IDs it has already seen, and prompts older than 24 hours.</td></tr><tr><td>Tokens at rest</td><td>DPAPI-protected on the PC, Keystore-wrapped on the phone.</td></tr><tr><td>Sessions</td><td>Access tokens last 15 minutes; refresh tokens last 90 days and rotate. Reusing a rotated refresh token revokes that install.</td></tr><tr><td>Linking limits</td><td>Wrong passwords count as failed attempts: 5 per minute per address. After 20 failures in an hour, new linking is switched off until <code>codenvi-admin pairing on</code>.</td></tr></tbody></table></div>
+<p>A compromised server cannot run commands on your PCs, because it cannot produce a valid encrypted prompt. The password only decides who may link to your server. It is not an encryption key.</p>
+<div class="callout warn"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><div>Lost phone? Revoke it from the PC (Settings, Revoke) or run <code>codenvi-admin revoke &lt;id&gt;</code> on the VPS, then press <strong>Regenerate key</strong> on each PC.</div></div>
+<p>The full specification and test vectors are in <a href="https://github.com/Codenvi/Codenvi/blob/main/docs/crypto.md" rel="noopener">docs/crypto.md</a>.</p>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#configuration" data-goto="configuration"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>Configuration</span></a><a class="btn btn-ghost next" href="#admin" data-goto="admin"><span><small>Next</small>Admin commands</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="admin">
+<h1>Admin commands</h1>
+
+<p>The deploy installs <code>/usr/local/bin/&lt;name&gt;-admin</code> on the VPS, where <code>&lt;name&gt;</code> is your <code>CODENVI_APP_NAME</code>. The examples use the default name <code>codenvi</code>.</p>
+<pre><code data-lang="bash" data-title="on the VPS">
+codenvi-admin password                  # show the server password
+codenvi-admin pair --name &quot;Laptop&quot;        # single-use connection string (only needed without an access key)
+codenvi-admin pair --kind android         # phone string without a key (add keys on the phone later)
+codenvi-admin installs                    # paired apps, versions, last seen
+codenvi-admin revoke &lt;install-id&gt;         # cut one app off
+codenvi-admin revoke --all                # emergency: cut everything off
+codenvi-admin pairing off|on              # block / allow new pairings
+codenvi-admin purge                       # run the nightly cleanup now
+pm2 logs codenvi                          # server logs
+</code></pre>
+<p>To sign every app out of its current access token, put a new <code>JWT_SECRET</code> line (at least 32 random characters) in <code>ENV_VARS</code> and deploy again. The apps refresh automatically.</p>
+<h2>What the deploy never does</h2>
+<p>It never changes the firewall, runs <code>apt upgrade</code>, upgrades Node.js, edits PostgreSQL or nginx configuration, or touches other nginx sites, PM2 processes, databases or roles. nginx is only reloaded after <code>nginx -t</code> passes.</p>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#security" data-goto="security"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>Security</span></a><a class="btn btn-ghost next" href="#release-tags" data-goto="release-tags"><span><small>Next</small>Release tags</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="release-tags">
+<h1>Release tags</h1>
+
+<p>In the owner's repository, pushing to <code>main</code> builds and deploys parts of the project depending on tags in any commit message of the push.</p>
+<div class="table-wrap"><table><thead><tr><th>Tag</th><th>Result</th></tr></thead><tbody><tr><td><code>[server]</code></td><td>Tests the server, then deploys database migrations and code to your VPS.</td></tr><tr><td><code>[windows]</code></td><td>Tests and builds the app, then commits <code>windows/Codenvi.exe</code>.</td></tr><tr><td><code>[android]</code></td><td>Tests and builds the app, then commits <code>android/Codenvi.apk</code>.</td></tr></tbody></table></div>
+<ul>
+<li>With several tags the server always goes first. The apps are built only after the server deploy succeeded.</li>
+<li>A push without tags starts nothing. You can also run everything by hand from <strong>Actions, publish, Run workflow</strong>.</li>
+<li>Forks build and test but never sign, deploy or push binaries.</li>
+<li>Every APK is signed with the same key, so it installs over the previous one and the phone stays paired.</li>
+<li>Rollback is <code>git revert</code> of the commits after the good one, then a push with the tag again.</li>
+</ul>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#admin" data-goto="admin"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>Admin commands</span></a><a class="btn btn-ghost next" href="#building" data-goto="building"><span><small>Next</small>Build from source</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="building">
+<h1>Build from source</h1>
+
+<p>Everything can be built locally. The Windows exe is a single self-contained file and the Android release is signed with your own key.</p>
+<h2>Server</h2>
+<pre><code data-lang="bash" data-title="server/">
+cd server
+npm ci
+npm run typecheck
+npm run build
+npm test
+</code></pre>
+<p>The database tests need PostgreSQL through <code>CODENVI_TEST_PG</code> and are skipped without it. To run locally, copy <code>.env.example</code> to <code>.env</code>, set <code>DATABASE_URL</code> and <code>JWT_SECRET</code>, then run <code>npm run db:migrate</code> and <code>npm run dev</code>.</p>
+<h2>Windows app</h2>
+<pre><code data-lang="bash" data-title="windows/">
+cd windows
+dotnet test Codenvi.Desktop.sln
+dotnet publish src/Codenvi.Desktop/Codenvi.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o out
+</code></pre>
+<p><code>out/Codenvi.exe</code> is the app itself, with no installer. Its data lives in <code>%LOCALAPPDATA%\Codenvi</code>.</p>
+<h2>Android app</h2>
+<pre><code data-lang="bash" data-title="android/">
+cd android
+./gradlew testDebugUnitTest assembleDebug
+./gradlew assembleRelease
+</code></pre>
+<div class="callout warn"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><div>Back up your release keystore and its password outside GitHub. If it is lost, no future APK can update the installed app and you would have to pair the phone again. Never commit it.</div></div>
+<p>See <a href="https://github.com/Codenvi/Codenvi/blob/main/docs/building.md" rel="noopener">docs/building.md</a> for signing and migrations.</p>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#release-tags" data-goto="release-tags"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>Release tags</span></a><a class="btn btn-ghost next" href="#requirements" data-goto="requirements"><span><small>Next</small>System requirements</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="requirements">
+<h1>System requirements</h1>
+
+<p>What each part needs to run, and what you need to build it from source.</p>
+<h2>To run</h2>
+<div class="table-wrap"><table><thead><tr><th>Part</th><th>Needs</th></tr></thead><tbody><tr><td>Windows PC</td><td>Windows 10 or 11, <a href='https://git-scm.com/download/win' rel='noopener'>Git for Windows</a>, and Claude Code installed and signed in. <code>Codenvi.exe</code> is a self-contained single file of roughly 70-110 MB.</td></tr><tr><td>Android phone</td><td>Android 8 (API 26) or newer. Voice input needs Google speech services or an offline language pack.</td></tr></tbody></table></div>
+<h2>For the server</h2>
+<ul>
+<li>A Linux VPS (Ubuntu or Debian; Ubuntu 24.04 is what the guide uses) with SSH access as <code>root</code> or a user with password-less <code>sudo</code>.</li>
+<li>A DNS A record for the server's host name, with ports 80 and 443 open.</li>
+<li>Node.js 20 or newer on the VPS. The deploy stops rather than upgrading an older Node.js.</li>
+<li>Your own GitHub repository (a fork) with Actions enabled.</li>
+</ul>
+<h2>To build from source</h2>
+<ul>
+<li>Server: Node.js 20.12 or newer and npm. PostgreSQL for the integration tests.</li>
+<li>Windows app: .NET SDK 10 on Windows 10 or 11.</li>
+<li>Android app: JDK 17 and the Android SDK (compileSdk 34). The Gradle wrapper downloads Gradle.</li>
+</ul>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#building" data-goto="building"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>Build from source</span></a><a class="btn btn-ghost next" href="#license" data-goto="license"><span><small>Next</small>License</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="license">
+<h1>License</h1>
+
+<p>Codenvi is released under the MIT License. In plain English: you may use, copy, modify, merge, publish, distribute, sublicense and sell it, for free, as long as you keep the copyright and license notice. It comes with no warranty. Third-party packages keep their own licenses.</p>
+<div class="license-box" tabindex="0" role="region" aria-label="Full MIT License text">MIT License
+
+Copyright (c) 2026 Irakli Gzirishvili
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the &quot;Software&quot;), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</div>
+<p><a class="btn btn-ghost btn-sm" href="https://github.com/Codenvi/Codenvi/blob/main/LICENSE" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg> View LICENSE on GitHub</a></p>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#requirements" data-goto="requirements"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>System requirements</span></a><a class="btn btn-ghost next" href="#author" data-goto="author"><span><small>Next</small>About the author</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</article>
+<article class="doc-section" id="author">
+<h1>About the author</h1>
+
+<div class="author-card">
+  <img src="../assets/Irakli%20Gzirishvili.png" width="120" height="120" alt="Irakli Gzirishvili" loading="lazy">
+  <div>
+    <h3>Irakli Gzirishvili <span style="color: var(--muted);font-weight: normal;">- From Georgia</span></h3><p>&bull; AI &amp; Cloud Engineer<br>&bull; AI Integration Manager<br>&bull; Full-Stack Software Engineer<br>&bull; MIT OSS Provider<br>&bull; DevOps Engineer</p>
+    <div class="links">
+      <a class="btn btn-ghost btn-sm" href="https://github.com/IG-onGit" rel="noopener me"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg> github.com/IG-onGit</a>
+      <a class="btn btn-ghost btn-sm" href="https://www.linkedin.com/in/ig-link" rel="noopener me"><svg class="icon" aria-hidden="true"><use href="#i-linkedin"/></svg> LinkedIn</a>
+      <a class="btn btn-ghost btn-sm" href="https://x.com/IG_onX" rel="noopener me"><svg class="icon" aria-hidden="true"><use href="#i-twitter-x"/></svg> X</a>
+      <a class="btn btn-ghost btn-sm" href="https://www.linkedin.com/newsletters/creatron-7275978973124132864" rel="noopener me"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg> CreaTron newsletter</a>
+    </div>
+  </div>
+</div>
+
+<div class="pager"><a class="btn btn-ghost prev" href="#license" data-goto="license"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span><small>Previous</small>License</span></a></div>
+</article>
+  </main>
+</div>
+<footer class="site-footer">
+  <div class="container">
+    <p>Copyright (c) 2026 Irakli Gzirishvili. Released under the MIT License.</p>
+    <nav aria-label="Footer">
+      <a href="./">Documentation</a>
+      <a href="./#requirements">Requirements</a>
+      <a href="./#license">License</a>
+      <a href="https://github.com/Codenvi/Codenvi" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

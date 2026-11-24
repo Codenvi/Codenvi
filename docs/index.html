@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run Claude Code on Your PCs from Android | Codenvi</title>
+<meta name="description" content="Codenvi is a free, open-source app to drive Claude Code on your Windows PCs from an Android phone, with end-to-end encrypted prompts and your own server.">
+<meta name="keywords" content="Codenvi, Claude Code, Claude Code from phone, Claude Code Android, remote coding agent, end-to-end encrypted, self-hosted, Windows app, Android app, open source, MIT license">
+<meta name="author" content="Irakli Gzirishvili">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="canonical" href="https://codenvi.github.io/Codenvi/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Codenvi">
+<meta property="og:title" content="Run Claude Code on Your PCs from Android | Codenvi">
+<meta property="og:description" content="Codenvi is a free, open-source app to drive Claude Code on your Windows PCs from an Android phone, with end-to-end encrypted prompts and your own server.">
+<meta property="og:url" content="https://codenvi.github.io/Codenvi/">
+<meta property="og:image" content="https://codenvi.github.io/Codenvi/assets/github.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Codenvi: run Claude Code on your PCs from your Android phone">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Run Claude Code on Your PCs from Android | Codenvi">
+<meta name="twitter:description" content="Codenvi is a free, open-source app to drive Claude Code on your Windows PCs from an Android phone, with end-to-end encrypted prompts and your own server.">
+<meta name="twitter:image" content="https://codenvi.github.io/Codenvi/assets/github.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "Codenvi",
+      "operatingSystem": "Windows, Android",
+      "applicationCategory": "DeveloperApplication",
+      "description": "Codenvi lets one person drive Claude Code on several Windows PCs from an Android phone, with end-to-end encrypted prompts relayed by a server you host yourself.",
+      "url": "https://codenvi.github.io/Codenvi/",
+      "image": "https://codenvi.github.io/Codenvi/assets/github.png",
+      "downloadUrl": "https://github.com/Codenvi/Codenvi/raw/main/windows/Codenvi.exe",
+      "license": "https://github.com/Codenvi/Codenvi/blob/main/LICENSE",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Irakli Gzirishvili",
+        "url": "https://github.com/IG-onGit"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Codenvi free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Codenvi is free and open source under the MIT License, for personal use. You run your own server, so there are no accounts and no subscription to Codenvi. Claude Code itself is governed by Anthropic's terms, and you sign in to it yourself on each PC."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can my server read my prompts or code?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Prompts, replies, project names and commit messages are end-to-end encrypted with a key that only your PC and your phone hold. Your server only relays ciphertext, so even a compromised server cannot produce a valid encrypted prompt to run commands on your PCs."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will Codenvi change my main branch?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Codenvi commits to a development branch (codenvi-dev by default). It never pushes, never merges to main and never rewrites history. You review the changes and merge them yourself, and you can roll back to any commit from the phone."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What do I need to run it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A small Linux VPS with a domain name for the server, Windows 10 or 11 PCs with Git for Windows and Claude Code installed and signed in, and an Android 8 or newer phone. Codenvi is independent and is not affiliated with Anthropic."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<script src="assets/main.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol><symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol><symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol><symbol id="i-scale" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></symbol><symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol><symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></symbol><symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol><symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></symbol><symbol id="i-branch" viewBox="0 0 24 24"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol><symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></symbol><symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol><symbol id="i-qr" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-1"/></symbol><symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol><symbol id="i-twitter-x" viewBox="0 0 24 24"><path d="M4 4l11.733 16h4.267l-11.733 -16z"/><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"/></symbol><symbol id="i-linkedin" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></symbol></svg>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="./"><img src="assets/logo.svg" width="34" height="34" alt="">Codenvi</a>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <a href="./#features">Features</a>
+      <a href="./#how">How it works</a>
+      <a href="./#selfhost">Self-host</a>
+      <a href="./#faq">FAQ</a>
+      <a href="docs/">Docs</a>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/Codenvi/Codenvi" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg> GitHub</a>
+    </nav>
+    <button class="burger" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+  </div>
+</header>
+<main id="main">
+<section class="hero" id="top">
+  <div class="container hero-grid">
+    <div>
+      <div class="badges">
+        <span class="badge mit"><svg class="icon" aria-hidden="true"><use href="#i-scale"/></svg> MIT License</span>
+        <span class="badge"><span class="dot"></span> Windows &middot; Android</span>
+        <span class="badge">Node.js &middot; .NET &middot; Kotlin</span>
+      </div>
+      <h1>Drive Claude Code on your PCs, <span class="grad">from your phone</span></h1>
+      <p class="lead">Send a prompt from Android. Your Windows PC runs Claude Code on the project, commits the result to a dev branch and replies. All end-to-end encrypted through a server you own.</p>
+      <a class="author-pill" href="docs/#author">
+        <img src="assets/Irakli%20Gzirishvili.png" width="48" height="48" alt="Irakli Gzirishvili">
+        <span><small>Created by</small><strong>Irakli Gzirishvili</strong><span>Full-Stack Software Engineer &bull; MIT OSS Provider</span></span>
+      </a>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/Codenvi/Codenvi/raw/main/windows/Codenvi.exe" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download for Windows</a>
+        <a class="btn btn-ghost" href="docs/"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg> Read the docs</a>
+      </div>
+      <ul class="trust">
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Free &amp; open source</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> No accounts, no open ports</li>
+      </ul>
+    </div>
+    <div class="stage" aria-hidden="true">
+  <div class="phone">
+    <div class="screen">
+      <div class="scr-top"><div><strong>api-server</strong>Home PC</div><span class="online">online</span></div>
+      <div class="bubble me">Add a dark mode toggle to the settings page</div>
+      <div class="work"><b>Working on your PC</b><span>Edit  Settings.tsx</span></div>
+      <div class="bubble bot">Done. The toggle is in Settings and remembers your choice.<br><span class="commit"><svg class="icon" aria-hidden="true"><use href="#i-branch"/></svg> codenvi-dev  3f9a2c1</span></div>
+      <div class="scr-input">Message<span class="send">Send</span></div>
+    </div>
+  </div>
+  <div class="chip c1"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> End-to-end encrypted</div>
+  <div class="chip c2"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Committed to codenvi-dev</div>
+</div>
+  </div>
+</section>
+
+<section class="block alt" id="features">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Features</span>
+      <h2>Your coding agent, in your pocket</h2>
+      <p>Everything runs on machines you control. The phone is the remote.</p>
+    </div>
+    <div class="grid-3">
+      <article class="card"><div class="tile"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></div><h3>End-to-end encrypted</h3><p>Prompts, replies, project names and commit messages are encrypted with AES-256-GCM using a key only your PC and phone hold. The server relays ciphertext.</p></article>
+      <article class="card"><div class="tile"><svg class="icon" aria-hidden="true"><use href="#i-server"/></svg></div><h3>Your server, no accounts</h3><p>You host the relay on your own VPS and choose one password. Each app then holds its own credential, so you can revoke one without touching the others.</p></article>
+      <article class="card"><div class="tile"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></div><h3>Many PCs, no open ports</h3><p>Register project folders on every Windows PC. Both apps only connect outbound, so nothing is exposed and there is no port forwarding.</p></article>
+      <article class="card"><div class="tile"><svg class="icon" aria-hidden="true"><use href="#i-branch"/></svg></div><h3>Safe by default</h3><p>Results are committed to a dev branch. Codenvi never pushes, never merges to main and never rewrites history. Roll back to any commit from the phone.</p></article>
+      <article class="card"><div class="tile"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg></div><h3>Voice in, voice out</h3><p>Dictate a prompt, review it, then send. Have any reply read aloud. Multimode sends to any project on any connected PC from one screen.</p></article>
+      <article class="card"><div class="tile"><svg class="icon" aria-hidden="true"><use href="#i-qr"/></svg></div><h3>Pair with a QR code</h3><p>Press Connect a phone on the PC and scan the code. The phone links to the server and receives that PC's key in one step.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="how">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2>Three steps from zero to first prompt</h2>
+      <p>Set it up once. After that, every PC and phone is one tap away.</p>
+    </div>
+    <ol class="steps">
+      <li class="step"><h3>Deploy your server</h3><p>Fork the repository, add four GitHub secrets and push with <code>[server]</code> in the commit message. The deploy sets up nginx, HTTPS, PostgreSQL and the server for you.</p></li>
+      <li class="step"><h3>Install the apps and pair</h3><p>Run <code>Codenvi.exe</code> on each PC, enter the host name and password, then scan the PC's QR code with the Android app.</p></li>
+      <li class="step"><h3>Send a prompt</h3><p>Pick a project on your phone and type or speak. The PC runs Claude Code, commits to <code>codenvi-dev</code> and sends the encrypted answer back.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="block alt" id="selfhost">
+  <div class="container split">
+    <div>
+      <span class="eyebrow">Self-host</span>
+      <h2>One server, three lines of setup</h2>
+      <p>The server name, host and port live in a GitHub secret, not in the repository. Keys are generated for you on the first deploy and never printed to the log.</p>
+      <ul class="checks">
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Stops before changing anything if a name or port collides with another project</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Switches back to the previous release if the health check fails</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Gets and renews the Let's Encrypt certificate for you</li>
+      </ul>
+      <a class="btn btn-ghost" href="docs/#installation"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg> Installation guide</a>
+    </div>
+    <div class="stack">
+<pre><code data-lang="env" data-title="ENV_VARS (GitHub secret)">
+CODENVI_APP_NAME=codenvi
+CODENVI_HOST=codenvi.example.com
+CODENVI_PORT=3005
+</code></pre>
+<pre><code data-lang="bash" data-title="deploy">
+git commit -am "Deploy server [server]"
+git push origin main
+# read the generated password once, on the VPS
+codenvi-admin password
+</code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="faq">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">FAQ</span>
+      <h2>Questions people ask first</h2>
+    </div>
+    <div class="faq">
+      <details open><summary>Is Codenvi free?<svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary><div class="ans"><p>Yes. Codenvi is free and open source under the MIT License, for personal use. You run your own server, so there are no accounts and no subscription to Codenvi. Claude Code itself is governed by Anthropic&#x27;s terms, and you sign in to it yourself on each PC.</p></div></details>
+      <details><summary>Can my server read my prompts or code?<svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary><div class="ans"><p>No. Prompts, replies, project names and commit messages are end-to-end encrypted with a key that only your PC and your phone hold. Your server only relays ciphertext, so even a compromised server cannot produce a valid encrypted prompt to run commands on your PCs.</p></div></details>
+      <details><summary>Will Codenvi change my main branch?<svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary><div class="ans"><p>No. Codenvi commits to a development branch (codenvi-dev by default). It never pushes, never merges to main and never rewrites history. You review the changes and merge them yourself, and you can roll back to any commit from the phone.</p></div></details>
+      <details><summary>What do I need to run it?<svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary><div class="ans"><p>A small Linux VPS with a domain name for the server, Windows 10 or 11 PCs with Git for Windows and Claude Code installed and signed in, and an Android 8 or newer phone. Codenvi is independent and is not affiliated with Anthropic.</p></div></details>
+    </div>
+  </div>
+</section>
+
+<section class="block alt">
+  <div class="container">
+    <div class="cta-band">
+      <h2>Put Claude Code in your pocket</h2>
+      <p>Free, open source and under your control. Set it up in an afternoon.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="docs/#installation"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg> Get started</a>
+        <a class="btn btn-ghost" href="https://github.com/Codenvi/Codenvi" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg> Star on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="container">
+    <p>Copyright (c) 2026 Irakli Gzirishvili. Released under the MIT License.</p>
+    <nav aria-label="Footer">
+      <a href="docs/">Documentation</a>
+      <a href="docs/#requirements">Requirements</a>
+      <a href="docs/#license">License</a>
+      <a href="https://github.com/Codenvi/Codenvi" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

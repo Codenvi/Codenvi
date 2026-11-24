@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#09090a"/><stop offset="1" stop-color="#2a1608"/></linearGradient>
+<radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ff8a1f" stop-opacity=".38"/><stop offset="1" stop-color="#ff8a1f" stop-opacity="0"/></radialGradient>
+<filter id="sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity=".6"/></filter>
+</defs>
+<rect width="1280" height="640" fill="url(#bg)"/>
+<circle cx="640" cy="215" r="300" fill="url(#glow)"/>
+<g filter="url(#sh)"><g transform="translate(540 105) scale(0.390625)"><rect width="512" height="512" rx="112" fill="#121212"/><path fill="#ff8a1f" d="M373 157A155 155 0 1 0 373 353L322 314A88 88 0 1 1 322 197Z"/><circle cx="358" cy="256" r="44" fill="#ff8a1f"/></g></g>
+<text x="640" y="450" text-anchor="middle" font-family="'Segoe UI','Inter',Arial,sans-serif" font-weight="600" font-size="84" fill="#fff">Codenvi</text>
+<text x="640" y="515" text-anchor="middle" font-family="'Segoe UI','Inter',Arial,sans-serif" font-size="34" fill="#b8b8c2">Claude Code on your PCs, <tspan fill="#ff8a1f" font-weight="600">from your phone</tspan></text>
+<rect x="842" y="38" width="400" height="48" rx="24" fill="#ffffff" fill-opacity=".07" stroke="#ffffff" stroke-opacity=".18"/>
+<text x="1042" y="62" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI','Inter',Arial,sans-serif" font-size="22" fill="#e6e6ea">Self-hosted · End-to-end encrypted</text>
+<polygon points="0,150 150,0 262,0 0,262" fill="#2e7d32"/><text transform="translate(103 103) rotate(-45)" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI','Inter',Arial,sans-serif" font-weight="800" font-size="40" letter-spacing="2" fill="#fff">MIT</text>
+</svg>
