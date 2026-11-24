@@ -3,7 +3,7 @@ package app.codenvi.ui.theme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.graphics.Color
 
-// Shared design tokens (Project.md §0.7). Keep in sync with desktop/src/Codenvi.Desktop/Themes/Dark.xaml.
+// Shared design tokens (docs/design.md §0.7). Keep in sync with desktop/src/Codenvi.Desktop/Themes/Dark.xaml.
 object Tokens {
     val Primary = Color(0xFFFF8A1F)
     val PrimaryHover = Color(0xFFFFA24D)

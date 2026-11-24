@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
 
 /**
- * Speech-to-text with the built-in SpeechRecognizer (Project.md §10.4): free, no API key, prefers offline.
+ * Speech-to-text with the built-in SpeechRecognizer (docs/design.md §10.4): free, no API key, prefers offline.
  * Partial results stream to [onPartial]; the final text goes to [onFinal]. Never auto-sends.
  */
 class SpeechInput(private val context: Context) {
@@ -71,7 +71,7 @@ class SpeechInput(private val context: Context) {
 }
 
 /**
- * Read aloud with the system TextToSpeech engine (Project.md §10.5). Markdown is stripped and code blocks
+ * Read aloud with the system TextToSpeech engine (docs/design.md §10.5). Markdown is stripped and code blocks
  * replaced; long text is chunked under getMaxSpeechInputLength(). Only one message plays at a time.
  */
 class ReadAloud(context: Context) {

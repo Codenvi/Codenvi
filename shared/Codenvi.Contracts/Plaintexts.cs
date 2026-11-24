@@ -1,6 +1,6 @@
 namespace Codenvi.Contracts;
 
-// Plaintext JSON shapes that are encrypted end-to-end (Project.md §5.3).
+// Plaintext JSON shapes that are encrypted end-to-end (docs/design.md §5.3).
 // Android mirrors these in app/src/main/java/app/codenvi/crypto/Plaintexts.kt.
 
 /// <summary>
@@ -22,7 +22,7 @@ public sealed record CommitMeta(string Message, int FilesChanged, int Insertions
 
 public sealed record ErrorPlain(string Summary, string? Detail);
 
-/// <summary>Control commands (Project.md §7.5).</summary>
+/// <summary>Control commands (docs/design.md §7.5).</summary>
 public static class ControlCommands
 {
     public const string SessionCreate = "session.create";

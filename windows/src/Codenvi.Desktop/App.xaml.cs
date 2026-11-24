@@ -27,7 +27,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Single instance: bring the existing window forward (Project.md §8.2).
+        // Single instance: bring the existing window forward (docs/design.md §8.2).
         _mutex = new Mutex(true, MutexName, out var createdNew);
         if (!createdNew)
         {

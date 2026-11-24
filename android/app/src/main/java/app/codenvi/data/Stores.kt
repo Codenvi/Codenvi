@@ -16,7 +16,7 @@ import java.io.File
 import java.util.Base64
 import java.util.UUID
 
-/** Everything secret: tokens and device keys, sealed by the Android Keystore (Project.md §10.6). */
+/** Everything secret: tokens and device keys, sealed by the Android Keystore (docs/design.md §10.6). */
 @JsonClass(generateAdapter = true)
 data class SecureData(
     val installId: String = UUID.randomUUID().toString(),

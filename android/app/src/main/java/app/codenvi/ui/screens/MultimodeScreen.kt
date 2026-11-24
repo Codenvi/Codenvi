@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 
 /**
- * Multimode (Project.md §10.3 screen 6): one input at the top, a radio list of every project on every PC
+ * Multimode (docs/design.md §10.3 screen 6): one input at the top, a radio list of every project on every PC
  * below. Send goes to the selected project's default session; the selection stays after sending.
  */
 @Composable

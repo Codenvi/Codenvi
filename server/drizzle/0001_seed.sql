@@ -1,4 +1,4 @@
--- Seed data (Project.md §6.3). Upserts, so later migrations can change values.
+-- Seed data (docs/design.md §6.3). Upserts, so later migrations can change values.
 INSERT INTO model_catalog (alias, label, efforts, enabled, sort_order) VALUES
   ('default', 'Default',          '{low,medium,high,xhigh,max}', true, 0),
   ('sonnet',  'Sonnet',           '{low,medium,high,xhigh,max}', true, 10),

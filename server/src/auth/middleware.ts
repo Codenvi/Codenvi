@@ -38,7 +38,7 @@ export const requireDesktop = (req: Request): boolean => req.auth?.kind === "des
 const limitedKey = (req: Request): string => (req.auth ? `i:${req.auth.installId}` : `ip:${ipKeyGenerator(clientIp(req) ?? "unknown")}`);
 const onLimit = (_req: Request, res: Response) => sendProblem(res, 429, "Too many requests");
 
-// Limits from Project.md §7.6.
+// Limits from docs/design.md §7.6.
 export const pairingLimiter = rateLimit({
   windowMs: 60_000, limit: config.rateLimits.pairingPerMinute, standardHeaders: false, legacyHeaders: false,
   keyGenerator: (req) => ipKeyGenerator(clientIp(req) ?? "unknown"), handler: onLimit,
@@ -54,7 +54,7 @@ export const generalLimiter = rateLimit({
 
 /**
  * Reads X-Codenvi-Install-Id / X-Codenvi-Client, answers 426 Upgrade Required for builds below app_min_versions,
- * and records last-seen / version history (Project.md §7.2).
+ * and records last-seen / version history (docs/design.md §7.2).
  */
 export const clientVersion: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {

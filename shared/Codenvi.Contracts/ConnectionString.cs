@@ -4,7 +4,7 @@ using Codenvi.Contracts.Crypto;
 namespace Codenvi.Contracts;
 
 /// <summary>
-/// Parses and formats the codenvi:// strings from Project.md §4.1–4.2:
+/// Parses and formats the codenvi:// strings from docs/design.md §4.1–4.2:
 /// <code>
 /// codenvi://host[:port]/pair?c=CODE[&amp;pin=SPKI_SHA256_B64URL]
 /// codenvi://host[:port]/pair?c=CODE&amp;dev=DEVICEID&amp;kv=N&amp;k=KEY[&amp;dn=NAME]   (phone)

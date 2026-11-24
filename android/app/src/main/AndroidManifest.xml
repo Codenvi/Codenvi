@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Android 11+ package visibility (Project.md §10.4, §10.5) -->
+    <!-- Android 11+ package visibility (docs/design.md §10.4, §10.5) -->
     <queries>
         <intent>
             <action android:name="android.speech.RecognitionService" />

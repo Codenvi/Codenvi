@@ -54,7 +54,7 @@ import app.codenvi.ui.theme.Tokens
 import java.text.DateFormat
 import java.util.Date
 
-/** Project (Project.md §10.3 screen 4): Sessions, Memory (CLAUDE.md), Commits. */
+/** Project (docs/design.md §10.3 screen 4): Sessions, Memory (CLAUDE.md), Commits. */
 @Composable
 fun ProjectScreen(vm: AppViewModel, projectId: String, onBack: () -> Unit, onChat: (String) -> Unit) {
     val project by remember(projectId) { vm.repo.project(projectId) }.collectAsStateWithLifecycle(null)

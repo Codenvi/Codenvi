@@ -15,7 +15,7 @@ import {
   type DeviceRow, type ProjectRow, type SessionRow,
 } from "./dto";
 
-/** Devices, projects and sessions (Project.md §7.3). */
+/** Devices, projects and sessions (docs/design.md §7.3). */
 export const deviceRoutes = Router();
 
 const deviceCols = sql.raw(DEVICE_COLUMNS);

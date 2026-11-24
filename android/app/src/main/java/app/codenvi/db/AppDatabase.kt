@@ -12,7 +12,7 @@ import androidx.room.RoomDatabase
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
-// Offline cache (Project.md §10.2). Content stays encrypted at rest; it is decrypted on demand for display.
+// Offline cache (docs/design.md §10.2). Content stays encrypted at rest; it is decrypted on demand for display.
 
 @Entity(tableName = "devices")
 data class DeviceEntity(

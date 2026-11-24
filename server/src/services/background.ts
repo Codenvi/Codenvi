@@ -4,7 +4,7 @@ import { db, exec } from "../db/client";
 import { log } from "../lib/log";
 import { redispatchStuck } from "./jobs";
 
-/** Nightly cleanup (Project.md §6.2): soft-deleted rows older than 30 days, expired pairing codes and refresh tokens, old audit entries. */
+/** Nightly cleanup (docs/design.md §6.2): soft-deleted rows older than 30 days, expired pairing codes and refresh tokens, old audit entries. */
 export async function purge(days: number): Promise<number> {
   let n = 0;
   n += await exec(db, sql`DELETE FROM sessions WHERE deleted_at < now() - make_interval(days => ${days}::int)`);

@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 namespace Codenvi.Desktop.Core;
 
 /// <summary>
-/// SQLite store in %LOCALAPPDATA%\Codenvi\codenvi.db (Project.md §8.3): projects, sessions, jobs,
+/// SQLite store in %LOCALAPPDATA%\Codenvi\codenvi.db (docs/design.md §8.3): projects, sessions, jobs,
 /// commits, seen_jobs (replay protection) and settings.
 /// </summary>
 public sealed class LocalDb
@@ -192,7 +192,7 @@ public sealed class LocalDb
         c.Execute("DELETE FROM jobs WHERE id NOT IN (SELECT id FROM jobs ORDER BY received_at DESC LIMIT 5000)");
     }
 
-    // ---------------- Replay protection (Project.md §5.4) ----------------
+    // ---------------- Replay protection (docs/design.md §5.4) ----------------
     public bool WasSeen(Guid id)
     {
         using var c = Open();

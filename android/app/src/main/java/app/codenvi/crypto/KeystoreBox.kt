@@ -9,7 +9,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Wraps secrets with a non-exportable AES key in the Android Keystore (Project.md §5.1, §10.6).
+ * Wraps secrets with a non-exportable AES key in the Android Keystore (docs/design.md §5.1, §10.6).
  * Output: iv(12) | ciphertext+tag.
  */
 class KeystoreBox(private val alias: String = "codenvi_store_v1") {

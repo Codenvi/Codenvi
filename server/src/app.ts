@@ -25,7 +25,7 @@ export function createApp(): Express {
   app.disable("x-powered-by");
   app.set("trust proxy", 1); // nginx on the same machine sets X-Forwarded-For
   app.set("json replacer", (_k: string, v: unknown) => (v === null ? undefined : v)); // null fields are omitted on the wire
-  // No CORS: there is no browser client (Project.md §7.6).
+  // No CORS: there is no browser client (docs/design.md §7.6).
 
   app.get("/health", health);
   app.get("/api/v1/health", health);

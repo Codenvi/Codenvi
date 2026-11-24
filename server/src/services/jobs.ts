@@ -7,7 +7,7 @@ import { createEnvelope, FINAL_JOB_STATUSES, isFinal, JobStatuses, MessageTypes,
 import { log } from "../lib/log";
 import { hub, type ClientConnection } from "./hub";
 
-/** Job persistence and delivery (Project.md §7.4 "Delivery guarantee"). */
+/** Job persistence and delivery (docs/design.md §7.4 "Delivery guarantee"). */
 
 export const JOB_COLUMNS =
   "id, device_id, project_id, session_id, prompt_message_id, sent_by_install, kind, model, effort, status, " +
@@ -213,7 +213,7 @@ export async function cancel(jobId: string): Promise<CancelOutcome> {
   return "requested";
 }
 
-/** Key rotation cancels the phone's pending jobs for that device (Project.md §5.5). */
+/** Key rotation cancels the phone's pending jobs for that device (docs/design.md §5.5). */
 export function cancelPendingForDevice(tx: Tx, deviceId: string): Promise<number> {
   return exec(tx, sql`
     UPDATE jobs SET status = 'cancelled', error_code = 'key_rotated', finished_at = now()

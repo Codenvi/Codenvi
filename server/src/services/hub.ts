@@ -30,7 +30,7 @@ export class ClientConnection {
 }
 
 /**
- * In-memory registry of live connections (Project.md §7.4 "Server sizing"). The framework runs this app as a
+ * In-memory registry of live connections (docs/design.md §7.4 "Server sizing"). The framework runs this app as a
  * single PM2 process, which is what makes an in-memory hub correct. Several instances would need Postgres
  * LISTEN/NOTIFY.
  */

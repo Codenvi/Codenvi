@@ -1,8 +1,10 @@
 name: tests
 
-# Pull requests (including from forks) only build and test. No secrets, no signing, no deploy (Project.md §11.1).
+# Pull requests (including from forks) and pushes to main only build and test. No secrets, no signing, no deploy (docs/design.md §11.1).
 on:
   pull_request:
+  push:
+    branches: [main]
 
 permissions:
   contents: read

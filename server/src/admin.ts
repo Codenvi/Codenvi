@@ -6,7 +6,7 @@ import * as pairing from "./auth/pairing";
 import { purge } from "./services/background";
 import type { InstallRow } from "./routes/dto";
 
-// codenvi-admin: emergency and pairing commands on the VPS (Project.md §4.3, §7.7). Run on the server, from the app directory:
+// codenvi-admin: emergency and pairing commands on the VPS (docs/design.md §4.3, §7.7). Run on the server, from the app directory:
 //   cd /var/www/codenvi && node dist/admin.js <command>        (or: npm run admin -- <command>)
 const USAGE = `Usage: node dist/admin.js <command>
 

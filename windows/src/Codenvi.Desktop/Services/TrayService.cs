@@ -5,7 +5,7 @@ using Forms = System.Windows.Forms;
 namespace Codenvi.Desktop.Services;
 
 /// <summary>
-/// WinForms NotifyIcon showing the working state (Project.md §8.2): normal icon when idle, orange-accent
+/// WinForms NotifyIcon showing the working state (docs/design.md §8.2): normal icon when idle, orange-accent
 /// icon with "Codenvi - n tasks running" while busy, red badge on error. Menu: Open, Pause all, Quit.
 /// </summary>
 public sealed class TrayService : IDisposable

@@ -150,7 +150,7 @@ Rules:
 ```
 /LICENSE                          ← MIT
 /README.md                        ← overview, disclaimer (§0.3), user setup (§0.4)
-/Project.md                       ← this plan
+/docs/design.md                   ← this plan
 /.gitignore                       ← includes all secret patterns from §0.6
 /docs/                            ← technical documentation (Markdown)
     protocol.md                   ← REST + WebSocket protocol (§7)

@@ -7,7 +7,7 @@ plugins {
 val versionNameFromFile = rootProject.file("version.txt").readText().trim()
 val versionCodeFromCi = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
 
-// Release signing comes from environment variables only (Project.md §10.1). Without them (local builds,
+// Release signing comes from environment variables only (docs/design.md §10.1). Without them (local builds,
 // forks) the release build is signed with the debug key so it still installs.
 // Every published APK must be signed with the SAME key, or Android refuses to update the installed app
 // (it would have to be uninstalled, which deletes its pairing). CI sets REQUIRE_RELEASE_KEY=true so a build
@@ -103,7 +103,7 @@ dependencies {
     implementation(libs.moshi)
     ksp(libs.moshi.kotlin.codegen)
     implementation(libs.okhttp)
-    implementation(libs.okhttp.logging) // only enabled in debug builds (Project.md §10.2)
+    implementation(libs.okhttp.logging) // only enabled in debug builds (docs/design.md §10.2)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

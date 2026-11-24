@@ -5,7 +5,7 @@ using Codenvi.Desktop.Native;
 
 namespace Codenvi.Desktop.Views;
 
-/// <summary>About (Project.md §8.4 screen 5): version, license, repository, third-party notices, disclaimer.</summary>
+/// <summary>About (docs/design.md §8.4 screen 5): version, license, repository, third-party notices, disclaimer.</summary>
 public partial class AboutWindow : Window
 {
     /// <summary>Set to the public repository URL.</summary>

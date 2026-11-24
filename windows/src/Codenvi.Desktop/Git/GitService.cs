@@ -8,7 +8,7 @@ public sealed record GitCommitInfo(string Hash, string Subject, int FilesChanged
 public sealed class GitException(string message) : Exception(message);
 
 /// <summary>
-/// All git work goes through git.exe with porcelain output (Project.md §9). Codenvi never pushes,
+/// All git work goes through git.exe with porcelain output (docs/design.md §9). Codenvi never pushes,
 /// merges to main or rewrites history.
 /// </summary>
 public sealed class GitService
@@ -111,7 +111,7 @@ public sealed class GitService
     }
 
     /// <summary>
-    /// Commit step after a task (Project.md §9.2). Returns the new commit hash, or null if nothing changed.
+    /// Commit step after a task (docs/design.md §9.2). Returns the new commit hash, or null if nothing changed.
     /// </summary>
     public async Task<string?> CommitTaskAsync(string folder, string summary, string body, string author, string email)
     {
@@ -143,7 +143,7 @@ public sealed class GitService
     }
 
     /// <summary>
-    /// Rollback by revert (Project.md §9.3): reverts every commit after <paramref name="target"/>, newest
+    /// Rollback by revert (docs/design.md §9.3): reverts every commit after <paramref name="target"/>, newest
     /// first, as one new commit. Returns the rollback commit hash and the reverted hashes.
     /// </summary>
     public async Task<(string hash, List<string> reverted)> RollbackAsync(string folder, string target, string author, string email)

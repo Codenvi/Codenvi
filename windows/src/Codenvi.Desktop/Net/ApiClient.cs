@@ -17,7 +17,7 @@ public sealed class RevokedException() : ApiException(HttpStatusCode.Unauthorize
 
 public sealed class UpgradeRequiredException() : ApiException(HttpStatusCode.UpgradeRequired, "Update Codenvi - this version is no longer supported by the server.");
 
-/// <summary>REST client for /api/v1 with automatic access-token refresh (Project.md §4.3, §7.3).</summary>
+/// <summary>REST client for /api/v1 with automatic access-token refresh (docs/design.md §4.3, §7.3).</summary>
 public sealed class ApiClient : IDisposable
 {
     private readonly SecretStore _secrets;

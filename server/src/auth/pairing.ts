@@ -7,7 +7,7 @@ import { encode, normalize } from "../lib/base32";
 import { log } from "../lib/log";
 import { issue, sha256, type TokenResponse } from "./tokens";
 
-/** One-time pairing codes (Project.md §4.1–4.3). */
+/** One-time pairing codes (docs/design.md §4.1–4.3). */
 export const FAILURES_BEFORE_LOCK = 20;
 
 /** 128-bit random code shown as 26 Crockford Base32 characters. */
@@ -24,7 +24,7 @@ export async function createCode(createdBy: string, intendedKind: string | null)
   return { code, expiresAt };
 }
 
-/** codenvi://host[:port]/pair?c=CODE[&dn=NAME][&pin=SPKI_SHA256_B64URL] (Project.md §4.1). */
+/** codenvi://host[:port]/pair?c=CODE[&dn=NAME][&pin=SPKI_SHA256_B64URL] (docs/design.md §4.1). */
 export function connectionStringFor(code: string, deviceNameHint?: string | null): string {
   const parts = [`c=${code}`];
   if (deviceNameHint) parts.push(`dn=${encodeURIComponent(deviceNameHint)}`);

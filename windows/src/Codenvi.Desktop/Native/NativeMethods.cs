@@ -4,7 +4,7 @@ using System.Windows.Interop;
 
 namespace Codenvi.Desktop.Native;
 
-/// <summary>P/Invoke used by the desktop app (Project.md §8.2).</summary>
+/// <summary>P/Invoke used by the desktop app (docs/design.md §8.2).</summary>
 internal static partial class NativeMethods
 {
     // ---------------- user32 ----------------
@@ -87,7 +87,7 @@ internal static partial class NativeMethods
         });
     }
 
-    /// <summary>Windows 11 dark title bar (Project.md §0.7).</summary>
+    /// <summary>Windows 11 dark title bar (docs/design.md §0.7).</summary>
     public static void UseDarkTitleBar(Window window)
     {
         var hwnd = new WindowInteropHelper(window).EnsureHandle();

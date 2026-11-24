@@ -23,7 +23,7 @@ import javax.net.ssl.X509TrustManager
 
 class RevokedException : Exception("This app was disconnected from the server.")
 
-/** Shared HTTP plumbing: headers, token refresh, optional key pinning (Project.md §4.1, §10.2). */
+/** Shared HTTP plumbing: headers, token refresh, optional key pinning (docs/design.md §4.1, §10.2). */
 class Http(private val store: SecureStore) {
     val revoked = MutableStateFlow(false)
     val upgradeRequired = MutableStateFlow(false)

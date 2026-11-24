@@ -13,7 +13,7 @@ import { hub } from "../services/hub";
 import * as jobs from "../services/jobs";
 import { ownsDevice } from "./devices";
 
-/** Messages, jobs, commits, control commands and the model catalog (Project.md §7.3). */
+/** Messages, jobs, commits, control commands and the model catalog (docs/design.md §7.3). */
 export const workRoutes = Router();
 
 // ---------------- Messages ----------------

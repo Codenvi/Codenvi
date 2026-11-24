@@ -57,7 +57,7 @@ import app.codenvi.ui.theme.MonoStyle
 import app.codenvi.ui.theme.Tokens
 import kotlinx.coroutines.launch
 
-/** Chat per session (Project.md §10.3 screen 5). */
+/** Chat per session (docs/design.md §10.3 screen 5). */
 @Composable
 fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
     val repo = vm.repo
@@ -162,7 +162,7 @@ fun WorkingCard(status: String, lines: List<String>, onStop: () -> Unit) {
 
 /**
  * Input bar: text field, mic, model and effort dropdowns, Send. Dictation inserts at the cursor and never sends
- * by itself (Project.md §10.4).
+ * by itself (docs/design.md §10.4).
  */
 @Composable
 fun PromptBar(vm: AppViewModel, enabled: Boolean = true, onSend: suspend (String, String, String) -> Unit) {

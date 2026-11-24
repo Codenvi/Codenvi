@@ -92,7 +92,7 @@ class UserException(message: String) : Exception(message)
 
 /**
  * Single source of truth for the app: talks to the server, keeps the Room cache, encrypts and decrypts
- * (Project.md §5, §7, §10).
+ * (docs/design.md §5, §7, §10).
  */
 class Repository(
     private val store: SecureStore,
@@ -169,7 +169,7 @@ class Repository(
 
     fun acceptDisclaimer() = store.update { it.copy(disclaimerAccepted = true) }
 
-    /** Adds a PC's key (from a codenvi://key string or typed), checked against the server's KCV (Project.md §5.2). */
+    /** Adds a PC's key (from a codenvi://key string or typed), checked against the server's KCV (docs/design.md §5.2). */
     suspend fun addKey(deviceId: String, keyText: String, version: Int? = null) = withContext(Dispatchers.IO) {
         val key = runCatching {
             if (keyText.trim().startsWith("codenvi://")) ConnectionString.parse(keyText).also {
@@ -331,7 +331,7 @@ class Repository(
         dao.deleteSessionsExcept(projectId, list.map { it.id })
     }
 
-    /** Pulls new messages after the last known seq, then job states (Project.md §10.2 "resyncs history"). */
+    /** Pulls new messages after the last known seq, then job states (docs/design.md §10.2 "resyncs history"). */
     suspend fun syncMessages(sessionId: String) = withContext(Dispatchers.IO) {
         var after = dao.maxSeq(sessionId)
         while (true) {
@@ -373,7 +373,7 @@ class Repository(
 
     suspend fun cancel(jobId: String) = withContext(Dispatchers.IO) { check(http.api().cancelJob(jobId)) }
 
-    // ---------------- Control commands (Project.md §7.5) ----------------
+    // ---------------- Control commands (docs/design.md §7.5) ----------------
     suspend fun control(projectId: String, cmd: ControlPlain): ControlResultPlain = withContext(Dispatchers.IO) {
         val d = deviceOf(projectId)
         if (!d.online) throw UserException("${d.name} is offline.")
@@ -449,7 +449,7 @@ class Repository(
         dao.upsertSessions(listOf(s.copy(encMeta = enc)))
     }
 
-    /** Multimode target: the project's default session, or the most recently used one (Project.md §10.3). */
+    /** Multimode target: the project's default session, or the most recently used one (docs/design.md §10.3). */
     suspend fun defaultSession(projectId: String): String? = withContext(Dispatchers.IO) {
         dao.project(projectId)?.defaultSessionId?.let { return@withContext it }
         runCatching { refreshSessions(projectId) }
@@ -463,7 +463,7 @@ class Repository(
         dao.clearJobs(sessionId)
     }
 
-    /** Clear memory: the PC clears the server chat and starts a fresh Claude session (Project.md §8.5). */
+    /** Clear memory: the PC clears the server chat and starts a fresh Claude session (docs/design.md §8.5). */
     suspend fun clearMemory(sessionId: String) = withContext(Dispatchers.IO) {
         val s = dao.session(sessionId) ?: throw UserException("Unknown session.")
         controlOk(s.projectId, ControlPlain(ControlCommands.SESSION_CLEAR_MEMORY, s.projectId, sessionId = sessionId))

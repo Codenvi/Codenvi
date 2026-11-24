@@ -38,7 +38,7 @@ import app.codenvi.ui.AppViewModel
 import app.codenvi.ui.components.ConfirmDialog
 import app.codenvi.ui.theme.Tokens
 
-/** First run (Project.md §10.3 screen 1): disclaimer, then the server's host name and password. */
+/** First run (docs/design.md §10.3 screen 1): disclaimer, then the server's host name and password. */
 @Composable
 fun ConnectScreen(vm: AppViewModel, activity: MainActivity, initialLink: String?, onDone: () -> Unit) {
     val secure by vm.repo.secure.collectAsStateWithLifecycle()

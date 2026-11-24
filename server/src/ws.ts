@@ -14,7 +14,7 @@ import { ClientConnection, hub } from "./services/hub";
 import * as jobs from "./services/jobs";
 
 /**
- * wss://host/ws?token=ACCESS (Project.md §7.4). The token is validated on connect, and expiry/revocation is
+ * wss://host/ws?token=ACCESS (docs/design.md §7.4). The token is validated on connect, and expiry/revocation is
  * re-checked on every received message.
  */
 const MAX_MESSAGE_BYTES = 2 * 1024 * 1024;

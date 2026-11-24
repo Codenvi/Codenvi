@@ -6,7 +6,7 @@ namespace Codenvi.Desktop.Claude;
 public sealed record ProcessResult(int ExitCode, string StdOut, string StdErr, bool Cancelled, bool TimedOut);
 
 /// <summary>
-/// Runs a process without a shell (ProcessStartInfo.ArgumentList, Project.md §8.6), optionally feeding
+/// Runs a process without a shell (ProcessStartInfo.ArgumentList, docs/design.md §8.6), optionally feeding
 /// stdin and streaming stdout lines. Cancellation kills the whole process tree.
 /// </summary>
 public static class ProcessRunner
@@ -33,7 +33,7 @@ public static class ProcessRunner
             WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
-        // The environment is inherited unchanged (Claude Code uses the user's own sign-in, Project.md §0.5).
+        // The environment is inherited unchanged (Claude Code uses the user's own sign-in, docs/design.md §0.5).
 
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var stdout = new StringBuilder();

@@ -55,7 +55,7 @@ fun ProjectState.label(): String = when (this) {
     ProjectState.IDLE -> "Idle"
 }
 
-/** Status chip: running = orange, queued = amber, so the two are never confused (Project.md §0.7). */
+/** Status chip: running = orange, queued = amber, so the two are never confused (docs/design.md §0.7). */
 @Composable
 fun Chip(text: String, color: Color) {
     Row(
@@ -120,7 +120,7 @@ fun InputDialog(title: String, initial: String, confirm: String = "Save", single
 }
 
 /**
- * Voice dictation bound to a TextFieldValue (Project.md §10.4): partial results show live in the field,
+ * Voice dictation bound to a TextFieldValue (docs/design.md §10.4): partial results show live in the field,
  * the final text is inserted at the cursor, and nothing is ever sent automatically.
  */
 class Dictation(private val speech: SpeechInput) {

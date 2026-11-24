@@ -1,7 +1,7 @@
 namespace Codenvi.Desktop.Core;
 
 #pragma warning disable CS8618
-/// <summary>Local project (desktop is the source of truth for folder paths, Project.md §2).</summary>
+/// <summary>Local project (desktop is the source of truth for folder paths, docs/design.md §2).</summary>
 public sealed class LocalProject
 {
     public Guid Id { get; set; }
@@ -28,7 +28,7 @@ public sealed class LocalSession
     public Guid ClaudeSessionId { get; set; }
     /// <summary>True once Claude Code created the transcript, so later jobs use --resume.</summary>
     public bool Started { get; set; }
-    /// <summary>Set after a rollback; prefixed to the next prompt (Project.md §8.6).</summary>
+    /// <summary>Set after a rollback; prefixed to the next prompt (docs/design.md §8.6).</summary>
     public string? RollbackNote { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -66,7 +66,7 @@ public sealed class LocalCommit
 }
 #pragma warning restore CS8618
 
-/// <summary>Values from the Settings screen (Project.md §8.4).</summary>
+/// <summary>Values from the Settings screen (docs/design.md §8.4).</summary>
 public sealed class AppSettings
 {
     public bool StartWithWindows { get; set; }

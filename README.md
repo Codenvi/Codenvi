@@ -2,6 +2,13 @@
 
 # Codenvi
 
+<p align="center">
+  <a href="https://github.com/Codenvi/Codenvi/actions/workflows/tests.yml"><img src="https://github.com/Codenvi/Codenvi/actions/workflows/tests.yml/badge.svg?branch=main" alt="tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-orange" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Android%20%7C%20Node.js-informational" alt="platforms">
+  <a href="https://codenvi.github.io/Codenvi/"><img src="https://img.shields.io/badge/website-codenvi.github.io-ff8a1f" alt="website"></a>
+</p>
+
 > **Disclaimer.** Codenvi is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by Anthropic, PBC. "Claude" and "Claude Code" are trademarks of Anthropic, PBC.
 >
 > Codenvi runs the official Claude Code CLI that you install and sign in to yourself on each PC. Codenvi never sees or stores your Claude credentials. Your use of Claude Code is governed by Anthropic's terms, and you are responsible for complying with them.
@@ -23,7 +30,7 @@ Android app ──HTTPS/WSS──▶ your VPS (nginx → Node.js server → Post
 - **No open ports on your PCs.** Both apps connect outbound.
 - **A compromised server can't run commands on your PCs** - it can't produce a valid encrypted prompt.
 
-The full design is in [Project.md](Project.md).
+The full design is in [docs/design.md](docs/design.md).
 
 ## Getting started
 
@@ -38,7 +45,7 @@ You need: a small Ubuntu 24.04 VPS, a domain or subdomain pointing at it, Window
 2. **PC.** Download [`windows/Codenvi.exe`](windows/Codenvi.exe) from this repository and run it. Windows SmartScreen warns because the exe is unsigned: choose *More info → Run anyway*. Read the disclaimer, enter the **host name** and **password** in *Connect to server* and pick a name.
 3. **Claude Code.** Install Claude Code on the PC and sign in to it yourself, in a terminal. Codenvi only checks that `claude` is present and signed in; it never handles your Claude credentials.
 4. **Encryption key.** In Codenvi press **Generate key and register this PC**.
-5. **Phone.** Download [`android/Codenvi.apk`](android/Codenvi.apk) and install it (allow installing from unknown sources).
+5. **Phone.** Get `android/Codenvi.apk` (produced by the `[android]` build, see [docs/building.md](docs/building.md); it appears in the repository after the first build) and install it (allow installing from unknown sources).
 6. On the PC press **Connect a phone** and paste the string into the phone. That links the phone to the server and gives it the PC's encryption key in one step. (Or enter the same host name and password on the phone as on the PC, then add the PC's key with **Show encryption key**.)
 7. On the PC, **Register project** → pick a folder. Codenvi creates the `codenvi-dev` branch. Send your first prompt from the phone.
 
@@ -52,34 +59,32 @@ You need: a small Ubuntu 24.04 VPS, a domain or subdomain pointing at it, Window
 | `windows/` | WPF app; `windows/Codenvi.exe` is the built app (pairing, keys, project registration, job engine, git, tray) |
 | `android/` | Jetpack Compose app; `android/Codenvi.apk` is the built app (devices, projects, chat, Multimode, voice, read aloud) |
 | `shared/` | `Codenvi.Contracts`: DTOs, WebSocket envelope, crypto (C#) used by the Windows app |
-| `docs/` | [protocol](docs/protocol.md), [crypto + test vectors](docs/crypto.md), [building](docs/building.md), [self-hosting](docs/self-hosting.md) |
+| `docs/` | [design](docs/design.md), [deployment](docs/deployment.md), [protocol](docs/protocol.md), [crypto + test vectors](docs/crypto.md), [building](docs/building.md), [self-hosting](docs/self-hosting.md) |
 | `.github/` | Workflows (GitHub requires this folder at the root) and the gitleaks configuration |
 
-## Deploying changes (owner's repository)
+## Screenshots
 
-Put tags in any commit message of a push to `main`, in any combination:
+<!-- Add images to docs/assets/screenshots/ and uncomment:
+<p align="center">
+  <img src="docs/assets/screenshots/desktop.png" width="48%" alt="Codenvi on Windows">
+  <img src="docs/assets/screenshots/phone-chat.png" width="24%" alt="Codenvi on Android">
+</p>
+-->
 
-| Tag | Result |
-|---|---|
-| `[android]` | tests and builds the app, commits `android/Codenvi.apk` |
-| `[windows]` | tests and builds the app, commits `windows/Codenvi.exe` |
-| `[server]` | tests the server, then deploys database migrations and code to your VPS |
+## Troubleshooting
 
-With several keywords the **server always goes first**: the apps are built only after the server deploy succeeded, and not at all if it failed. So `Release [server] [windows] [android]` in one commit is fine. A push without keywords starts nothing. Everything can also be run manually (Actions → publish → Run workflow, tick the parts you want). Secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_PRIVATE_KEY`, `ENV_VARS`, and for the APK `ANDROID_KEYSTORE_B64` + `ANDROID_KEYSTORE_PASSWORD` ([docs/building.md](docs/building.md#android-signing)). Every APK is signed with the same key, so it installs over the previous one and the phone stays paired. Forks build and test but never sign, deploy or push binaries.
+- **SmartScreen warns when I run `Codenvi.exe`.** The exe is unsigned. Choose *More info → Run anyway*, or build it yourself ([docs/building.md](docs/building.md)).
+- **Jobs wait with "Claude sign-in needed".** Open a terminal on that PC, run `claude` and sign in. Codenvi never handles your Claude credentials.
+- **The phone can't connect.** Check the host name and password match the PC's, that the domain has valid HTTPS, and that `https://<host>/` is reachable from the phone ([docs/self-hosting.md](docs/self-hosting.md)).
+- **I lost my phone.** Revoke it from the PC (Settings → Revoke) or run `codenvi-admin revoke <id>` on the VPS, then **Regenerate key** on each PC.
 
-Rollback is `git revert` of the commits after the good one, then push with the tag again.
+## Deployment and release tags
 
-## Defaults chosen for the open questions (Project.md §15)
+Pushing to `main` with `[server]`, `[windows]` or `[android]` in a commit message builds and deploys that part. The tag table, the defaults chosen for the open design questions and rollback are in [docs/deployment.md](docs/deployment.md).
 
-| Q | Default in this code | Change it by |
-|---|---|---|
-| Q1 Domain | A domain (`CODENVI_HOST` in `ENV_VARS`) with nginx + Let's Encrypt is required. Self-signed setups are supported by the apps through the `pin=` parameter (see self-hosting docs). | Set `CODENVI_PIN` in `ENV_VARS` |
-| Q2 Tags | `[server]`, `[windows]` and `[android]` in any commit of the push. | Edit the `if:` lines in the workflows |
-| Q3 Binaries | Committed as `windows/Codenvi.exe` and `android/Codenvi.apk`; the Windows workflow fails above 95 MB with a pointer to Git LFS. Each run also uploads the build as a workflow artifact. | Enable the LFS line in `windows/.gitattributes` |
-| Q4 Permissions | `acceptEdits` + per-project allowed tools (`Read Edit Write Glob Grep`), `--permission-prompts none`. `bypassPermissions` needs an explicit confirmation. | Project → Settings tab on the PC |
-| Q5 Copyright | `Irakli Gzirishvili` in `LICENSE` and the About screens. | Edit those files |
-| Q6 App ID | `app.codenvi` | `android/app/build.gradle.kts` (before the first release) |
+## Community
 
+[Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Changelog](CHANGELOG.md)
 
 ## Security model in one paragraph
 

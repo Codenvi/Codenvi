@@ -13,7 +13,7 @@ import { SyncEntities } from "../lib/envelope";
 import { hub } from "../services/hub";
 import { INSTALL_COLUMNS, installDto, type InstallRow } from "./dto";
 
-/** Pairing, token refresh, pairing codes and installs (Project.md §4, §7.3). */
+/** Pairing, token refresh, pairing codes and installs (docs/design.md §4, §7.3). */
 export const authRoutes = Router();
 
 const pairSchema = z.object({

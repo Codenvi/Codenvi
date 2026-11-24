@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Codenvi.Desktop.Views;
 
-/// <summary>Device setup (Project.md §8.4 screen 2): generate the key, then Connect a phone.</summary>
+/// <summary>Device setup (docs/design.md §8.4 screen 2): generate the key, then Connect a phone.</summary>
 public partial class DeviceSetupWindow : Window
 {
     private readonly SecretStore _secrets = App.Services.GetRequiredService<SecretStore>();

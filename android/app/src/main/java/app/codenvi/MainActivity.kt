@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
     private var pendingLink by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Dark status and navigation bars (Project.md §0.7).
+        // Dark status and navigation bars (docs/design.md §0.7).
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.parseColor("#121212")),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.parseColor("#121212")),
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
         pendingLink = intent.dataString
     }
 
-    /** FLAG_SECURE on screens that show or accept keys (Project.md §10.6). */
+    /** FLAG_SECURE on screens that show or accept keys (docs/design.md §10.6). */
     fun setSecure(on: Boolean) {
         if (on) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }

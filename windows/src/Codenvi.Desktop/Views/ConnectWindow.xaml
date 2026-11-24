@@ -7,7 +7,7 @@
     <TextBlock Text="Codenvi" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Primary}" />
     <TextBlock Text="Drive Claude Code on this PC from your phone." Style="{StaticResource Muted}" Margin="0,2,0,18" />
 
-    <!-- First run: disclaimer (Project.md §0.3) -->
+    <!-- First run: disclaimer (docs/design.md §0.3) -->
     <Border x:Name="DisclaimerPanel" Style="{StaticResource Card}">
       <StackPanel>
         <TextBlock Text="Before you start" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,8" />

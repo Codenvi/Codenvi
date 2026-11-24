@@ -69,7 +69,7 @@ fun CodenviTopBar(title: String, onBack: (() -> Unit)? = null, actions: @Composa
     )
 }
 
-/** Devices (Project.md §10.3 screen 2): all paired PCs, online dot, "key needed" badge, add/change key. */
+/** Devices (docs/design.md §10.3 screen 2): all paired PCs, online dot, "key needed" badge, add/change key. */
 @Composable
 fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> Unit) {
     val devices by vm.repo.devices.collectAsStateWithLifecycle(emptyList())
@@ -134,7 +134,7 @@ fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> 
     }
 }
 
-/** Key entry: FLAG_SECURE while visible; KCV checked by the repository (Project.md §5.2). */
+/** Key entry: FLAG_SECURE while visible; KCV checked by the repository (docs/design.md §5.2). */
 @Composable
 fun KeyDialog(activity: MainActivity, title: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
     var text by remember { mutableStateOf("") }

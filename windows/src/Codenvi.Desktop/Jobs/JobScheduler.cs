@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 namespace Codenvi.Desktop.Jobs;
 
 /// <summary>
-/// Job execution engine (Project.md §8.6): one FIFO queue per project (one job per project at a time),
+/// Job execution engine (docs/design.md §8.6): one FIFO queue per project (one job per project at a time),
 /// projects in parallel up to "max parallel".
 /// </summary>
 public sealed class JobScheduler(
@@ -202,7 +202,7 @@ public sealed class JobScheduler(
         var project = db.Project(job.ProjectId);
         if (project is null) { await FailAsync(job, ErrorCodes.ProjectMissing, "This project is not registered on the PC.", null); return; }
 
-        // 1. Decrypt and verify (Project.md §5). A bad prompt is never run.
+        // 1. Decrypt and verify (docs/design.md §5). A bad prompt is never run.
         PromptPlain prompt;
         try
         {
@@ -220,7 +220,7 @@ public sealed class JobScheduler(
             return;
         }
 
-        // 2. Replay and staleness (Project.md §5.4).
+        // 2. Replay and staleness (docs/design.md §5.4).
         if (db.WasSeen(job.Id) || db.WasSeen(job.PromptMessageId))
         {
             await FailAsync(job, ErrorCodes.Replay, "This prompt was already executed.", null);
@@ -235,7 +235,7 @@ public sealed class JobScheduler(
             return;
         }
 
-        // 3. Claude Code present and signed in (Project.md §4.4).
+        // 3. Claude Code present and signed in (docs/design.md §4.4).
         var status = await claude.CheckAsync(ct);
         state.SetClaude(status);
         if (status.State == ClaudeState.NotSignedIn)
@@ -359,7 +359,7 @@ public sealed class JobScheduler(
             return;
         }
 
-        // 7. Commit step (Project.md §9.2).
+        // 7. Commit step (docs/design.md §9.2).
         if (session.RollbackNote is not null) { session.RollbackNote = null; db.UpsertSession(session); }
         string? commitHash;
         int filesChanged = 0;
@@ -460,7 +460,7 @@ public sealed class JobScheduler(
     public static string Tail(string text, int lines) =>
         string.Join('\n', text.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.Length > 0).TakeLast(lines));
 
-    /// <summary>Splits long replies into parts (Project.md §7.6), preferring line breaks.</summary>
+    /// <summary>Splits long replies into parts (docs/design.md §7.6), preferring line breaks.</summary>
     public static List<string> Chunk(string text, int size)
     {
         var parts = new List<string>();

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Window theme before Compose draws: dark, no dynamic colors (Project.md §0.7). -->
+    <!-- Window theme before Compose draws: dark, no dynamic colors (docs/design.md §0.7). -->
     <style name="Theme.Codenvi" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/codenvi_background</item>
         <item name="android:statusBarColor">@color/codenvi_background</item>

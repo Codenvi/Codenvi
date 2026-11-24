@@ -7,7 +7,7 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 
 /**
- * codenvi:// strings (Project.md §4.1–4.2), compatible with shared/Codenvi.Contracts/ConnectionString.cs:
+ * codenvi:// strings (docs/design.md §4.1–4.2), compatible with shared/Codenvi.Contracts/ConnectionString.cs:
  *   codenvi://host[:port]/pair?c=CODE[&dev=ID&kv=N&k=KEY][&dn=NAME][&pin=PIN]
  *   codenvi://key?dev=ID&kv=N&k=KEY[&dn=NAME]
  */

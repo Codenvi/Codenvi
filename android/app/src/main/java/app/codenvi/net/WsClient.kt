@@ -17,7 +17,7 @@ import okhttp3.WebSocketListener
 import java.util.UUID
 
 /**
- * OkHttp WebSocket to wss://host/ws (Project.md §7.4, §10.2): runs while the app is in the foreground,
+ * OkHttp WebSocket to wss://host/ws (docs/design.md §7.4, §10.2): runs while the app is in the foreground,
  * reconnects with exponential backoff (1 s → 30 s), refreshes the token on close code 4001.
  */
 class WsClient(private val http: Http, private val store: SecureStore, private val scope: CoroutineScope) {

@@ -7,7 +7,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.ToJson
 import java.util.Base64
 
-// REST DTOs (Project.md §7.3). Mirrors shared/Codenvi.Contracts/Api/Dtos.cs. byte[] travels as Base64.
+// REST DTOs (docs/design.md §7.3). Mirrors shared/Codenvi.Contracts/Api/Dtos.cs. byte[] travels as Base64.
 
 @JsonClass(generateAdapter = true)
 data class PairRequest(val code: String, val installId: String, val kind: String, val name: String, val appVersion: String,
@@ -74,7 +74,7 @@ data class ControlRequest(val requestId: String, val ciphertext: ByteArray, val 
 @JsonClass(generateAdapter = true)
 data class ModelCatalogEntry(val alias: String, val label: String, val efforts: List<String>, val enabled: Boolean, val sortOrder: Int)
 
-// ---------------- WebSocket (Project.md §7.4) ----------------
+// ---------------- WebSocket (docs/design.md §7.4) ----------------
 
 @JsonClass(generateAdapter = true)
 data class Envelope(val type: String, val id: String, val ts: Long, val payload: Any?)

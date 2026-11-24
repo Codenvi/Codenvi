@@ -4,7 +4,7 @@ using Codenvi.Contracts;
 
 namespace Codenvi.Desktop.Core;
 
-/// <summary>Everything secret, stored with DPAPI (CurrentUser) in secrets.bin (Project.md §8.3).</summary>
+/// <summary>Everything secret, stored with DPAPI (CurrentUser) in secrets.bin (docs/design.md §8.3).</summary>
 public sealed class Secrets
 {
     public string? ServerHost { get; set; }

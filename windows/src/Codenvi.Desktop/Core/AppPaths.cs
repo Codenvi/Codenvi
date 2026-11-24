@@ -1,6 +1,6 @@
 namespace Codenvi.Desktop.Core;
 
-/// <summary>%LOCALAPPDATA%\Codenvi (Project.md §8.3).</summary>
+/// <summary>%LOCALAPPDATA%\Codenvi (docs/design.md §8.3).</summary>
 public static class AppPaths
 {
     public static string Root { get; set; } =

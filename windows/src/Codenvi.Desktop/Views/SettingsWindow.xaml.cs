@@ -20,7 +20,7 @@ public sealed record InstallRowView(InstallDto Dto)
     public string Status => Dto.Revoked ? "revoked" : "active";
 }
 
-/// <summary>Settings (Project.md §8.4 screen 4).</summary>
+/// <summary>Settings (docs/design.md §8.4 screen 4).</summary>
 public partial class SettingsWindow : Window
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -70,7 +70,7 @@ public partial class SettingsWindow : Window
         Close();
     }
 
-    /// <summary>HKCU\...\Run entry (Project.md §8.4).</summary>
+    /// <summary>HKCU\...\Run entry (docs/design.md §8.4).</summary>
     private static void ApplyStartWithWindows(bool on)
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true) ?? Registry.CurrentUser.CreateSubKey(RunKey);

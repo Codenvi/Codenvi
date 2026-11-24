@@ -10,7 +10,7 @@ public sealed record ResultEvent(bool IsError, string? Subtype, string Text, str
     long? DurationMs, int? NumTurns, long? InputTokens, long? OutputTokens) : ClaudeEvent;
 
 /// <summary>
-/// Tolerant parser for `claude -p --output-format stream-json --verbose` (V4 in Project.md §14).
+/// Tolerant parser for `claude -p --output-format stream-json --verbose` (V4 in docs/design.md §14).
 /// Unknown event types and fields are ignored, so format changes don't break jobs.
 /// </summary>
 public static class StreamJsonParser

@@ -66,7 +66,7 @@ export const REFRESH_RETRY_WINDOW_MS = 24 * 3_600_000;
 export type RefreshOutcome = "ok" | "invalid" | "reused" | "revoked";
 
 /**
- * Rotating refresh (Project.md §4.3).
+ * Rotating refresh (docs/design.md §4.3).
  * - A fresh token is exchanged for a new pair and marked used.
  * - A used token whose successor was never used, within 24 h of the rotation, is a lost response: the unused
  *   successor is dropped and a new pair is issued, so the app stays connected.

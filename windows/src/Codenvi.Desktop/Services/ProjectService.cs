@@ -22,7 +22,7 @@ public interface IUserPrompts
 
 public sealed class ProjectException(string message) : Exception(message);
 
-/// <summary>Project, session and commit management on the PC (Project.md §8.5, §8.7, §9).</summary>
+/// <summary>Project, session and commit management on the PC (docs/design.md §8.5, §8.7, §9).</summary>
 public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService crypto, GitService git, AppState state,
     IServiceProvider services, ILogger<ProjectService> log)
 {
@@ -171,7 +171,7 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
     }
 
     /// <summary>
-    /// Clears the server chat and starts a fresh Claude session UUID (Project.md §8.5). The old transcript is
+    /// Clears the server chat and starts a fresh Claude session UUID (docs/design.md §8.5). The old transcript is
     /// deleted only when the setting is on.
     /// </summary>
     public async Task ClearMemoryAsync(LocalSession s, bool clearServerMessages = true)
@@ -201,7 +201,7 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
     }
 
     /// <summary>
-    /// Best effort (Project.md §8.7): the transcript layout is internal to Claude Code, so we search
+    /// Best effort (docs/design.md §8.7): the transcript layout is internal to Claude Code, so we search
     /// ~/.claude/projects/*/&lt;uuid&gt;.jsonl and otherwise leave it to Claude Code's own cleanup.
     /// </summary>
     public void DeleteTranscript(Guid claudeSessionId)
@@ -285,7 +285,7 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
         string? model, string prompt, string reply, string? preHash)
     {
         var folder = project.FolderPath;
-        // Commits Claude made itself during the job count as task commits (Project.md §9.2).
+        // Commits Claude made itself during the job count as task commits (docs/design.md §9.2).
         var own = await git.RevListAsync(folder, preHash);
         foreach (var h in own) await RecordCommitAsync(project, jobId, h, "task");
 
@@ -322,7 +322,7 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
         catch (Exception e) { log.LogWarning("Commit upload failed: {Message}", e.Message); }
     }
 
-    /// <summary>Rollback by revert, history kept (Project.md §9.3).</summary>
+    /// <summary>Rollback by revert, history kept (docs/design.md §9.3).</summary>
     public async Task<LocalCommit> RollbackAsync(Guid projectId, string targetHash)
     {
         var project = db.Project(projectId) ?? throw new ProjectException("Unknown project.");
@@ -360,7 +360,7 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
 
     public void WriteMemory(LocalProject p, string text) => File.WriteAllText(ClaudeMdPath(p), text);
 
-    /// <summary>Runs a tiny `claude -p` in the folder to detect a workspace-trust problem (V3 in Project.md §14).</summary>
+    /// <summary>Runs a tiny `claude -p` in the folder to detect a workspace-trust problem (V3 in docs/design.md §14).</summary>
     public async Task<string> TestClaudeAsync(LocalProject p, ClaudeCli claude)
     {
         var status = await claude.CheckAsync();

@@ -5,7 +5,7 @@ using Windows.Security.Credentials.UI;
 namespace Codenvi.Desktop.Native;
 
 /// <summary>
-/// Gate for "Show encryption key" (Project.md §5.1): Windows Hello if it is set up, otherwise the
+/// Gate for "Show encryption key" (docs/design.md §5.1): Windows Hello if it is set up, otherwise the
 /// Windows password of the current user (CredUI + LogonUser).
 /// </summary>
 internal static partial class UserVerification

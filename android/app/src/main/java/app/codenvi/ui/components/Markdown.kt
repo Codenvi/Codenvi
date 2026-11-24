@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import app.codenvi.ui.theme.MonoStyle
 import app.codenvi.ui.theme.Tokens
 
-/** Blocks of the small built-in Markdown renderer (Project.md §10.3): headings, lists, quotes, code blocks. */
+/** Blocks of the small built-in Markdown renderer (docs/design.md §10.3): headings, lists, quotes, code blocks. */
 sealed interface MdBlock {
     data class Heading(val level: Int, val text: String) : MdBlock
     data class Paragraph(val text: String) : MdBlock

@@ -1,7 +1,7 @@
 # Codenvi protocol
 
 Normative description of the REST API and WebSocket protocol between the apps and the Codenvi server
-(Project.md §7). C# types: `shared/Codenvi.Contracts`. TypeScript: `server/src/routes`, `server/src/lib/envelope.ts`. Kotlin types: `android/app/src/main/java/app/codenvi/net/Dtos.kt`.
+(docs/design.md §7). C# types: `shared/Codenvi.Contracts`. TypeScript: `server/src/routes`, `server/src/lib/envelope.ts`. Kotlin types: `android/app/src/main/java/app/codenvi/net/Dtos.kt`.
 
 All JSON uses camelCase. Byte arrays are standard Base64 strings. IDs are lowercase hyphenated UUIDs.
 Timestamps ending in `Ms` are Unix milliseconds. Null fields are omitted by the server.

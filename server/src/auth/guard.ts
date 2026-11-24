@@ -55,7 +55,7 @@ export async function minBuild(kind: string): Promise<number> {
   return minBuilds.get(kind) ?? 0;
 }
 
-/** Records last-seen / version information (Project.md §7.2). Never throws. */
+/** Records last-seen / version information (docs/design.md §7.2). Never throws. */
 export async function touch(installId: string, client: ClientInfo | null, ip: string | null): Promise<void> {
   const now = Date.now();
   const last = touched.get(installId);

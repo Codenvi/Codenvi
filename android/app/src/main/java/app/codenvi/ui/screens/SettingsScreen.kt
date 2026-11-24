@@ -47,7 +47,7 @@ import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
-/** Settings (Project.md §10.3 screen 7). */
+/** Settings (docs/design.md §10.3 screen 7). */
 @Composable
 fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
     val repo = vm.repo

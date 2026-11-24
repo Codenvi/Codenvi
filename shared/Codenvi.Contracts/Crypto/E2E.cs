@@ -38,7 +38,7 @@ public readonly record struct AadContext(Guid DeviceId, string ObjectType, Guid 
 }
 
 /// <summary>
-/// End-to-end encryption (Project.md §5). Wire format:
+/// End-to-end encryption (docs/design.md §5). Wire format:
 /// version(1)=0x01 | keyVersion(2, big-endian) | nonce(12) | ciphertext | tag(16).
 /// </summary>
 public static class E2E

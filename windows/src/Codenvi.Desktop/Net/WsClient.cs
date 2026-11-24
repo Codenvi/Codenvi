@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Codenvi.Desktop.Net;
 
 /// <summary>
-/// Outbound WebSocket to <c>wss://host/ws</c> (Project.md §7.4). Reconnects with exponential backoff
+/// Outbound WebSocket to <c>wss://host/ws</c> (docs/design.md §7.4). Reconnects with exponential backoff
 /// (1 s → 30 s), pings every 25 s, refreshes the token when the server closes with 4001.
 /// </summary>
 public sealed class WsClient(SecretStore secrets, ApiClient api, ILogger<WsClient> log) : BackgroundService

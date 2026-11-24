@@ -7,7 +7,7 @@ using Codenvi.Desktop.Core;
 namespace Codenvi.Desktop.Net;
 
 /// <summary>
-/// Builds HTTP handlers. With a pin (self-signed setups, Project.md §4.1) the server's
+/// Builds HTTP handlers. With a pin (self-signed setups, docs/design.md §4.1) the server's
 /// SubjectPublicKeyInfo SHA-256 must match; otherwise normal TLS validation applies.
 /// </summary>
 public static class HttpFactory

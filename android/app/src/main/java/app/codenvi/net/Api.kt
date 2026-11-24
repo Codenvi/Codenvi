@@ -10,7 +10,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-/** /api/v1 (Project.md §7.3). */
+/** /api/v1 (docs/design.md §7.3). */
 interface CodenviApi {
     @POST("api/v1/pair") suspend fun pair(@Body req: PairRequest): TokenResponse
 

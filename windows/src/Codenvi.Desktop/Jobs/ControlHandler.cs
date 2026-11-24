@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Codenvi.Desktop.Jobs;
 
-/// <summary>Executes encrypted control commands from the phone (Project.md §7.5).</summary>
+/// <summary>Executes encrypted control commands from the phone (docs/design.md §7.5).</summary>
 public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws, ProjectService projects, AppState state,
     ILogger<ControlHandler> log)
 {

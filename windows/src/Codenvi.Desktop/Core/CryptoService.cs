@@ -4,7 +4,7 @@ using Codenvi.Contracts.Crypto;
 
 namespace Codenvi.Desktop.Core;
 
-/// <summary>Device-key operations for this PC (Project.md §5).</summary>
+/// <summary>Device-key operations for this PC (docs/design.md §5).</summary>
 public sealed class CryptoService(SecretStore secrets)
 {
     public Guid DeviceId => secrets.Current.DeviceId ?? throw new InvalidOperationException("This PC is not registered as a device yet.");
@@ -40,7 +40,7 @@ public sealed class CryptoService(SecretStore secrets)
         return secrets.KeyFor(version) ?? throw new CryptographicException($"Key version {version} is not available on this PC.");
     }
 
-    /// <summary>Phone connection string: pairing code + device ID + key (Project.md §4.2).</summary>
+    /// <summary>Phone connection string: pairing code + device ID + key (docs/design.md §4.2).</summary>
     public string PhoneConnectionString(string host, string pairingCode, string? pin) => new ConnectionString
     {
         Host = host,

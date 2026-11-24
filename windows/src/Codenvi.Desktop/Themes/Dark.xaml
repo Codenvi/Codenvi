@@ -1,7 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <!-- Shared design tokens (Project.md §0.7). Keep in sync with android/app/src/main/java/app/codenvi/ui/theme/Color.kt -->
+  <!-- Shared design tokens (docs/design.md §0.7). Keep in sync with android/app/src/main/java/app/codenvi/ui/theme/Color.kt -->
   <Color x:Key="PrimaryColor">#FF8A1F</Color>
   <Color x:Key="PrimaryHoverColor">#FFA24D</Color>
   <Color x:Key="PrimaryPressedColor">#E07410</Color>

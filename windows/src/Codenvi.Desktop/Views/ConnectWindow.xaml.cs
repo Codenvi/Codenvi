@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Codenvi.Desktop.Views;
 
-/// <summary>First run (Project.md §8.4 screen 1): disclaimer, then the server's host name and password.</summary>
+/// <summary>First run (docs/design.md §8.4 screen 1): disclaimer, then the server's host name and password.</summary>
 public partial class ConnectWindow : Window
 {
     private readonly AppState _state = App.Services.GetRequiredService<AppState>();

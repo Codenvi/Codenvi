@@ -3,7 +3,7 @@ import {
   type AnyPgColumn, bigint, bigserial, boolean, char, check, customType, index, integer, pgTable, text, timestamp, unique, uuid,
 } from "drizzle-orm/pg-core";
 
-// Codenvi schema (Project.md §6.2). Timestamps are stored as timestamptz, which is UTC.
+// Codenvi schema (docs/design.md §6.2). Timestamps are stored as timestamptz, which is UTC.
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
 const inet = customType<{ data: string; driverData: string }>({ dataType: () => "inet" });
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });

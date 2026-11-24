@@ -11,7 +11,7 @@ import app.codenvi.net.Http
 import app.codenvi.repo.Repository
 import app.codenvi.speech.ReadAloud
 
-/** Manual DI (Project.md §10.2: no Hilt). */
+/** Manual DI (docs/design.md §10.2: no Hilt). */
 class AppContainer(app: Application) {
     val secure = SecureStore(app)
     val settings = SettingsStore(app)
@@ -28,7 +28,7 @@ class CodenviApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        // The WebSocket runs while the app is in the foreground (Project.md §10.2).
+        // The WebSocket runs while the app is in the foreground (docs/design.md §10.2).
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) = container.repository.ws.start()
             override fun onStop(owner: LifecycleOwner) = container.repository.ws.stop()

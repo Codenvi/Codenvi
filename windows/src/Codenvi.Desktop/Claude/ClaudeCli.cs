@@ -17,12 +17,12 @@ public sealed record ClaudeStatus(ClaudeState State, string? Path, string? Versi
 }
 
 /// <summary>
-/// Checks the user-managed Claude Code CLI (Project.md §4.4). Codenvi never opens a sign-in flow,
+/// Checks the user-managed Claude Code CLI (docs/design.md §4.4). Codenvi never opens a sign-in flow,
 /// reads credential files or stores any Claude token; it only looks at `claude auth status`'s exit code.
 /// </summary>
 public sealed partial class ClaudeCli(ILogger<ClaudeCli> log)
 {
-    /// <summary>`--permission-prompts none` needs this version (V6 in Project.md §14).</summary>
+    /// <summary>`--permission-prompts none` needs this version (V6 in docs/design.md §14).</summary>
     public static readonly Version MinimumVersion = new(2, 1, 259);
 
     public ClaudeStatus Status { get; private set; } = new(ClaudeState.Unknown, null, null);
@@ -79,7 +79,7 @@ public sealed partial class ClaudeCli(ILogger<ClaudeCli> log)
         return cleaned.Length == 0 ? "Codenvi session" : "Codenvi: " + cleaned;
     }
 
-    /// <summary>Builds the `claude -p` arguments from Project.md §8.6. The prompt itself goes on stdin.</summary>
+    /// <summary>Builds the `claude -p` arguments from docs/design.md §8.6. The prompt itself goes on stdin.</summary>
     public static List<string> BuildArguments(bool firstMessage, Guid claudeSessionId, string sessionName, string? model,
         string? effort, string permissionMode, string allowedTools, int maxTurns)
     {
