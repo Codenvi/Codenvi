@@ -1,0 +1,314 @@
+name: publish
+
+# One workflow, three optional parts, always in this order: server, then windows and android.
+#
+# Put keywords in any commit message of a push to main:
+#   [server]   test the server, then deploy migrations + code to the VPS
+#   [windows]  test and build the app, commit windows/Codenvi.exe
+#   [android]  test and build the app, commit android/Codenvi.apk
+# With several keywords the server runs FIRST; the apps start only after it succeeded (or when [server] was not
+# requested). If the server deploy fails, the apps are not built.
+# Manual run: Actions -> publish -> Run workflow, tick the parts you want.
+#
+# Secrets: VPS_HOST, VPS_USER, VPS_SSH_PRIVATE_KEY, ENV_VARS (server);
+#          ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD (android).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      server:
+        description: 'Deploy the server'
+        type: boolean
+        default: false
+      windows:
+        description: 'Build windows/Codenvi.exe'
+        type: boolean
+        default: false
+      android:
+        description: 'Build android/Codenvi.apk'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codenvi-publish
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.p.outputs.server }}
+      windows: ${{ steps.p.outputs.windows }}
+      android: ${{ steps.p.outputs.android }}
+    steps:
+      - id: p
+        env:
+          EVENT: ${{ github.event_name }}
+          MESSAGES: ${{ join(github.event.commits.*.message, ' ') }}
+          IN_SERVER: ${{ inputs.server }}
+          IN_WINDOWS: ${{ inputs.windows }}
+          IN_ANDROID: ${{ inputs.android }}
+        run: |
+          flag() {
+            if [ "$EVENT" = "workflow_dispatch" ]; then
+              [ "$2" = "true" ] && echo true || echo false
+            else
+              case "$MESSAGES" in *"[$1]"*) echo true ;; *) echo false ;; esac
+            fi
+          }
+          echo "server=$(flag server "$IN_SERVER")"    >> "$GITHUB_OUTPUT"
+          echo "windows=$(flag windows "$IN_WINDOWS")"  >> "$GITHUB_OUTPUT"
+          echo "android=$(flag android "$IN_ANDROID")"  >> "$GITHUB_OUTPUT"
+          echo "Plan: server=$(flag server "$IN_SERVER") windows=$(flag windows "$IN_WINDOWS") android=$(flag android "$IN_ANDROID")"
+
+  server:
+    needs: plan
+    if: needs.plan.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      # The server's name, host name and port come from the ENV_VARS secret, not from a file in the
+      # repository, so a fork or copy of this repository never inherits your values. Forks skip this (and the deploy).
+      - name: Read server settings from ENV_VARS
+        id: cfg
+        if: ${{ !github.event.repository.fork }}
+        working-directory: .
+        env:
+          ENV_VARS: ${{ secrets.ENV_VARS }}
+        run: node .github/scripts/read-server-settings.js
+
+      - run: npm ci
+      - run: npm run typecheck
+
+      # Every migration from zero against a fresh database, then the REST + WebSocket suite.
+      - run: npm test
+        env:
+          CODENVI_TEST_PG: postgresql://postgres:postgres@localhost:5432/postgres
+
+      - run: npm run build
+
+      - name: Bundle release (production dependencies only)
+        run: |
+          rm -rf "$RUNNER_TEMP/bundle" && mkdir -p "$RUNNER_TEMP/bundle"
+          cp -r dist drizzle package.json package-lock.json "$RUNNER_TEMP/bundle/"
+          (cd "$RUNNER_TEMP/bundle" && npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
+          tar -czf "$RUNNER_TEMP/release.tgz" -C "$RUNNER_TEMP/bundle" .
+          echo "Release bundle: $(du -h "$RUNNER_TEMP/release.tgz" | cut -f1)"
+
+      # Forks build and test only; they never deploy.
+      - name: Deploy to VPS
+        if: ${{ !github.event.repository.fork }}
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          ENV_VARS: ${{ secrets.ENV_VARS }}
+          APP_NAME: ${{ steps.cfg.outputs.name }}
+          DOMAIN: ${{ steps.cfg.outputs.domain }}
+          PORT: ${{ steps.cfg.outputs.port }}
+        run: |
+          missing=""
+          for s in VPS_HOST VPS_USER VPS_SSH_PRIVATE_KEY ENV_VARS; do
+            [ -n "${!s}" ] || missing="$missing $s"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing (Settings -> Secrets and variables -> Actions)"
+            exit 1
+          fi
+
+          umask 077
+          PAYLOAD="$RUNNER_TEMP/payload"
+          mkdir -p "$PAYLOAD" ~/.ssh
+          trap 'rm -rf "$PAYLOAD" ~/.ssh/codenvi_deploy' EXIT
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/codenvi_deploy
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          cp "$RUNNER_TEMP/release.tgz" deploy/deploy.sh "$PAYLOAD/"
+          printf '%s\n' "$ENV_VARS" > "$PAYLOAD/env_vars"
+
+          SSH="ssh -i $HOME/.ssh/codenvi_deploy -o BatchMode=yes"
+          REMOTE="/tmp/codenvi-deploy-${{ github.run_id }}-${{ github.run_attempt }}"
+          $SSH "$VPS_USER@$VPS_HOST" "mkdir -m 700 '$REMOTE'"
+          scp -i ~/.ssh/codenvi_deploy -o BatchMode=yes -q "$PAYLOAD"/* "$VPS_USER@$VPS_HOST:$REMOTE/"
+
+          # Values are validated by "Read server settings from ENV_VARS" (no quotes or spaces possible).
+          VARS="APP_NAME='$APP_NAME' DOMAIN='$DOMAIN' PORT='$PORT' WORK='$REMOTE'"
+          $SSH "$VPS_USER@$VPS_HOST" \
+            "if [ \"\$(id -u)\" = 0 ]; then env $VARS bash '$REMOTE/deploy.sh'; else sudo -n env $VARS bash '$REMOTE/deploy.sh'; fi"
+
+      - name: Public health check
+        if: ${{ !github.event.repository.fork }}
+        working-directory: .
+        run: |
+          URL="https://${{ steps.cfg.outputs.domain }}/health"
+          for i in 1 2 3 4 5; do
+            if curl -fsS --max-time 10 "$URL"; then echo; echo "OK: $URL"; exit 0; fi
+            echo "Attempt $i/5 failed, retrying in 10 s..."; sleep 10
+          done
+          echo "::warning::$URL did not answer. The server is running on the VPS (the deploy health-checked it locally); check DNS and the certificate step above."
+
+  windows:
+    needs: [plan, server]
+    permissions:
+      contents: write   # commits the built file
+    # Runs after the server job: when it succeeded, or when it was not requested. Not when it failed.
+    if: ${{ !cancelled() && needs.plan.outputs.windows == 'true' && (needs.server.result == 'success' || needs.server.result == 'skipped') }}
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+
+      - name: Test
+        run: dotnet test Codenvi.Desktop.sln -c Release
+
+      - name: Publish single-file exe
+        run: >
+          dotnet publish src/Codenvi.Desktop/Codenvi.Desktop.csproj -c Release
+          -r win-x64 --self-contained true -p:PublishSingleFile=true
+          -p:Version=1.0.${{ github.run_number }} -o out
+
+      - name: Copy and check size
+        shell: pwsh
+        run: |
+          Copy-Item out/Codenvi.exe ./Codenvi.exe -Force
+          $size = (Get-Item ./Codenvi.exe).Length
+          Write-Host ("Codenvi.exe is {0:N1} MB" -f ($size / 1MB))
+          if ($size -gt 95MB) {
+            Write-Error "Codenvi.exe is larger than 95 MB. GitHub rejects files over 100 MB: switch it to Git LFS (windows/.gitattributes)."
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Codenvi.exe
+          path: windows/Codenvi.exe
+
+      # Forks never push binaries. Commits made with GITHUB_TOKEN do not trigger workflows, so this cannot loop.
+      - name: Commit windows/Codenvi.exe
+        if: ${{ !github.event.repository.fork }}
+        shell: pwsh
+        run: |
+          git config user.name "codenvi-bot"
+          git config user.email "codenvi-bot@users.noreply.github.com"
+          git add Codenvi.exe
+          git commit -m "build: windows/Codenvi.exe 1.0.${{ github.run_number }}"
+          if ($LASTEXITCODE -ne 0) { Write-Host "Nothing to commit"; exit 0 }
+          for ($i = 0; $i -lt 5; $i++) {
+            git pull --rebase origin main
+            git push origin HEAD:main
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            Start-Sleep 5
+          }
+          exit 1
+
+  android:
+    needs: [plan, server]
+    permissions:
+      contents: write   # commits the built file
+    # Runs after the server job: when it succeeded, or when it was not requested. Not when it failed.
+    if: ${{ !cancelled() && needs.plan.outputs.android == 'true' && (needs.server.result == 'success' || needs.server.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    env:
+      IS_FORK: ${{ github.event.repository.fork }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Forks build with the debug key and never publish. The owner's repository must have the release key.
+      - name: Decode release keystore
+        if: ${{ !github.event.repository.fork }}
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Add the secrets ANDROID_KEYSTORE_B64 and ANDROID_KEYSTORE_PASSWORD (docs/building.md, 'Android signing'). Without your own key every APK gets a different signature and the app would have to be reinstalled on each update."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE_B64" | tr -d '\r\n ' | base64 -d > android/release.jks
+
+      - name: Test and build
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testReleaseUnitTest assembleRelease -PversionCode=${{ github.run_number }}
+        env:
+          REQUIRE_RELEASE_KEY: ${{ github.event.repository.fork && 'false' || 'true' }}
+          KEYSTORE_PATH: ${{ !github.event.repository.fork && 'release.jks' || '' }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f android/release.jks
+
+      - name: Check the signing key did not change
+        run: |
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          NEW="android/app/build/outputs/apk/release/app-release.apk"
+          cert() { "$APKSIGNER" verify --print-certs "$1" | sed -n 's/.*certificate SHA-256 digest: //p' | head -1; }
+          NEW_CERT="$(cert "$NEW")"
+          echo "Signing certificate SHA-256: $NEW_CERT"
+          if [ -f android/Codenvi.apk ]; then
+            OLD_CERT="$(cert android/Codenvi.apk || true)"
+            if [ -n "$OLD_CERT" ] && [ "$OLD_CERT" != "$NEW_CERT" ] && [ "$IS_FORK" != "true" ]; then
+              echo "::error::This APK is signed with a different key ($NEW_CERT) than android/Codenvi.apk ($OLD_CERT). Installed apps could not update. Restore the original keystore in ANDROID_KEYSTORE_B64."
+              exit 1
+            fi
+          fi
+          cp "$NEW" android/Codenvi.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Codenvi.apk
+          path: android/Codenvi.apk
+
+      - name: Commit android/Codenvi.apk
+        if: ${{ !github.event.repository.fork }}
+        run: |
+          git config user.name "codenvi-bot"
+          git config user.email "codenvi-bot@users.noreply.github.com"
+          git add android/Codenvi.apk
+          git commit -m "build: android/Codenvi.apk 1.0.${{ github.run_number }}" || { echo "Nothing to commit"; exit 0; }
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1

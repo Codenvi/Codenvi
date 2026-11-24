@@ -1,0 +1,41 @@
+{
+  "name": "codenvi-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Codenvi relay server: REST + WebSocket relay of end-to-end encrypted messages between the phone and the PCs.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node dist/migrate.js",
+    "admin": "node dist/admin.js"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "drizzle-orm": "^0.45.4",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.5",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1",
+    "ws": "^8.23.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "@types/ws": "^8.18.2",
+    "drizzle-kit": "^0.31.11",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

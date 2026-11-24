@@ -1,0 +1,14 @@
+title = "Codenvi gitleaks config"
+
+[extend]
+useDefault = true
+
+# docs/crypto.md and the test suites contain fixed, public test vectors (key = 00 01 .. 1f).
+[allowlist]
+description = "Public crypto test vectors"
+paths = [
+  '''docs/crypto\.md''',
+  '''server/tests/.*''',
+  '''windows/tests/.*''',
+  '''android/app/src/test/.*''',
+]

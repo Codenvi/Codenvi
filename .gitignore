@@ -1,0 +1,51 @@
+# ---- Secrets (never commit) ----
+# Generated signing/deploy keys and the GitHub secret values (see docs/building.md). Never commit.
+codenvi-keys/
+*.jks
+*.keystore
+*.env
+codenvi.env
+local.properties
+secrets.*
+appsettings.*.local.json
+android/release.jks
+*.pfx
+*.pem
+id_rsa*
+id_ed25519*
+
+# ---- .NET ----
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+TestResults/
+out/
+*.nupkg
+
+# ---- Android / Gradle ----
+.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/captures/
+*.iml
+.cxx/
+.externalNativeBuild/
+
+# ---- Misc ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# ---- Server (server/) ----
+server/node_modules/
+server/dist/
+server/coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example

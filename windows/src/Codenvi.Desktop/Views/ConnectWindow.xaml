@@ -1,0 +1,37 @@
+<Window x:Class="Codenvi.Desktop.Views.ConnectWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Codenvi" Width="640" SizeToContent="Height" ResizeMode="CanMinimize"
+        Style="{StaticResource CodenviWindow}" Icon="/Assets/codenvi.ico" WindowStartupLocation="CenterScreen">
+  <StackPanel Margin="28">
+    <TextBlock Text="Codenvi" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Primary}" />
+    <TextBlock Text="Drive Claude Code on this PC from your phone." Style="{StaticResource Muted}" Margin="0,2,0,18" />
+
+    <!-- First run: disclaimer (Project.md §0.3) -->
+    <Border x:Name="DisclaimerPanel" Style="{StaticResource Card}">
+      <StackPanel>
+        <TextBlock Text="Before you start" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,8" />
+        <TextBlock x:Name="DisclaimerTextBlock" Style="{StaticResource Muted}" />
+        <Button Content="I understand" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,14,0,0" Click="OnAccept" />
+      </StackPanel>
+    </Border>
+
+    <!-- Connect to server -->
+    <StackPanel x:Name="ConnectPanel" Visibility="Collapsed">
+      <TextBlock Text="Connect to server" FontWeight="SemiBold" FontSize="15" />
+      <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,10"
+                 Text="Enter your server's host name and its password (the CODENVI_ACCESS_KEY you set in the GitHub secret ENV_VARS). Use the same two values on every PC and on your phone." />
+      <TextBlock Text="Host name" Style="{StaticResource Muted}" Margin="0,0,0,4" />
+      <TextBox x:Name="HostBox" ToolTip="Your server's host name, for example codenvi.example.com" />
+      <TextBlock Text="Password" Style="{StaticResource Muted}" Margin="0,14,0,4" />
+      <PasswordBox x:Name="PasswordBox" />
+      <TextBlock Text="Name for this PC" Style="{StaticResource Muted}" Margin="0,14,0,4" />
+      <TextBox x:Name="NameBox" />
+      <TextBlock x:Name="ErrorText" Foreground="{StaticResource Error}" Margin="0,10,0,0" Visibility="Collapsed" />
+      <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+        <Button x:Name="ConnectButton" Content="Connect" Style="{StaticResource PrimaryButton}" Click="OnConnect" IsDefault="True" />
+        <Button Content="Quit" Click="OnQuit" />
+      </StackPanel>
+    </StackPanel>
+  </StackPanel>
+</Window>

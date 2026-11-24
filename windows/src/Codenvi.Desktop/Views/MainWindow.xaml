@@ -1,0 +1,223 @@
+<Window x:Class="Codenvi.Desktop.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Codenvi.Desktop.ViewModels"
+        mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:MainViewModel}"
+        Title="Codenvi" Width="1180" Height="760" MinWidth="900" MinHeight="560"
+        Style="{StaticResource CodenviWindow}" Icon="/Assets/codenvi.ico"
+        WindowStartupLocation="CenterScreen">
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Background="{StaticResource Surface}" BorderBrush="{StaticResource Outline}" BorderThickness="0,0,0,1" Padding="16,10">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Content="Show encryption key" Command="{Binding ShowKeyCommand}" />
+          <Button Content="Connect a phone" Command="{Binding ConnectPhoneCommand}" Style="{StaticResource PrimaryButton}" />
+          <Button Content="Settings" Command="{Binding OpenSettingsCommand}" />
+          <Button Content="About" Command="{Binding OpenAboutCommand}" Margin="0" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock Text="Codenvi" FontSize="18" FontWeight="Bold" Foreground="{StaticResource Primary}" Margin="0,0,16,0" />
+          <Ellipse Width="9" Height="9" Margin="0,0,6,0" Fill="{Binding ServerConnected, Converter={StaticResource StatusBrush}}" />
+          <TextBlock VerticalAlignment="Center">
+            <Run Text="{Binding ServerHost, Mode=OneWay}" />
+            <Run Text=" · " Foreground="{StaticResource OnSurfaceMuted}" />
+            <Run Text="{Binding ConnectionText, Mode=OneWay}" Foreground="{StaticResource OnSurfaceMuted}" />
+            <Run Text="   " />
+            <Run Text="{Binding DeviceName, Mode=OneWay}" FontWeight="SemiBold" />
+          </TextBlock>
+          <Ellipse Width="9" Height="9" Margin="18,0,6,0" Fill="{Binding ClaudeReady, Converter={StaticResource StatusBrush}}" />
+          <TextBlock Text="{Binding ClaudeText}" VerticalAlignment="Center" Foreground="{StaticResource OnSurfaceMuted}" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Banners -->
+    <Border DockPanel.Dock="Top" Background="#3A1414" BorderBrush="{StaticResource Error}" BorderThickness="0,0,0,1" Padding="16,8"
+            Visibility="{Binding ShowRevokedBanner, Converter={StaticResource BoolToVis}}">
+      <TextBlock Text="{Binding RevokedBanner}" Foreground="{StaticResource OnSurface}" />
+    </Border>
+    <Border DockPanel.Dock="Top" Background="#3A1414" BorderBrush="{StaticResource Error}" BorderThickness="0,0,0,1" Padding="16,8"
+            Visibility="{Binding ShowClaudeBanner, Converter={StaticResource BoolToVis}}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="Retry" Command="{Binding RetryClaudeCommand}" Margin="0" />
+        <TextBlock Text="{Binding ClaudeBanner}" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <Grid Margin="12">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="300" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Project list -->
+      <DockPanel Grid.Column="0">
+        <TextBlock DockPanel.Dock="Top" Text="Projects" Style="{StaticResource Heading}" />
+        <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+          <Button Content="Register project" Command="{Binding RegisterProjectCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,0,8" HorizontalAlignment="Stretch" />
+          <UniformGrid Columns="3">
+            <Button Content="Rename" Command="{Binding RenameProjectCommand}" Margin="0,0,4,0" />
+            <Button Content="Change folder" Command="{Binding ChangeFolderCommand}" Margin="2,0" />
+            <Button Content="Delete" Command="{Binding DeleteProjectCommand}" Style="{StaticResource DangerButton}" Margin="4,0,0,0" />
+          </UniformGrid>
+        </StackPanel>
+        <ListBox ItemsSource="{Binding Projects}" SelectedItem="{Binding Selected}" Padding="4">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:ProjectViewModel}">
+              <DockPanel>
+                <CheckBox DockPanel.Dock="Right" IsChecked="{Binding Paused}" ToolTip="Pause this project" Content="Pause" VerticalAlignment="Center" />
+                <StackPanel>
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" />
+                  <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                    <Ellipse Width="8" Height="8" Margin="0,0,6,0" Fill="{Binding Activity, Converter={StaticResource StatusBrush}}" />
+                    <TextBlock Text="{Binding StatusText}" Style="{StaticResource Muted}" />
+                    <TextBlock Text="{Binding ElapsedText}" Style="{StaticResource Muted}" Margin="6,0,0,0" />
+                  </StackPanel>
+                </StackPanel>
+              </DockPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <!-- Selected project -->
+      <Grid Grid.Column="2" DataContext="{Binding Selected}">
+        <TextBlock Text="Register a project folder to get started." Style="{StaticResource Muted}" FontSize="15"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Visibility="{Binding Converter={StaticResource NullToVis}, ConverterParameter=invert, FallbackValue=Visible}" />
+        <TabControl Visibility="{Binding Converter={StaticResource NullToVis}, FallbackValue=Collapsed}" x:Name="Tabs">
+          <TabItem Header="Overview">
+            <StackPanel>
+              <TextBlock Text="{Binding Name}" Style="{StaticResource Heading}" />
+              <Border Style="{StaticResource Card}">
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                  <TextBlock Text="Folder" Style="{StaticResource Muted}" />
+                  <TextBlock Grid.Column="1" Text="{Binding FolderPath}" FontFamily="{StaticResource MonoFont}" />
+                  <TextBlock Grid.Row="1" Text="Dev branch" Style="{StaticResource Muted}" Margin="0,6,0,0" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DevBranch}" FontFamily="{StaticResource MonoFont}" Margin="0,6,0,0" />
+                  <TextBlock Grid.Row="2" Text="Git state" Style="{StaticResource Muted}" Margin="0,6,0,0" />
+                  <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding GitState, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource MonoBox}" Margin="0,6,0,0" MaxHeight="160" VerticalScrollBarVisibility="Auto" />
+                </Grid>
+              </Border>
+              <WrapPanel Margin="0,12,0,0">
+                <Button Content="Open folder" Command="{Binding OpenFolderCommand}" />
+                <Button Content="Open in VS Code" Command="{Binding OpenInVsCodeCommand}" />
+                <Button Content="Refresh git state" Command="{Binding RefreshGitCommand}" />
+                <Button Content="Test Claude here" Command="{Binding TestClaudeCommand}" />
+              </WrapPanel>
+              <TextBlock Text="{Binding TestResult}" Style="{StaticResource Muted}" Margin="0,10,0,0" />
+            </StackPanel>
+          </TabItem>
+
+          <TabItem Header="Sessions">
+            <DockPanel>
+              <WrapPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                <Button Content="New session" Command="{Binding NewSessionCommand}" Style="{StaticResource PrimaryButton}" />
+                <Button Content="Rename" Command="{Binding RenameSessionCommand}" />
+                <Button Content="Clear chat memory" Command="{Binding ClearSessionMemoryCommand}" />
+                <Button Content="Clear all sessions" Command="{Binding ClearAllMemoryCommand}" />
+                <Button Content="Delete" Command="{Binding DeleteSessionCommand}" Style="{StaticResource DangerButton}" />
+              </WrapPanel>
+              <ListBox ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel>
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Style="{StaticResource Muted}" FontSize="11">
+                        <Run Text="Claude session " /><Run Text="{Binding ClaudeSessionId, Mode=OneWay}" />
+                      </TextBlock>
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </DockPanel>
+          </TabItem>
+
+          <TabItem Header="Activity">
+            <DockPanel>
+              <Border DockPanel.Dock="Top" Background="{StaticResource PrimaryContainer}" CornerRadius="8" Padding="12,8" Margin="0,0,0,10"
+                      Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Content="Cancel" Command="{Binding CancelJobCommand}" Style="{StaticResource DangerButton}" Margin="0" />
+                  <TextBlock Foreground="{StaticResource OnPrimaryContainer}" VerticalAlignment="Center">
+                    <Run Text="● Working… " /><Run Text="{Binding ElapsedText, Mode=OneWay}" />
+                  </TextBlock>
+                </DockPanel>
+              </Border>
+              <Border DockPanel.Dock="Top" Background="#3A2A08" CornerRadius="8" Padding="12,8" Margin="0,0,0,10"
+                      Visibility="{Binding HasUncommittedChanges, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="Commit" Command="{Binding CommitLeftoversCommand}" />
+                    <Button Content="Discard" Command="{Binding DiscardLeftoversCommand}" Style="{StaticResource DangerButton}" Margin="0" />
+                  </StackPanel>
+                  <TextBlock Text="The last job left uncommitted changes in the folder." VerticalAlignment="Center" />
+                </DockPanel>
+              </Border>
+              <ListBox ItemsSource="{Binding ActivityLines}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                       VirtualizingPanel.IsVirtualizing="True" />
+            </DockPanel>
+          </TabItem>
+
+          <TabItem Header="Commits">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
+                <Button Content="Roll back to here" Command="{Binding RollbackCommand}" Style="{StaticResource PrimaryButton}" />
+                <TextBlock Text="Reverts every later commit in one new commit. History is kept." Style="{StaticResource Muted}" VerticalAlignment="Center" />
+              </StackPanel>
+              <DataGrid ItemsSource="{Binding Commits}" SelectedItem="{Binding SelectedCommit}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Hash" Binding="{Binding ShortHash}" FontFamily="Cascadia Mono, Consolas" Width="80" />
+                  <DataGridTextColumn Header="Time" Binding="{Binding When}" Width="140" />
+                  <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
+                  <DataGridTextColumn Header="Files" Binding="{Binding Files}" Width="110" />
+                  <DataGridTextColumn Header="" Binding="{Binding Marker}" Width="80" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+          </TabItem>
+
+          <TabItem Header="Memory">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
+                <Button Content="Save CLAUDE.md" Command="{Binding SaveMemoryCommand}" Style="{StaticResource PrimaryButton}" />
+                <Button Content="Reload" Command="{Binding ReloadMemoryCommand}" />
+              </StackPanel>
+              <TextBlock DockPanel.Dock="Top" Text="CLAUDE.md in the project folder - instructions Claude Code reads on every run." Style="{StaticResource Muted}" Margin="0,0,0,8" />
+              <TextBox Text="{Binding MemoryText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True"
+                       Style="{StaticResource MonoBox}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" />
+            </DockPanel>
+          </TabItem>
+
+          <TabItem Header="Settings">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                <TextBlock Text="Permission mode" Style="{StaticResource Muted}" />
+                <ComboBox ItemsSource="{Binding PermissionModes}" SelectedItem="{Binding PermissionMode}" Width="240" HorizontalAlignment="Left" Margin="0,4,0,12" />
+                <TextBlock Text="Allowed tools (space separated, e.g. Read Edit Write Bash(npm test:*))" Style="{StaticResource Muted}" />
+                <TextBox Text="{Binding AllowedTools, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MonoBox}" Margin="0,4,0,4" />
+                <TextBlock Text="Nobody is at the PC to answer permission prompts: anything not allowed is denied." Style="{StaticResource Muted}" FontSize="11" Margin="0,0,0,12" />
+                <TextBlock Text="Max turns" Style="{StaticResource Muted}" />
+                <TextBox Text="{Binding MaxTurns}" Width="100" HorizontalAlignment="Left" Margin="0,4,0,12" />
+                <TextBlock Text="Timeout (minutes)" Style="{StaticResource Muted}" />
+                <TextBox Text="{Binding TimeoutMinutes}" Width="100" HorizontalAlignment="Left" Margin="0,4,0,12" />
+                <TextBlock Text="Default model / effort (used when the phone sends 'default')" Style="{StaticResource Muted}" />
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16">
+                  <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding DefaultModel}" Width="140" Margin="0,0,8,0" />
+                  <ComboBox ItemsSource="{Binding Efforts}" SelectedItem="{Binding DefaultEffort}" Width="140" />
+                </StackPanel>
+                <Button Content="Save project settings" Command="{Binding SaveSettingsCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" />
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+        </TabControl>
+      </Grid>
+    </Grid>
+  </DockPanel>
+</Window>

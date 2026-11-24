@@ -1,0 +1,17 @@
+<Application x:Class="Codenvi.Desktop.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:Codenvi.Desktop.Views"
+             ShutdownMode="OnExplicitShutdown">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Dark.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="BoolToVis" />
+      <ui:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
+      <ui:StatusBrushConverter x:Key="StatusBrush" />
+      <ui:NullToVisibilityConverter x:Key="NullToVis" />
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

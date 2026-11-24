@@ -1,0 +1,4 @@
+<Project>
+  <!-- Common .NET settings for every C# project live in shared/Directory.Build.props. -->
+  <Import Project="..\shared\Directory.Build.props" />
+</Project>

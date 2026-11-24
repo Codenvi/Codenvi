@@ -1,0 +1,39 @@
+<Window x:Class="Codenvi.Desktop.Views.DeviceSetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Codenvi - device setup" Width="640" SizeToContent="Height" ResizeMode="CanMinimize"
+        Style="{StaticResource CodenviWindow}" Icon="/Assets/codenvi.ico" WindowStartupLocation="CenterScreen">
+  <StackPanel Margin="28">
+    <TextBlock Text="Set up this PC" Style="{StaticResource Heading}" />
+    <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,16">
+      Codenvi encrypts every prompt and reply with a key that only this PC and your phone hold. The server only relays ciphertext.
+    </TextBlock>
+
+    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+      <StackPanel>
+        <TextBlock Text="1. Generate the encryption key" FontWeight="SemiBold" />
+        <TextBlock x:Name="KeyStatus" Style="{StaticResource Muted}" Margin="0,4,0,10" Text="Registers this PC with your server and creates its key." />
+        <Button x:Name="GenerateButton" Content="Generate key and register this PC" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Click="OnGenerate" />
+      </StackPanel>
+    </Border>
+
+    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+      <StackPanel>
+        <TextBlock Text="2. Connect a phone" FontWeight="SemiBold" />
+        <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,10" Text="Creates a single-use string that pairs your phone and gives it this PC's key. You can also do this later from the main window." />
+        <Button x:Name="PhoneButton" Content="Connect a phone" HorizontalAlignment="Left" IsEnabled="False" Click="OnPhone" />
+      </StackPanel>
+    </Border>
+
+    <Border Style="{StaticResource Card}">
+      <StackPanel>
+        <TextBlock Text="3. Claude Code" FontWeight="SemiBold" />
+        <TextBlock x:Name="ClaudeStatusText" Style="{StaticResource Muted}" Margin="0,4,0,0"
+                   Text="Install Claude Code on this PC and sign in to it yourself. Codenvi never handles your Claude credentials." />
+      </StackPanel>
+    </Border>
+
+    <TextBlock x:Name="ErrorText" Foreground="{StaticResource Error}" Margin="0,12,0,0" Visibility="Collapsed" />
+    <Button x:Name="ContinueButton" Content="Continue" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,18,0,0" IsEnabled="False" Click="OnContinue" />
+  </StackPanel>
+</Window>
