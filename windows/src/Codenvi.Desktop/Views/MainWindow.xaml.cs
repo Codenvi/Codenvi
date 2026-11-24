@@ -18,6 +18,12 @@ public partial class MainWindow : Window
         vm.Owner = this;
         DataContext = vm;
         _state = App.Services.GetRequiredService<AppState>();
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != nameof(MainViewModel.Page)) return;
+            // A fresh page each time, so Settings re-reads the saved values and the installs list.
+            PageHost.Content = vm.Page switch { AppPage.Settings => new SettingsView(), AppPage.About => new AboutView(), _ => null };
+        };
         SourceInitialized += (_, _) => NativeMethods.UseDarkTitleBar(this);
     }
 

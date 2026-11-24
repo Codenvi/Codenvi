@@ -15,6 +15,8 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Codenvi.Desktop.ViewModels;
 
+public enum AppPage { Projects, Settings, About }
+
 public sealed partial class MainViewModel : ObservableObject
 {
     private readonly AppState _state;
@@ -43,6 +45,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _revokedBanner = "";
     [ObservableProperty] private bool _showRevokedBanner;
     [ObservableProperty] private ProjectViewModel? _selected;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsProjectsPage))] private AppPage _page = AppPage.Projects;
+    public bool IsProjectsPage => Page == AppPage.Projects;
 
     public MainViewModel(AppState state, LocalDb db, SecretStore secrets, ProjectService projects, JobScheduler scheduler,
         ClaudeCli claude, ApiClient api, CryptoService crypto, WsClient ws, GitService git)
@@ -215,10 +219,13 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenSettings() => new SettingsWindow { Owner = Owner }.ShowDialog();
+    private void OpenSettings() => Page = AppPage.Settings;
 
     [RelayCommand]
-    private void OpenAbout() => new AboutWindow { Owner = Owner }.ShowDialog();
+    private void OpenAbout() => Page = AppPage.About;
+
+    /// <summary>Back to the project view (Settings and About are pages inside the main window, not separate windows).</summary>
+    public void ShowProjects() => Page = AppPage.Projects;
 
     public async Task Guard(Func<Task> action)
     {

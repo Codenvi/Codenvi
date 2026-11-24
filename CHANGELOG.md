@@ -12,6 +12,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Tests now also run on pushes to `main`.
 
 ### Changed
+- Windows: Settings and About now open inside the main window (with a Back button) instead of separate windows; vertical scroll bars are hidden everywhere (scrolling still works).
 - The project's owner name and repository URL are filled in (About screens, license notice, build metadata).
 - The desktop project button "Change folder" is now labelled "Relocate".
 - `Project.md` moved to `docs/design.md`; deployment tags and the defaults table moved to `docs/deployment.md`.

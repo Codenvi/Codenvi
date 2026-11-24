@@ -47,7 +47,8 @@
       </DockPanel>
     </Border>
 
-    <Grid Margin="12">
+    <Grid>
+    <Grid Margin="12" Visibility="{Binding IsProjectsPage, Converter={StaticResource BoolToVis}}">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="300" />
         <ColumnDefinition Width="12" />
@@ -219,5 +220,6 @@
         </TabControl>
       </Grid>
     </Grid>
+<!-- Settings / About pages replace the project view inside this window -->    <ContentControl x:Name="PageHost" Visibility="{Binding IsProjectsPage, Converter={StaticResource InverseBoolToVis}}" IsTabStop="False" />    </Grid>
   </DockPanel>
 </Window>

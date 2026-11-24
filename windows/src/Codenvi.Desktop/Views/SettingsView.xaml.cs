@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using Codenvi.Contracts.Api;
 using Codenvi.Desktop.Core;
 using Codenvi.Desktop.Native;
@@ -21,18 +22,18 @@ public sealed record InstallRowView(InstallDto Dto)
 }
 
 /// <summary>Settings (docs/design.md §8.4 screen 4).</summary>
-public partial class SettingsWindow : Window
+public partial class SettingsView : UserControl
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private readonly AppState _state = App.Services.GetRequiredService<AppState>();
     private readonly ApiClient _api = App.Services.GetRequiredService<ApiClient>();
     private readonly SecretStore _secrets = App.Services.GetRequiredService<SecretStore>();
     private readonly MainViewModel _vm = App.Services.GetRequiredService<MainViewModel>();
+    private Window? Win => Window.GetWindow(this);
 
-    public SettingsWindow()
+    public SettingsView()
     {
         InitializeComponent();
-        SourceInitialized += (_, _) => NativeMethods.UseDarkTitleBar(this);
         var s = _state.Settings;
         StartWithWindows.IsChecked = s.StartWithWindows;
         MinimizeToTray.IsChecked = s.MinimizeToTray;
@@ -49,7 +50,7 @@ public partial class SettingsWindow : Window
     private async Task LoadInstallsAsync()
     {
         try { InstallsGrid.ItemsSource = (await _api.InstallsAsync()).Select(i => new InstallRowView(i)).ToList(); }
-        catch (Exception e) when (e is ApiException or HttpRequestException) { Dialogs.Error(this, e.Message); }
+        catch (Exception e) when (e is ApiException or HttpRequestException) { Dialogs.Error(Win, e.Message); }
     }
 
     private void OnSave(object sender, RoutedEventArgs e)
@@ -67,7 +68,7 @@ public partial class SettingsWindow : Window
         _state.SaveSettings(s);
         ApplyStartWithWindows(s.StartWithWindows);
         App.Services.GetRequiredService<Jobs.JobScheduler>().Wake();
-        Close();
+        _vm.ShowProjects();
     }
 
     /// <summary>HKCU\...\Run entry (docs/design.md §8.4).</summary>
@@ -78,7 +79,7 @@ public partial class SettingsWindow : Window
         else key.DeleteValue("Codenvi", throwOnMissingValue: false);
     }
 
-    private void OnClose(object sender, RoutedEventArgs e) => Close();
+    private void OnClose(object sender, RoutedEventArgs e) => _vm.ShowProjects();
 
     private async void OnRefresh(object sender, RoutedEventArgs e) => await LoadInstallsAsync();
 
@@ -90,15 +91,15 @@ public partial class SettingsWindow : Window
             OnDisconnect(sender, e);
             return;
         }
-        if (!Dialogs.Confirm(this, "Revoke", $"Revoke \"{row.Dto.Name}\"? It is disconnected immediately and must be paired again.", "Revoke")) return;
+        if (!Dialogs.Confirm(Win, "Revoke", $"Revoke \"{row.Dto.Name}\"? It is disconnected immediately and must be paired again.", "Revoke")) return;
         try { await _api.RevokeInstallAsync(row.Dto.Id, self: false); await LoadInstallsAsync(); }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException) { Dialogs.Error(this, ex.Message); }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) { Dialogs.Error(Win, ex.Message); }
     }
 
     private async void OnRenameInstall(object sender, RoutedEventArgs e)
     {
         if (InstallsGrid.SelectedItem is not InstallRowView row) return;
-        var name = Dialogs.Input(this, "Rename", "New name:", row.Dto.Name);
+        var name = Dialogs.Input(Win, "Rename", "New name:", row.Dto.Name);
         if (name is null) return;
         try
         {
@@ -110,16 +111,16 @@ public partial class SettingsWindow : Window
             }
             await LoadInstallsAsync();
         }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException) { Dialogs.Error(this, ex.Message); }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) { Dialogs.Error(Win, ex.Message); }
     }
 
-    private async void OnConnectPhone(object sender, RoutedEventArgs e) { _vm.Owner = this; await _vm.ConnectPhoneCommand.ExecuteAsync(null); _vm.Owner = Owner; }
-    private async void OnPairPc(object sender, RoutedEventArgs e) { _vm.Owner = this; await _vm.PairAnotherPcCommand.ExecuteAsync(null); _vm.Owner = Owner; }
-    private async void OnRegenerateKey(object sender, RoutedEventArgs e) { _vm.Owner = this; await _vm.RegenerateKeyCommand.ExecuteAsync(null); _vm.Owner = Owner; }
+    private async void OnConnectPhone(object sender, RoutedEventArgs e) => await _vm.ConnectPhoneCommand.ExecuteAsync(null);
+    private async void OnPairPc(object sender, RoutedEventArgs e) => await _vm.PairAnotherPcCommand.ExecuteAsync(null);
+    private async void OnRegenerateKey(object sender, RoutedEventArgs e) => await _vm.RegenerateKeyCommand.ExecuteAsync(null);
 
     private async void OnDisconnect(object sender, RoutedEventArgs e)
     {
-        if (!Dialogs.Confirm(this, "Disconnect this PC",
+        if (!Dialogs.Confirm(Win, "Disconnect this PC",
                 "Revoke this PC on the server, remove it and its project registrations, and delete its tokens and encryption keys from this PC?\n\nProject folders, branches and commits on disk stay as they are.",
                 "Disconnect")) return;
         try
@@ -132,7 +133,6 @@ public partial class SettingsWindow : Window
         _secrets.Clear();
         _secrets.Update(s => s.InstallId = Guid.NewGuid());
         App.Services.GetRequiredService<WsClient>().Reconnect();
-        Close();
         ((App)Application.Current).ResetToConnect();
     }
 }
