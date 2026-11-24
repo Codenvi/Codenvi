@@ -165,8 +165,8 @@ public sealed partial class MainViewModel : ObservableObject
         if (!await UserVerification.VerifyAsync(hwnd, "Confirm it's you to show the Codenvi encryption key")) return;
         Dialogs.ShowSecret(Owner, "Encryption key",
             $"Encryption key for \"{DeviceName}\" (version {_crypto.KeyVersion}). Anyone with this key and access to your server can send prompts to this PC.\n\n" +
-            "Key-only string for a phone that is already paired:\n" + _crypto.KeyOnlyString(),
-            _crypto.DisplayKey());
+            "Key-only string for a phone that is already paired (scan the QR code in Devices > Paste a key string, or paste the string):\n" + _crypto.KeyOnlyString(),
+            _crypto.DisplayKey(), qrText: _crypto.KeyOnlyString());
     }
 
     [RelayCommand]
@@ -176,8 +176,9 @@ public sealed partial class MainViewModel : ObservableObject
         var host = string.IsNullOrWhiteSpace(code.Host) ? _secrets.Current.ServerHost! : code.Host;
         var s = _crypto.PhoneConnectionString(host, code.Code, _secrets.Current.Pin);
         Dialogs.ShowSecret(Owner, "Connect a phone",
-            "Paste this into Codenvi on your phone (Connect screen). It pairs the phone and stores this PC's encryption key. " +
-            "It works once and expires in 15 minutes. Treat it like a password.", s);
+            "Scan this QR code with Codenvi on your phone (Connect screen > Scan QR code), or paste the string below. " +
+            "It pairs the phone and stores this PC's encryption key. It works once and expires in 15 minutes. Treat it like a password.",
+            s, qrText: s);
     });
 
     [RelayCommand]

@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- QR-code pairing: "Connect a phone" and "Show encryption key" on Windows also show a QR code; the Android Connect screen and the "Paste a key string" dialog have a Scan QR code button (Google code scanner, no camera permission). Pasting still works.
 - Community files: security policy, contributing guide, code of conduct, issue forms and a pull request template.
 - Project website and repository links in the About screens (Windows and Android).
 - README badges, troubleshooting section and screenshots placeholder.

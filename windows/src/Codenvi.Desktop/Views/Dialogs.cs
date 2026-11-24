@@ -77,9 +77,29 @@ public static class Dialogs
     public static void Error(Window? owner, string message) => Info(owner, "Codenvi", message);
 
     /// <summary>Shows a secret string (connection string / key) with Copy.</summary>
-    public static void ShowSecret(Window? owner, string title, string explanation, string secret)
+    public static void ShowSecret(Window? owner, string title, string explanation, string secret, string? qrText = null)
     {
         var w = Make(owner, title, 620);
+        System.Windows.Controls.Image? qr = null;
+        if (qrText is not null)
+        {
+            try
+            {
+                var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                bmp.BeginInit();
+                bmp.StreamSource = new MemoryStream(Codenvi.Desktop.Core.QrCodeImage.Png(qrText));
+                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bmp.EndInit();
+                bmp.Freeze();
+                qr = new System.Windows.Controls.Image
+                {
+                    Source = bmp, Width = 280, Height = 280, Margin = new Thickness(0, 12, 0, 0),
+                    HorizontalAlignment = HorizontalAlignment.Center, SnapsToDevicePixels = true,
+                };
+                System.Windows.Media.RenderOptions.SetBitmapScalingMode(qr, System.Windows.Media.BitmapScalingMode.NearestNeighbor);
+            }
+            catch { qr = null; } // the text below always works; never fail the dialog because of the QR code
+        }
         var box = new TextBox
         {
             Text = secret, IsReadOnly = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0),
@@ -90,8 +110,12 @@ public static class Dialogs
         var close = Btn("Close");
         close.IsCancel = true;
         close.Click += (_, _) => w.Close();
-        w.Content = new StackPanel { Margin = new Thickness(20), Children = { new TextBlock { Text = explanation }, box, Buttons(copy, close) } };
-        w.Closed += (_, _) => box.Text = "";
+        var panel = new StackPanel { Margin = new Thickness(20), Children = { new TextBlock { Text = explanation, TextWrapping = TextWrapping.Wrap } } };
+        if (qr is not null) panel.Children.Add(qr);
+        panel.Children.Add(box);
+        panel.Children.Add(Buttons(copy, close));
+        w.Content = panel;
+        w.Closed += (_, _) => { box.Text = ""; if (qr is not null) qr.Source = null; };
         w.ShowDialog();
     }
 }

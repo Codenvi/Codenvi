@@ -176,3 +176,16 @@ public class ServerAddressTests
     [InlineData("two words.com")]
     public void Rejects_things_that_are_not_a_host_name(string input) => Assert.Null(ServerAddress.Normalize(input));
 }
+
+public class QrCodeImageTests
+{
+    [Fact]
+    public void Renders_a_png_for_a_long_phone_connection_string()
+    {
+        var s = "codenvi://a-long-subdomain.example-server-host.com:8443/pair?c=ABCD2345&dev=" + Guid.NewGuid() +
+                "&kv=12&k=" + new string('A', 52) + "&dn=" + Uri.EscapeDataString("My Work Laptop Number 2") + "&pin=" + new string('B', 43);
+        var png = QrCodeImage.Png(s);
+        Assert.True(png.Length > 100);
+        Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray()); // PNG signature
+    }
+}

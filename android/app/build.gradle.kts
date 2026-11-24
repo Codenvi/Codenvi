@@ -111,6 +111,7 @@ dependencies {
 
     implementation(libs.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.code.scanner) // QR scan for pairing: Google-provided scanner screen, no CAMERA permission
 
     testImplementation(libs.junit)
 }

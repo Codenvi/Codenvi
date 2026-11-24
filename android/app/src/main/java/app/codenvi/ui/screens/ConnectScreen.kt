@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ import app.codenvi.data.ConnectionString
 import app.codenvi.data.ServerAddress
 import app.codenvi.ui.AppViewModel
 import app.codenvi.ui.components.ConfirmDialog
+import app.codenvi.ui.components.scanQr
 import app.codenvi.ui.theme.Tokens
 
 /** First run (docs/design.md §10.3 screen 1): disclaimer, then the server's host name and password. */
@@ -48,6 +50,13 @@ fun ConnectScreen(vm: AppViewModel, activity: MainActivity, initialLink: String?
     var name by remember { mutableStateOf(Build.MODEL ?: "Phone") }
     var busy by remember { mutableStateOf(false) }
     var confirmHost by remember { mutableStateOf<String?>(null) }
+
+    // A codenvi:// pairing string (typed, opened as a link or scanned): validate it, then ask the user to confirm the server.
+    fun startLink(text: String) {
+        val cs = runCatching { ConnectionString.parse(text) }.getOrElse { vm.say(it.message ?: "Invalid string"); return }
+        if (cs.host == null) { vm.say("That's a key-only string. Use a Connect a phone string."); return }
+        confirmHost = cs.host
+    }
 
     DisposableEffect(Unit) { activity.setSecure(true); onDispose { activity.setSecure(false) } }
 
@@ -70,6 +79,11 @@ fun ConnectScreen(vm: AppViewModel, activity: MainActivity, initialLink: String?
         }
 
         Text("Connect to server", style = MaterialTheme.typography.titleMedium)
+        OutlinedButton(
+            enabled = !busy && name.isNotBlank(),
+            onClick = { scanQr(activity, onResult = { text -> host = text; startLink(text) }, onError = { vm.say(it) }) },
+        ) { Text("Scan QR code from the PC") }
+        Text("On the PC press Connect a phone, then scan the QR code. Or enter the details below.", color = Tokens.OnSurfaceMuted)
         Text("Enter your server's host name and its password (the CODENVI_ACCESS_KEY from the GitHub secret ENV_VARS). " +
             "Use the same two values on every PC and on this phone.", color = Tokens.OnSurfaceMuted)
         OutlinedTextField(
@@ -90,9 +104,7 @@ fun ConnectScreen(vm: AppViewModel, activity: MainActivity, initialLink: String?
             enabled = !busy && host.isNotBlank() && name.isNotBlank(),
             onClick = {
                 if (host.trim().startsWith("codenvi://", ignoreCase = true)) {
-                    val cs = runCatching { ConnectionString.parse(host) }.getOrElse { vm.say(it.message ?: "Invalid string"); return@Button }
-                    if (cs.host == null) { vm.say("That's a key-only string. Paste a Connect a phone string."); return@Button }
-                    confirmHost = cs.host
+                    startLink(host)
                     return@Button
                 }
                 val normalized = ServerAddress.normalize(host)

@@ -55,6 +55,7 @@ import app.codenvi.ui.components.InputDialog
 import app.codenvi.ui.components.StatusDot
 import app.codenvi.ui.components.color
 import app.codenvi.ui.components.label
+import app.codenvi.ui.components.scanQr
 import app.codenvi.ui.theme.MonoStyle
 import app.codenvi.ui.theme.Tokens
 
@@ -125,8 +126,8 @@ fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> 
         }
     }
 
-    keyFor?.let { d -> KeyDialog(activity, "Key for ${d.name}", onDismiss = { keyFor = null }) { text -> vm.run(onOk = { vm.say("Key saved.") }) { vm.repo.addKey(d.id, text) } } }
-    if (keyString) KeyDialog(activity, "Paste a key string", onDismiss = { keyString = false }) { text -> vm.run(onOk = { vm.say("Key saved.") }) { vm.repo.addKeyString(text) } }
+    keyFor?.let { d -> KeyDialog(activity, "Key for ${d.name}", onDismiss = { keyFor = null }, onMessage = { vm.say(it) }) { text -> vm.run(onOk = { vm.say("Key saved.") }) { vm.repo.addKey(d.id, text) } } }
+    if (keyString) KeyDialog(activity, "Paste a key string", onDismiss = { keyString = false }, onMessage = { vm.say(it) }) { text -> vm.run(onOk = { vm.say("Key saved.") }) { vm.repo.addKeyString(text) } }
     rename?.let { d -> InputDialog("Rename PC", d.name, onConfirm = { n -> vm.run { vm.repo.renameDevice(d.id, n) } }, onDismiss = { rename = null }) }
     remove?.let { d ->
         ConfirmDialog("Remove device", "Remove ${d.name} and all its projects from the server? Nothing on the PC is deleted.", "Remove",
@@ -136,7 +137,7 @@ fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> 
 
 /** Key entry: FLAG_SECURE while visible; KCV checked by the repository (docs/design.md §5.2). */
 @Composable
-fun KeyDialog(activity: MainActivity, title: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+fun KeyDialog(activity: MainActivity, title: String, onDismiss: () -> Unit, onMessage: (String) -> Unit = {}, onSave: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     DisposableEffect(Unit) { activity.setSecure(true); onDispose { activity.setSecure(false) } }
     AlertDialog(
@@ -147,6 +148,7 @@ fun KeyDialog(activity: MainActivity, title: String, onDismiss: () -> Unit, onSa
                 Text("Type the key shown by Show encryption key on the PC (dashes optional), or paste a codenvi://key string.",
                     color = Tokens.OnSurfaceMuted)
                 OutlinedTextField(value = text, onValueChange = { text = it }, textStyle = MonoStyle, minLines = 2)
+                TextButton(onClick = { scanQr(activity, onResult = { scanned -> text = scanned }, onError = onMessage) }) { Text("Scan QR code") }
             }
         },
         confirmButton = { TextButton(enabled = text.isNotBlank(), onClick = { onSave(text); onDismiss() }) { Text("Save") } },
