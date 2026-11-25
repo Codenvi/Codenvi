@@ -116,7 +116,7 @@ class Repository(
     val isPaired get() = store.isPaired
 
     private val _catalog = MutableStateFlow(
-        listOf(ModelCatalogEntry("default", "Default", listOf("low", "medium", "high", "xhigh", "max"), true, 0))
+        listOf(ModelCatalogEntry("default", "Default (PC setting)", listOf("low", "medium", "high", "xhigh", "max"), true, 0))
     )
     val catalog: StateFlow<List<ModelCatalogEntry>> = _catalog
 

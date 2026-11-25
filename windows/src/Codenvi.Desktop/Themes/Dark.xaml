@@ -165,13 +165,85 @@
     <Setter Property="Margin" Value="0,4" />
   </Style>
 
+  <!-- Dark drop-down: replaces the default light template so the selected value and the list are readable. -->
+  <Style x:Key="ComboToggle" TargetType="ToggleButton">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="ClickMode" Value="Press" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border x:Name="Bd" Background="{StaticResource SurfaceVariant}" BorderBrush="{StaticResource Outline}"
+                  BorderThickness="1" CornerRadius="6">
+            <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" Data="M0,0 L4,4 L8,0"
+                  Stroke="{StaticResource OnSurfaceMuted}" StrokeThickness="1.6" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Primary}" />
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Primary}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
   <Style TargetType="ComboBox">
-    <Setter Property="Foreground" Value="#1A1A1A" />
-    <Setter Property="Padding" Value="6,3" />
+    <Setter Property="Foreground" Value="{StaticResource OnSurface}" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid>
+            <ToggleButton Style="{StaticResource ComboToggle}"
+                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+            <ContentPresenter IsHitTestVisible="False" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"
+                              HorizontalAlignment="Left" Content="{TemplateBinding SelectionBoxItem}"
+                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" />
+            <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True"
+                   Focusable="False" PopupAnimation="Fade">
+              <Border MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}" Margin="0,2,0,0"
+                      Background="{StaticResource Surface}" BorderBrush="{StaticResource Outline}" BorderThickness="1" CornerRadius="6">
+                <ScrollViewer>
+                  <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                </ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.5" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
   <Style TargetType="ComboBoxItem">
     <Setter Property="Foreground" Value="{StaticResource OnSurface}" />
-    <Setter Property="Background" Value="{StaticResource Surface}" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBoxItem">
+          <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}" CornerRadius="4" Margin="2">
+            <ContentPresenter />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceVariant}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimaryContainer}" />
+              <Setter Property="Foreground" Value="{StaticResource OnPrimaryContainer}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 
   <Style TargetType="ListBox">

@@ -3,6 +3,8 @@ package app.codenvi.speech
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -16,6 +18,10 @@ import java.util.Locale
  * Speech-to-text with the built-in SpeechRecognizer (docs/design.md §10.4): free, no API key, prefers offline.
  * Partial results stream to [onPartial]; the final text goes to [onFinal]. Never auto-sends.
  */
+// SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED / _UNAVAILABLE (API 31); literals keep it compiling on older SDK levels.
+private const val ERROR_LANGUAGE_NOT_SUPPORTED = 12
+private const val ERROR_LANGUAGE_UNAVAILABLE = 13
+
 class SpeechInput(private val context: Context) {
     private var recognizer: SpeechRecognizer? = null
     private val _listening = MutableStateFlow(false)
@@ -23,7 +29,14 @@ class SpeechInput(private val context: Context) {
 
     val isAvailable: Boolean get() = SpeechRecognizer.isRecognitionAvailable(context)
 
-    fun start(language: String?, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) {
+    /**
+     * Error 12 (language not supported) / 13 (language unavailable) usually means the offline pack for the language is
+     * missing. So we retry in steps: offline first, then online, then the phone's own default language.
+     */
+    fun start(language: String?, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) =
+        begin(language, 0, onPartial, onFinal, onError)
+
+    private fun begin(language: String?, step: Int, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) {
         stop()
         val r = SpeechRecognizer.createSpeechRecognizer(context)
         recognizer = r
@@ -43,8 +56,22 @@ class SpeechInput(private val context: Context) {
             }
             override fun onError(error: Int) {
                 _listening.value = false
+                if ((error == ERROR_LANGUAGE_NOT_SUPPORTED || error == ERROR_LANGUAGE_UNAVAILABLE)) {
+                    val next = if (step == 0) 1 else if (step == 1 && !language.isNullOrBlank()) 2 else -1
+                    if (next >= 0) {
+                        // Leave the recognizer callback before tearing it down, then try again with fewer demands.
+                        Handler(Looper.getMainLooper()).post { begin(language, next, onPartial, onFinal, onError) }
+                        return
+                    }
+                }
                 onError(
                     when (error) {
+                        ERROR_LANGUAGE_NOT_SUPPORTED, ERROR_LANGUAGE_UNAVAILABLE ->
+                            "This language isn't available for speech recognition. Check the speech language in Settings, or install the language in your phone's voice input settings."
+                        SpeechRecognizer.ERROR_AUDIO -> "Couldn't use the microphone."
+                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognition is busy. Try again."
+                        SpeechRecognizer.ERROR_SERVER -> "The speech service had a problem. Try again."
+
                         SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Didn't catch that."
                         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission is needed."
                         SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
@@ -57,8 +84,8 @@ class SpeechInput(private val context: Context) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, language ?: Locale.getDefault().toLanguageTag())
+            if (step == 0) putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+            if (step < 2) putExtra(RecognizerIntent.EXTRA_LANGUAGE, language?.takeIf { it.isNotBlank() } ?: Locale.getDefault().toLanguageTag())
         }
         r.startListening(intent)
     }

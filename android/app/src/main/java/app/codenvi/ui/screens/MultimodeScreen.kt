@@ -5,23 +5,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,7 +29,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.codenvi.data.AppSettings
@@ -43,8 +46,8 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 
 /**
- * Multimode (docs/design.md §10.3 screen 6): one input at the top, a radio list of every project on every PC
- * below. Send goes to the selected project's default session; the selection stays after sending.
+ * Multimode (docs/design.md §10.3 screen 6): one input at the top, a 3-column grid of every project on every PC
+ * below (the selected one is orange). Send goes to the selected project's default session; the selection stays after sending.
  */
 @Composable
 fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
@@ -87,21 +90,31 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
         }
 
         Text("Projects", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp))
-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 12.dp)) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3), modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             items(projects, key = { it.id }) { p ->
-                Row(
-                    Modifier.fillMaxWidth()
-                        .selectable(selected = p.id == selectedId, enabled = !p.locked, role = Role.RadioButton,
+                val active = p.id == selectedId
+                val shape = RoundedCornerShape(12.dp)
+                Box(
+                    Modifier.fillMaxWidth().heightIn(min = 76.dp).clip(shape)
+                        .background(if (active) Tokens.Primary else Tokens.Surface, shape)
+                        .border(1.dp, if (active) Tokens.Primary else Tokens.Outline, shape)
+                        .selectable(selected = active, enabled = !p.locked, role = Role.RadioButton,
                             onClick = { scope.launch { repo.settings.setMultimodeProject(p.id) } })
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(10.dp),
                 ) {
-                    RadioButton(selected = p.id == selectedId, onClick = null, enabled = !p.locked,
-                        colors = RadioButtonDefaults.colors(selectedColor = Tokens.Primary))
-                    Text("${p.name} · ${p.deviceName}", modifier = Modifier.weight(1f), maxLines = 1,
-                        color = if (p.locked) Tokens.OnSurfaceMuted else Tokens.OnSurface)
-                    StatusDot(if (!p.deviceOnline) Tokens.OnSurfaceMuted else p.state.color())
-                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.align(Alignment.CenterStart).padding(end = 10.dp)) {
+                        Text(p.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold,
+                            color = if (active) Color.White else if (p.locked) Tokens.OnSurfaceMuted else Tokens.OnSurface)
+                        Text(p.deviceName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall,
+                            color = if (active) Color.White.copy(alpha = 0.85f) else Tokens.OnSurfaceMuted)
+                    }
+                    // Status stays visible; on the orange block it gets a white ring so it is still readable.
+                    StatusDot(if (!p.deviceOnline) Tokens.OnSurfaceMuted else p.state.color(),
+                        Modifier.align(Alignment.TopEnd).then(if (active) Modifier.border(1.5.dp, Color.White, CircleShape) else Modifier))
                 }
             }
         }

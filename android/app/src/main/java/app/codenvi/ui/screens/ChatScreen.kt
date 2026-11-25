@@ -52,6 +52,7 @@ import app.codenvi.ui.AppViewModel
 import app.codenvi.ui.components.MarkdownText
 import app.codenvi.ui.components.ModelEffortPicker
 import app.codenvi.ui.components.rememberDictation
+import app.codenvi.ui.components.RecordButton
 import app.codenvi.ui.components.rememberMicPermission
 import app.codenvi.ui.theme.MonoStyle
 import app.codenvi.ui.theme.Tokens
@@ -175,8 +176,8 @@ fun PromptBar(vm: AppViewModel, enabled: Boolean = true, onSend: suspend (String
     val dictation = rememberDictation()
     val listening by dictation.listening.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val mic = rememberMicPermission(onDenied = { vm.say("Microphone permission is needed for dictation.") }) {
-        dictation.toggle(value, settings.speechLanguage, { value = it }, { vm.say(it) })
+    val mic = rememberMicPermission(onDenied = { vm.warn("Microphone permission is needed for dictation.") }) {
+        dictation.toggle(value, settings.speechLanguage, { value = it }, { vm.fail(it) })
     }
 
     Column(Modifier.fillMaxWidth().background(Tokens.Surface).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -187,7 +188,7 @@ fun PromptBar(vm: AppViewModel, enabled: Boolean = true, onSend: suspend (String
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(1f)) { ModelEffortPicker(catalog, model, effort) { m, e -> model = m; effort = e } }
             if (dictation.available) {
-                IconButton(onClick = mic) { Text(if (listening) "⏺" else "🎙", color = if (listening) Tokens.Error else Tokens.OnSurface) }
+                RecordButton(recording = listening, onClick = mic)
             }
             FilledIconButton(
                 enabled = enabled && !sending && value.text.isNotBlank(),
@@ -201,7 +202,7 @@ fun PromptBar(vm: AppViewModel, enabled: Boolean = true, onSend: suspend (String
                             onSend(text, model, effort)
                             value = TextFieldValue("")
                         } catch (e: Exception) {
-                            vm.say(app.codenvi.repo.RevokedOrUser.message(e))
+                            vm.fail(app.codenvi.repo.RevokedOrUser.message(e))
                         } finally { sending = false }
                     }
                 },

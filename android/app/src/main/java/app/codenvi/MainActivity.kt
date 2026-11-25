@@ -7,6 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -17,8 +20,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,6 +38,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.codenvi.ui.AppViewModel
+import app.codenvi.ui.components.Toast
+import app.codenvi.ui.components.ToastHost
+import app.codenvi.ui.components.ToastKind
 import app.codenvi.ui.screens.ChatScreen
 import app.codenvi.ui.screens.ConnectScreen
 import app.codenvi.ui.screens.DevicesScreen
@@ -86,16 +91,16 @@ private val tabs = listOf(
 private fun Root(activity: MainActivity) {
     val vm: AppViewModel = viewModel(factory = AppViewModel.Factory)
     val nav = rememberNavController()
-    val snackbar = remember { SnackbarHostState() }
+    var toast by remember { mutableStateOf<Toast?>(null) }
     val secure by vm.repo.secure.collectAsStateWithLifecycle()
     val revoked by vm.repo.revoked.collectAsStateWithLifecycle()
     val upgrade by vm.repo.upgradeRequired.collectAsStateWithLifecycle()
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
 
-    LaunchedEffect(Unit) { vm.messages.collect { snackbar.showSnackbar(it) } }
-    LaunchedEffect(revoked) { if (revoked) snackbar.showSnackbar("This app was disconnected. Pair it again from a PC (Settings → Disconnect this phone).") }
-    LaunchedEffect(upgrade) { if (upgrade) snackbar.showSnackbar("Update Codenvi - the server no longer accepts this version.") }
+    LaunchedEffect(Unit) { vm.messages.collect { toast = it } }
+    LaunchedEffect(revoked) { if (revoked) toast = Toast("This app was disconnected. Pair it again from a PC (Settings → Disconnect this phone).", ToastKind.Error) }
+    LaunchedEffect(upgrade) { if (upgrade) toast = Toast("Update Codenvi - the server no longer accepts this version.", ToastKind.Warning) }
 
     // codenvi:// links: a key-only string goes to Devices (add key), a pairing string to Connect.
     val link = activity.link
@@ -107,9 +112,9 @@ private fun Root(activity: MainActivity) {
     }
 
     val start = if (!secure.disclaimerAccepted || secure.refreshToken == null) "connect" else "devices"
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = Tokens.Background,
-        snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             if (route in tabs.map { it.route }) {
                 NavigationBar(containerColor = Tokens.Surface) {
@@ -130,7 +135,7 @@ private fun Root(activity: MainActivity) {
             }
         },
     ) { padding ->
-        NavHost(nav, startDestination = start, modifier = Modifier.padding(padding)) {
+        NavHost(nav, startDestination = start, modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             composable("connect") {
                 ConnectScreen(vm, activity, initialLink = activity.consumeLink()?.takeIf { !it.startsWith("codenvi://key", true) }) {
                     nav.navigate("devices") { popUpTo("connect") { inclusive = true } }
@@ -151,5 +156,7 @@ private fun Root(activity: MainActivity) {
                 SettingsScreen(vm, onDisconnected = { nav.navigate("connect") { popUpTo(0) { inclusive = true } } })
             }
         }
+    }
+    ToastHost(toast, onDismiss = { toast = null }, modifier = Modifier.align(Alignment.TopCenter))
     }
 }

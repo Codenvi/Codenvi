@@ -68,11 +68,12 @@ fun Chip(text: String, color: Color) {
 }
 
 @Composable
-fun Picker(label: String, value: String, options: List<Pair<String, String>>, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
+fun Picker(value: String, options: List<Pair<String, String>>, onSelect: (String) -> Unit, modifier: Modifier = Modifier, label: String? = null) {
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
         FilledTonalButton(onClick = { open = true }) {
-            Text("$label: ${options.firstOrNull { it.first == value }?.second ?: value}", maxLines = 1)
+            val shown = options.firstOrNull { it.first == value }?.second ?: value
+            Text(if (label == null) shown else "$label: $shown", maxLines = 1)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             options.forEach { (k, v) ->
@@ -85,12 +86,12 @@ fun Picker(label: String, value: String, options: List<Pair<String, String>>, on
 /** Model and effort dropdowns (contents from /catalog/models, editable on the server). */
 @Composable
 fun ModelEffortPicker(catalog: List<ModelCatalogEntry>, model: String, effort: String, onChange: (String, String) -> Unit) {
-    val models = catalog.map { it.alias to it.label }.ifEmpty { listOf("default" to "Default") }
-    val efforts = listOf("default" to "Default") +
+    val models = catalog.map { it.alias to it.label }.ifEmpty { listOf("default" to "Default (PC setting)") }
+    val efforts = listOf("default" to "Default (PC setting)") +
         (catalog.firstOrNull { it.alias == model }?.efforts ?: listOf("low", "medium", "high")).map { it to it.replaceFirstChar(Char::uppercase) }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Picker("Model", model, models, { m -> onChange(m, if (efforts.any { it.first == effort }) effort else "default") })
-        Picker("Effort", effort, efforts, { e -> onChange(model, e) })
+        Picker(model, models, { m -> onChange(m, if (efforts.any { it.first == effort }) effort else "default") })
+        Picker(effort, efforts, { e -> onChange(model, e) })
     }
 }
 

@@ -8,19 +8,24 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import app.codenvi.CodenviApp
 import app.codenvi.repo.Repository
 import app.codenvi.repo.RevokedOrUser
+import app.codenvi.ui.components.Toast
+import app.codenvi.ui.components.ToastKind
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 
 /**
- * Thin shared view model: runs repository calls, turns failures into snackbar messages.
+ * Thin shared view model: runs repository calls, turns failures into toast messages.
  * Screens read the repository's flows directly.
  */
 class AppViewModel(val repo: Repository) : ViewModel() {
-    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
-    val messages: SharedFlow<String> = _messages
+    private val _messages = MutableSharedFlow<Toast>(extraBufferCapacity = 8)
+    val messages: SharedFlow<Toast> = _messages
 
-    fun say(text: String) { _messages.tryEmit(text) }
+    fun say(text: String, kind: ToastKind = ToastKind.Info) { _messages.tryEmit(Toast(text, kind)) }
+    fun ok(text: String) = say(text, ToastKind.Success)
+    fun warn(text: String) = say(text, ToastKind.Warning)
+    fun fail(text: String) = say(text, ToastKind.Error)
 
     /** Runs [block]; on failure shows a readable message. [onOk] runs on success. */
     fun run(onOk: (() -> Unit)? = null, block: suspend () -> Unit) {
@@ -29,11 +34,11 @@ class AppViewModel(val repo: Repository) : ViewModel() {
                 block()
                 onOk?.invoke()
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                say(RevokedOrUser.message(e))
+                fail(RevokedOrUser.message(e))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                say(RevokedOrUser.message(e))
+                fail(RevokedOrUser.message(e))
             }
         }
     }

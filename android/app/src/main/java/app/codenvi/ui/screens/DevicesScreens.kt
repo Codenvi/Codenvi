@@ -92,7 +92,7 @@ fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> 
             Text("No PCs yet. Install Codenvi.exe on a PC, connect it to your server, then use Connect a phone.",
                 color = Tokens.OnSurfaceMuted, modifier = Modifier.padding(16.dp))
         }
-        LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(devices, key = { it.id }) { d ->
                 var menu by remember { mutableStateOf(false) }
                 Card(
@@ -126,8 +126,8 @@ fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> 
         }
     }
 
-    keyFor?.let { d -> KeyDialog(activity, "Key for ${d.name}", onDismiss = { keyFor = null }, onMessage = { vm.say(it) }) { text -> vm.run(onOk = { vm.say("Key saved.") }) { vm.repo.addKey(d.id, text) } } }
-    if (keyString) KeyDialog(activity, "Paste a key string", onDismiss = { keyString = false }, onMessage = { vm.say(it) }) { text -> vm.run(onOk = { vm.say("Key saved.") }) { vm.repo.addKeyString(text) } }
+    keyFor?.let { d -> KeyDialog(activity, "Key for ${d.name}", onDismiss = { keyFor = null }, onMessage = { vm.fail(it) }) { text -> vm.run(onOk = { vm.ok("Key saved.") }) { vm.repo.addKey(d.id, text) } } }
+    if (keyString) KeyDialog(activity, "Paste a key string", onDismiss = { keyString = false }, onMessage = { vm.fail(it) }) { text -> vm.run(onOk = { vm.ok("Key saved.") }) { vm.repo.addKeyString(text) } }
     rename?.let { d -> InputDialog("Rename PC", d.name, onConfirm = { n -> vm.run { vm.repo.renameDevice(d.id, n) } }, onDismiss = { rename = null }) }
     remove?.let { d ->
         ConfirmDialog("Remove device", "Remove ${d.name} and all its projects from the server? Nothing on the PC is deleted.", "Remove",
@@ -170,7 +170,7 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
         }
         if (projects.isEmpty()) Text("No projects. Register a project folder in Codenvi on the PC.", color = Tokens.OnSurfaceMuted,
             modifier = Modifier.padding(16.dp))
-        LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(projects, key = { it.id }) { p ->
                 var menu by remember { mutableStateOf(false) }
                 val index = projects.indexOf(p)

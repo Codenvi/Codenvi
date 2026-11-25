@@ -275,6 +275,7 @@ d("REST API", () => {
     const t = await pair("android");
     const r = await call("GET", "/api/v1/catalog/models", t.accessToken, undefined, "android");
     expect(r.json.map((m: any) => m.alias)).toEqual(["default", "sonnet", "opus", "haiku", "fable"]);
+    expect(r.json.map((m: any) => m.label)).toEqual(["Default (PC setting)", "Sonnet 5.5", "Opus 5.5", "Haiku 5.5", "Fable 5.2 (optional)"]);
   });
 
   it("pairing codes and installs", async () => {

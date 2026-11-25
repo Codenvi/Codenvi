@@ -53,8 +53,8 @@ fun ConnectScreen(vm: AppViewModel, activity: MainActivity, initialLink: String?
 
     // A codenvi:// pairing string (typed, opened as a link or scanned): validate it, then ask the user to confirm the server.
     fun startLink(text: String) {
-        val cs = runCatching { ConnectionString.parse(text) }.getOrElse { vm.say(it.message ?: "Invalid string"); return }
-        if (cs.host == null) { vm.say("That's a key-only string. Use a Connect a phone string."); return }
+        val cs = runCatching { ConnectionString.parse(text) }.getOrElse { vm.fail(it.message ?: "Invalid string"); return }
+        if (cs.host == null) { vm.warn("That's a key-only string. Use a Connect a phone string."); return }
         confirmHost = cs.host
     }
 
@@ -81,7 +81,7 @@ fun ConnectScreen(vm: AppViewModel, activity: MainActivity, initialLink: String?
         Text("Connect to server", style = MaterialTheme.typography.titleMedium)
         OutlinedButton(
             enabled = !busy && name.isNotBlank(),
-            onClick = { scanQr(activity, onResult = { text -> host = text; startLink(text) }, onError = { vm.say(it) }) },
+            onClick = { scanQr(activity, onResult = { text -> host = text; startLink(text) }, onError = { vm.fail(it) }) },
         ) { Text("Scan QR code from the PC") }
         Text("On the PC press Connect a phone, then scan the QR code. Or enter the details below.", color = Tokens.OnSurfaceMuted)
         Text("Enter your server's host name and its password (the CODENVI_ACCESS_KEY from the GitHub secret ENV_VARS). " +
@@ -108,8 +108,8 @@ fun ConnectScreen(vm: AppViewModel, activity: MainActivity, initialLink: String?
                     return@Button
                 }
                 val normalized = ServerAddress.normalize(host)
-                if (normalized == null) { vm.say("Enter the server's host name, for example codenvi.example.com."); return@Button }
-                if (password.isBlank()) { vm.say("Enter the server's password."); return@Button }
+                if (normalized == null) { vm.warn("Enter the server's host name, for example codenvi.example.com."); return@Button }
+                if (password.isBlank()) { vm.warn("Enter the server's password."); return@Button }
                 confirmHost = normalized
             },
         ) { Text("Connect") }

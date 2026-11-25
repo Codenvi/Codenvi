@@ -15,7 +15,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -28,6 +27,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -47,6 +56,19 @@ import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
+private const val PREVIEW_ID = "voice-preview"
+
+/** Primary dictation languages (BCP-47 tags); "" means the phone's default. */
+private val SPEECH_LANGUAGES = listOf(
+    "" to "Phone default",
+    "en-US" to "English (US)", "en-GB" to "English (UK)",
+    "de-DE" to "German", "fr-FR" to "French", "es-ES" to "Spanish", "it-IT" to "Italian",
+    "pt-BR" to "Portuguese (Brazil)", "nl-NL" to "Dutch", "pl-PL" to "Polish",
+    "ru-RU" to "Russian", "uk-UA" to "Ukrainian", "ka-GE" to "Georgian", "tr-TR" to "Turkish",
+    "ar-SA" to "Arabic", "hi-IN" to "Hindi",
+    "ja-JP" to "Japanese", "ko-KR" to "Korean", "zh-CN" to "Chinese (Mandarin)",
+)
+
 /** Settings (docs/design.md §10.3 screen 7). */
 @Composable
 fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
@@ -58,10 +80,12 @@ fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
     var revoke by remember { mutableStateOf<InstallDto?>(null) }
     var rename by remember { mutableStateOf<InstallDto?>(null) }
     var disconnect by remember { mutableStateOf(false) }
-    var language by remember(settings.speechLanguage) { mutableStateOf(settings.speechLanguage ?: "") }
     val scope = rememberCoroutineScope()
     val readAloud = remember { (context.applicationContext as CodenviApp).container.readAloud }
     val voices = remember { readAloud.voices() }
+    val playingId by readAloud.playing.collectAsStateWithLifecycle()
+    val previewing = playingId == PREVIEW_ID
+    DisposableEffect(Unit) { onDispose { if (readAloud.playing.value == PREVIEW_ID) readAloud.stop() } }
     val fmt = remember { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT) }
 
     fun loadInstalls() = vm.run { installs = repo.installs() }
@@ -95,14 +119,26 @@ fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
             Text("Speed ${"%.1f".format(settings.ttsSpeed)}×")
             Slider(value = settings.ttsSpeed, onValueChange = { v -> scope.launch { repo.settings.setTtsSpeed(v) } }, valueRange = 0.5f..2.0f,
                 colors = SliderDefaults.colors(thumbColor = Tokens.Primary, activeTrackColor = Tokens.Primary))
-            if (voices.isNotEmpty()) Picker("Voice", settings.ttsVoice ?: "", listOf("" to "System default") + voices.map { it to it },
-                { v -> scope.launch { repo.settings.setTtsVoice(v.ifEmpty { null }) } })
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (voices.isNotEmpty()) Picker(settings.ttsVoice ?: "", listOf("" to "System default") + voices.map { it to it },
+                    { v -> scope.launch { repo.settings.setTtsVoice(v.ifEmpty { null }) } }, label = "Voice")
+                Spacer(Modifier.weight(1f))
+                // Preview: speaks a short sentence with the selected voice and speed; tap again to stop.
+                IconButton(onClick = {
+                    readAloud.configure(settings.ttsSpeed, settings.ttsVoice)
+                    readAloud.toggle(PREVIEW_ID, "This is how Codenvi will read replies aloud.")
+                }) {
+                    if (previewing) Box(Modifier.size(14.dp).background(Tokens.Primary, RoundedCornerShape(2.dp)))
+                    else Icon(Icons.Filled.PlayArrow, "Preview voice", tint = Tokens.Primary)
+                }
+            }
         }
 
         Section("Speech input") {
-            OutlinedTextField(value = language, onValueChange = { language = it }, singleLine = true,
-                label = { Text("Language (e.g. en-US, de-DE; empty = phone default)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(onClick = { scope.launch { repo.settings.setSpeechLanguage(language.trim()) }; vm.say("Saved.") }) { Text("Save language") }
+            // The tag is passed to the phone's speech recognizer; a value saved earlier that is not in the list is still shown.
+            Picker(settings.speechLanguage ?: "", SPEECH_LANGUAGES, { v -> scope.launch { repo.settings.setSpeechLanguage(v) } }, label = "Language")
+            Text("Used when you dictate a message. Phone default follows the phone's language.", color = Tokens.OnSurfaceMuted,
+                style = MaterialTheme.typography.labelSmall)
         }
 
         Section("This phone") {
