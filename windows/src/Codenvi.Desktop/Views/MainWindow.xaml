@@ -212,7 +212,7 @@
                 <TextBlock Text="Shell script (run from the phone)" Style="{StaticResource Muted}" />
                 <TextBox Text="{Binding ShellScript, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True"
                          Style="{StaticResource MonoBox}" MinHeight="120" Margin="0,4,0,4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" />
-                <TextBlock Text="One command per line, run in order with PowerShell in the project folder. The phone can start it with one tap; it only ever runs this saved text. Output appears on the Activity tab." Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <TextBlock Text="One command per line (cmd.exe syntax), run in order in the project folder, e.g. code . then start chrome http://localhost:3000. A command that keeps running, such as a dev server, holds back the lines after it: put it last or start it with start. The phone can start it with one tap; it only ever runs this saved text. Output appears on the Activity tab." Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
                 <Button Content="Stop script" Command="{Binding StopScriptCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Margin="0,0,0,12"
                         Visibility="{Binding ScriptRunning, Converter={StaticResource BoolToVis}}" />
                 <Button Content="Save project settings" Command="{Binding SaveSettingsCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" />

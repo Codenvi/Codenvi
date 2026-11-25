@@ -20,7 +20,8 @@ public static class ProcessRunner
         TimeSpan? timeout = null,
         CancellationToken ct = default,
         int maxCaptureChars = 2_000_000,
-        Action<string>? onStdErrLine = null)
+        Action<string>? onStdErrLine = null,
+        string? rawArguments = null)
     {
         var psi = new ProcessStartInfo(fileName)
         {
@@ -33,7 +34,9 @@ public static class ProcessRunner
             StandardErrorEncoding = Encoding.UTF8,
             WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
         };
-        foreach (var a in args) psi.ArgumentList.Add(a);
+        // rawArguments is passed to the program exactly as given (cmd.exe does not understand .NET's argument quoting).
+        if (rawArguments is not null) psi.Arguments = rawArguments;
+        else foreach (var a in args) psi.ArgumentList.Add(a);
         // The environment is inherited unchanged (Claude Code uses the user's own sign-in, docs/design.md §0.5).
 
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };

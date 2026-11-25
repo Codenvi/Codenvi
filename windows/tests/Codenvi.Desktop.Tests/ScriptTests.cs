@@ -69,6 +69,20 @@ public class ScriptStorageTests
     }
 }
 
+public class ScriptCommandLineTests
+{
+    [Fact]
+    public void Lines_are_joined_into_one_command_line_and_blank_lines_dropped()
+    {
+        var line = ScriptRunner.BuildCommandLine("code D:\\PROJECTS\\Benefy\r\n\r\n  start chrome --new-window http://localhost:3002  \n");
+        Assert.Equal("chcp 65001 >nul & code D:\\PROJECTS\\Benefy & start chrome --new-window http://localhost:3002", line);
+    }
+
+    [Fact]
+    public void Too_long_scripts_are_refused() =>
+        Assert.Null(ScriptRunner.BuildCommandLine(string.Join("\n", Enumerable.Repeat("echo " + new string('x', 100), 100))));
+}
+
 public class ScriptRunnerTests
 {
     private static (ScriptRunner runner, List<string> lines, AppState state) Make()
@@ -108,7 +122,7 @@ public class ScriptRunnerTests
     {
         AppPaths.Root = Path.Combine(Path.GetTempPath(), "codenvi-tests-" + Guid.NewGuid().ToString("N"));
         var (runner, lines, _) = Make();
-        var p = Project("Write-Output first\nWrite-Output second\nWrite-Error oops");
+        var p = Project("echo first\r\n\r\n   echo second\necho oops 1>&2");
         Assert.Null(runner.Start(p));
         Assert.True(await WaitAsync(() => { lock (lines) return lines.Any(l => l.Contains("Script finished")); }));
         string[] all; lock (lines) all = lines.ToArray();
@@ -118,11 +132,30 @@ public class ScriptRunnerTests
     }
 
     [Fact]
+    public async Task Commands_that_start_other_batch_files_do_not_stop_the_following_lines_and_cd_carries_over()
+    {
+        AppPaths.Root = Path.Combine(Path.GetTempPath(), "codenvi-tests-" + Guid.NewGuid().ToString("N"));
+        var (runner, lines, _) = Make();
+        // npm/npx/code are .cmd shims. A batch file would end at the first one; a single command line does not.
+        var dir = Path.Combine(Path.GetTempPath(), "codenvi-shim-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(dir, "sub"));
+        File.WriteAllText(Path.Combine(dir, "shim.cmd"), "@echo off\r\necho from-shim\r\n");
+        var p = Project(".\\shim.cmd\ncd sub\ncd\nstart \"\" cmd /c exit\necho last");
+        p.FolderPath = dir;
+        Assert.Null(runner.Start(p));
+        Assert.True(await WaitAsync(() => { lock (lines) return lines.Any(l => l.Contains("Script finished")); }));
+        string[] all; lock (lines) all = lines.ToArray();
+        Assert.Contains("from-shim", all);
+        Assert.Contains(all, l => l.EndsWith(Path.Combine(dir, "sub")));
+        Assert.Contains("last", all);
+    }
+
+    [Fact]
     public async Task Long_script_is_rejected_when_already_running_and_can_be_stopped()
     {
         AppPaths.Root = Path.Combine(Path.GetTempPath(), "codenvi-tests-" + Guid.NewGuid().ToString("N"));
         var (runner, lines, state) = Make();
-        var p = Project("Write-Output started\nStart-Sleep -Seconds 120");
+        var p = Project("echo started\nping -n 120 127.0.0.1 >nul");
         Assert.Null(runner.Start(p));
         Assert.True(runner.IsRunning(p.Id));
         Assert.True(state.Runtime(p.Id).ScriptRunning);

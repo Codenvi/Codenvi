@@ -5,7 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
-- Run a project script from the phone: a new shell script field on each project's Settings tab on Windows (PowerShell, one command per line, run in order in the project folder). On Android a script (code) button appears on the project row when a script exists; after a confirmation the PC starts it in the background (for example a localhost dev server), shows its output on the Activity tab and can stop it with Stop script. The phone never sends script text.
+- Run a project script from the phone: a new shell script field on each project's Settings tab on Windows (cmd.exe commands, one per line, run in order in the project folder, so `code .` and `start chrome http://localhost:3000` work as in a terminal). On Android a script (terminal icon) button appears on the project row when a script exists; after a confirmation the PC starts it in the background (for example a localhost dev server), shows its output on the Activity tab and can stop it with Stop script. The phone never sends script text.
 - QR-code pairing: "Connect a phone" and "Show encryption key" on Windows also show a QR code; the Android Connect screen and the "Paste a key string" dialog have a Scan QR code button (Google code scanner, no camera permission). Pasting still works.
 - Community files: security policy, contributing guide, code of conduct, issue forms and a pull request template.
 - Project website and repository links in the About screens (Windows and Android).

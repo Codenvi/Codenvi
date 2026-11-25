@@ -10,14 +10,12 @@ public static class AppPaths
     public static string Secrets => Path.Combine(Root, "secrets.bin");
     public static string Logs => Path.Combine(Root, "logs");
     public static string JobLogs => Path.Combine(Logs, "jobs");
-    public static string Scripts => Path.Combine(Root, "scripts");
 
     public static void Ensure()
     {
         Directory.CreateDirectory(Root);
         Directory.CreateDirectory(Logs);
         Directory.CreateDirectory(JobLogs);
-        Directory.CreateDirectory(Scripts);
     }
 
     public static string AppVersion =>
