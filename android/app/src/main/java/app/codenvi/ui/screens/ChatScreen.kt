@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -242,7 +243,9 @@ private fun ChatEventBlock(kind: String, label: String) {
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Text(
             label, color = color, style = MaterialTheme.typography.labelMedium,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier
+                .padding(horizontal = 16.dp)
                 .background(color.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
                 .border(1.dp, color, RoundedCornerShape(8.dp))
                 .padding(horizontal = 12.dp, vertical = 4.dp),

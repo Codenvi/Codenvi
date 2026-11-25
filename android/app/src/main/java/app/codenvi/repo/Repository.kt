@@ -458,14 +458,22 @@ class Repository(
         // The commit message is exactly [message]; the PC adds nothing to it.
         val r = controlOk(projectId, ControlPlain(ControlCommands.COMMIT, projectId, text = message.trim()))
         val hash = r.text?.takeIf { it.matches(Regex("[0-9a-f]{7,40}")) }
-        addChatEvent(sessionId, "commit", if (hash != null) "Committed · ${hash.take(7)}" else "Nothing to commit")
+        addChatEvent(sessionId, "commit", if (hash != null) eventLabel("Committed", hash, message) else "Nothing to commit")
+    }
+
+    /** One-line label: "<prefix> · <short hash> · <message>" (message flattened to a single line; the chat block cuts it if long). */
+    private fun eventLabel(prefix: String, hash: String?, message: String?): String {
+        val line = message?.lineSequence()?.map { it.trim() }?.firstOrNull { it.isNotEmpty() }
+        return listOfNotNull(prefix, hash?.take(7), line).joinToString(" · ")
     }
 
     /** Merges the dev branch into "main" and pushes "main" to origin, on the PC. */
     suspend fun publish(projectId: String, sessionId: String) {
+        // The last commit being pushed is the dev branch's newest commit; read its message before publishing (best effort).
+        val lastMessage = try { projectStatus(projectId)?.lastCommitMessage } catch (e: Exception) { null }
         val r = controlOk(projectId, ControlPlain(ControlCommands.PUBLISH, projectId))
         val hash = r.text?.takeIf { it.matches(Regex("[0-9a-f]{7,40}")) }
-        addChatEvent(sessionId, "publish", if (hash != null) "Pushed to main · ${hash.take(7)}" else "Pushed to main")
+        addChatEvent(sessionId, "publish", eventLabel("Pushed to main", hash, lastMessage))
     }
 
     /** Fetches origin/main and merges it into the dev branch, on the PC. */
