@@ -371,7 +371,19 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
         var head = await git.HeadAsync(p.FolderPath);
         var info = head is null ? null : await git.CommitInfoAsync(p.FolderPath, head);
         var ahead = await git.CountAheadAsync(p.FolderPath, p.DevBranch, MainBranch);
-        return new ProjectStatusPlain(branch, dirty, head, info?.Subject, Scheduler.RunningJob(projectId), branch == p.DevBranch, ahead);
+        await git.FetchOriginAsync(p.FolderPath, MainBranch);
+        var behind = await git.CountBehindOriginAsync(p.FolderPath, p.DevBranch, MainBranch);
+        return new ProjectStatusPlain(branch, dirty, head, info?.Subject, Scheduler.RunningJob(projectId), branch == p.DevBranch, ahead, behind);
+    }
+
+    /// <summary>Pull: fetches origin/main and merges it into the dev branch.</summary>
+    public async Task<string> PullAsync(Guid projectId)
+    {
+        var project = db.Project(projectId) ?? throw new ProjectException("Unknown project.");
+        if (Scheduler.IsRunning(projectId)) throw new ProjectException("A job is running in this project. Wait for it or cancel it first.");
+        var hash = await git.PullAsync(project.FolderPath, project.DevBranch, MainBranch, Author, Email);
+        state.RaiseProjectsListChanged();
+        return hash;
     }
 
     public static string ClaudeMdPath(LocalProject p) => Path.Combine(p.FolderPath, "CLAUDE.md");

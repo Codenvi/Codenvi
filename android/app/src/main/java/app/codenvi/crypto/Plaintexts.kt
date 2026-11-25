@@ -45,6 +45,7 @@ object ControlCommands {
     const val STOP_SCRIPT = "project.script.stop"
     const val COMMIT = "project.commit"
     const val PUBLISH = "project.publish"
+    const val PULL = "project.pull"
 }
 
 @JsonClass(generateAdapter = true)
@@ -66,6 +67,7 @@ data class ProjectStatusPlain(
     val runningJobId: String?,
     val branchOk: Boolean,
     val aheadOfMain: Int = 0,
+    val behindOrigin: Int = 0,
 )
 
 @JsonClass(generateAdapter = true)

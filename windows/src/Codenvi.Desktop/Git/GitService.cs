@@ -209,6 +209,45 @@ public sealed class GitService
         return r.ExitCode == 0 && int.TryParse(r.StdOut.Trim(), out var n) ? n : 0;
     }
 
+    private static async Task<bool> HasOriginAsync(string folder) =>
+        (await Git(folder, ["remote"], check: false)).StdOut.Split('\n', StringSplitOptions.TrimEntries).Contains("origin");
+
+    /// <summary>Fetches origin/<paramref name="mainBranch"/> (best effort, gives up after 20 s so a status check never hangs).</summary>
+    public async Task FetchOriginAsync(string folder, string mainBranch)
+    {
+        if (!await HasOriginAsync(folder)) return;
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        try { await Git(folder, ["fetch", "origin", mainBranch], check: false, ct: cts.Token); }
+        catch (OperationCanceledException) { }
+    }
+
+    /// <summary>Commits on origin/<paramref name="mainBranch"/> that <paramref name="branch"/> does not have yet (0 without origin/main).</summary>
+    public async Task<int> CountBehindOriginAsync(string folder, string branch, string mainBranch)
+    {
+        var r = await Git(folder, ["rev-list", "--count", $"{branch}..refs/remotes/origin/{mainBranch}"], check: false);
+        return r.ExitCode == 0 && int.TryParse(r.StdOut.Trim(), out var n) ? n : 0;
+    }
+
+    /// <summary>
+    /// Pull: fetches origin/<paramref name="mainBranch"/> and merges it into <paramref name="devBranch"/>. Refuses on a dirty tree
+    /// and aborts the merge (leaving everything as it was) on conflicts. Returns the new HEAD.
+    /// </summary>
+    public async Task<string> PullAsync(string folder, string devBranch, string mainBranch, string author, string email)
+    {
+        if (!await HasOriginAsync(folder)) throw new GitException("This project has no 'origin' remote.");
+        if (await IsDirtyAsync(folder)) throw new GitException("The working tree has uncommitted changes - commit or discard them first.");
+        if (await CurrentBranchAsync(folder) != devBranch) throw new GitException($"The PC is not on '{devBranch}'.");
+        var fetch = await Git(folder, ["fetch", "origin", mainBranch], check: false);
+        if (fetch.ExitCode != 0) throw new GitException("Fetch failed: " + FirstLines(fetch.StdErr + fetch.StdOut, 5));
+        var merge = await Git(folder, ["merge", "--no-edit", $"refs/remotes/origin/{mainBranch}"], author, email, check: false);
+        if (merge.ExitCode != 0)
+        {
+            await Git(folder, ["merge", "--abort"], check: false);
+            throw new GitException($"Pull conflicts merging origin/{mainBranch} - resolve manually.");
+        }
+        return (await HeadAsync(folder))!;
+    }
+
     /// <summary>
     /// Publish (docs/design.md §9.4): merges <paramref name="devBranch"/> into <paramref name="mainBranch"/> and
     /// pushes <paramref name="mainBranch"/> to origin, if one is configured. Always ends back on

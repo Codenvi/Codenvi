@@ -100,6 +100,11 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
                 var hash = await projects.PublishAsync(project.Id);
                 return new ControlResultPlain(true, Text: hash);
             }
+            case ControlCommands.Pull:
+            {
+                var hash = await projects.PullAsync(project.Id);
+                return new ControlResultPlain(true, Text: hash);
+            }
             case ControlCommands.RunScript:
             {
                 // The script text is never taken from the phone: only the PC-local one runs.

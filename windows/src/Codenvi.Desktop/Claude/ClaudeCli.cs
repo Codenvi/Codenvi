@@ -102,6 +102,8 @@ public sealed partial class ClaudeCli(ILogger<ClaudeCli> log)
             args.Add("--allowedTools");
             args.AddRange(tools);
         }
+        // Codenvi never commits for the user, and Claude must not either: commits are made manually from the Android app.
+        args.AddRange(["--disallowedTools", "Bash(git commit:*)"]);
         args.AddRange(["--permission-prompts", "none"]);
         if (maxTurns > 0) args.AddRange(["--max-turns", maxTurns.ToString()]);
         return args;

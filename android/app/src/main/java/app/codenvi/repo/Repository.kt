@@ -467,6 +467,13 @@ class Repository(
         addChatEvent(sessionId, "publish", if (hash != null) "Pushed to main · ${hash.take(7)}" else "Pushed to main")
     }
 
+    /** Fetches origin/main and merges it into the dev branch, on the PC. */
+    suspend fun pull(projectId: String, sessionId: String) {
+        val r = controlOk(projectId, ControlPlain(ControlCommands.PULL, projectId))
+        val hash = r.text?.takeIf { it.matches(Regex("[0-9a-f]{7,40}")) }
+        addChatEvent(sessionId, "pull", if (hash != null) "Pulled origin/main · ${hash.take(7)}" else "Pulled origin/main")
+    }
+
     /** Drops a small marker into the chat at this moment, after the newest message. */
     private suspend fun addChatEvent(sessionId: String, kind: String, label: String) = withContext(Dispatchers.IO) {
         dao.insertChatEvent(ChatEventEntity(sessionId = sessionId, kind = kind, label = label,

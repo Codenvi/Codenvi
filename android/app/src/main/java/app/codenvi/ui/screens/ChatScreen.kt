@@ -58,6 +58,7 @@ import app.codenvi.ui.components.ModelEffortPicker
 import app.codenvi.ui.components.rememberDictation
 import app.codenvi.ui.components.GridIcon
 import app.codenvi.ui.components.PublishIcon
+import app.codenvi.ui.components.PullIcon
 import app.codenvi.ui.components.RecordButton
 import app.codenvi.ui.components.SaveIcon
 import app.codenvi.ui.components.SoundIcon
@@ -80,6 +81,8 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
     var status by remember(sessionId) { mutableStateOf<ProjectStatusPlain?>(null) }
     var confirmCommit by remember { mutableStateOf(false) }
     var confirmPublish by remember { mutableStateOf(false) }
+    var confirmPull by remember { mutableStateOf(false) }
+    var pulling by remember { mutableStateOf(false) }
     var committing by remember { mutableStateOf(false) }
     var publishing by remember { mutableStateOf(false) }
 
@@ -102,6 +105,13 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
                 IconButton(enabled = !committing, onClick = { confirmCommit = true }) {
                     if (committing) CircularProgressIndicator(Modifier.size(20.dp), color = Tokens.Primary, strokeWidth = 2.dp)
                     else Icon(SaveIcon, "Commit uncommitted changes on the PC")
+                }
+            }
+            // Pull: only when origin/main has commits the dev branch does not have yet.
+            if (pulling || (project?.deviceOnline == true && (status?.behindOrigin ?: 0) > 0)) {
+                IconButton(enabled = !pulling, onClick = { confirmPull = true }) {
+                    if (pulling) CircularProgressIndicator(Modifier.size(20.dp), color = Tokens.Primary, strokeWidth = 2.dp)
+                    else Icon(PullIcon, "Pull from origin/main")
                 }
             }
             if (publishing || (project?.deviceOnline == true && (status?.aheadOfMain ?: 0) > 0)) {
@@ -141,6 +151,17 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
                 }
             },
             onDismiss = { confirmCommit = false })
+    }
+    if (confirmPull) project?.let { p ->
+        ConfirmDialog("Pull", "Fetch origin/main and merge it into ${p.devBranch}, on \"${p.name}\" (${p.deviceName})? Uncommitted changes must be committed first.", "Pull",
+            onConfirm = {
+                confirmPull = false
+                pulling = true
+                vm.run(onOk = { vm.ok("Pulled origin/main on the PC."); refreshStatus(p.id) }) {
+                    try { repo.pull(p.id, sessionId) } finally { pulling = false }
+                }
+            },
+            onDismiss = { confirmPull = false })
     }
     if (confirmPublish) project?.let { p ->
         ConfirmDialog("Publish", "Merge ${p.devBranch} into main and push main to origin, on \"${p.name}\" (${p.deviceName})?", "Publish",
@@ -195,7 +216,11 @@ fun ChatBubble(vm: AppViewModel, item: ChatItem) {
 /** Small centred marker between messages: yellow for a commit, blue for a push (semi-transparent fill + solid border). */
 @Composable
 private fun ChatEventBlock(kind: String, label: String) {
-    val color = if (kind == "publish") Color(0xFF42A5F5) else Tokens.Warning
+    val color = when (kind) {
+        "publish" -> Color(0xFF42A5F5)
+        "pull" -> Tokens.Success
+        else -> Tokens.Warning
+    }
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Text(
             label, color = color, style = MaterialTheme.typography.labelMedium,

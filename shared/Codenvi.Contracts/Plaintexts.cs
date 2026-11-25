@@ -40,12 +40,17 @@ public static class ControlCommands
     public const string Commit = "project.commit";
     /// <summary>Merges the dev branch into "main" and pushes "main" to origin, on the PC.</summary>
     public const string Publish = "project.publish";
+    /// <summary>Fetches origin/main and merges it into the dev branch, on the PC.</summary>
+    public const string Pull = "project.pull";
 }
 
 public sealed record ControlPlain(string Command, Guid ProjectId, Guid? SessionId = null, string? Name = null, string? Text = null, string? CommitHash = null);
 
 public sealed record ControlResultPlain(bool Ok, string? Error = null, string? Text = null, ProjectStatusPlain? Status = null);
 
-/// <summary>AheadOfMain is how many dev-branch commits are not yet on "main" (0 when there is no local "main" branch).</summary>
+/// <summary>
+/// AheadOfMain is how many dev-branch commits are not yet on "main" (0 when there is no local "main" branch).
+/// BehindOrigin is how many commits on origin/main are not yet in the dev branch (0 when there is no origin/main).
+/// </summary>
 public sealed record ProjectStatusPlain(string Branch, bool Dirty, string? LastCommitHash, string? LastCommitMessage,
-    Guid? RunningJobId, bool BranchOk, int AheadOfMain = 0);
+    Guid? RunningJobId, bool BranchOk, int AheadOfMain = 0, int BehindOrigin = 0);
