@@ -149,7 +149,11 @@ private fun Root(activity: MainActivity) {
                 ProjectScreen(vm, e.arguments!!.getString("projectId")!!, onBack = { nav.popBackStack() }, onChat = { nav.navigate("chat/$it") })
             }
             composable("chat/{sessionId}", listOf(navArgument("sessionId") { type = NavType.StringType })) { e ->
-                ChatScreen(vm, e.arguments!!.getString("sessionId")!!, onBack = { nav.popBackStack() })
+                ChatScreen(
+                    vm, e.arguments!!.getString("sessionId")!!, onBack = { nav.popBackStack() },
+                    // Opens the Multimode tab; the chat screen has already preset its project and session there.
+                    onMultimode = { nav.navigate("multimode") { popUpTo("devices"); launchSingleTop = true } },
+                )
             }
             composable("multimode") { MultimodeScreen(vm, onOpenChat = { nav.navigate("chat/$it") }) }
             composable("settings") {

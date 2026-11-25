@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +53,7 @@ import app.codenvi.ui.components.MarkdownText
 import app.codenvi.ui.components.ModelEffortPicker
 import app.codenvi.ui.components.rememberDictation
 import app.codenvi.ui.components.RecordButton
+import app.codenvi.ui.components.SoundIcon
 import app.codenvi.ui.components.rememberMicPermission
 import app.codenvi.ui.theme.MonoStyle
 import app.codenvi.ui.theme.Tokens
@@ -60,7 +61,7 @@ import kotlinx.coroutines.launch
 
 /** Chat per session (docs/design.md §10.3 screen 5). */
 @Composable
-fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
+fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultimode: () -> Unit) {
     val repo = vm.repo
     val session by remember(sessionId) { repo.session(sessionId) }.collectAsStateWithLifecycle(null)
     val chatItems by remember(sessionId) { repo.chat(sessionId) }.collectAsStateWithLifecycle(emptyList())
@@ -72,7 +73,17 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
     LaunchedEffect(chatItems.size) { if (chatItems.isNotEmpty()) listState.animateScrollToItem(chatItems.lastIndex) }
 
     Column(Modifier.fillMaxSize().imePadding()) {
-        CodenviTopBar(session?.name ?: "Chat", onBack)
+        CodenviTopBar(session?.name ?: "Chat", onBack) {
+            // Always available: presets Multimode to this chat's project and session, then switches to it.
+            IconButton(enabled = session != null, onClick = {
+                session?.let { s ->
+                    vm.run(onOk = onMultimode) {
+                        repo.settings.setMultimodeProject(s.projectId)
+                        repo.settings.setMultimodeSession(s.id)
+                    }
+                }
+            }) { Icon(Icons.Filled.List, "Multimode") }
+        }
         LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(chatItems, key = { it.id }) { ChatBubble(vm, it) }
         }
@@ -111,8 +122,9 @@ fun ChatBubble(vm: AppViewModel, item: ChatItem) {
                         readAloud.configure(settings.ttsSpeed, settings.ttsVoice)
                         readAloud.toggle(item.id, item.text)
                     }) {
-                        if (playing == item.id) Icon(Icons.Filled.Close, "Stop reading", tint = Tokens.Primary)
-                        else Text("🔊")
+                        // Muted speaker; orange while this message is being read (tap again to stop).
+                        val reading = playing == item.id
+                        Icon(SoundIcon, if (reading) "Stop reading" else "Read aloud", tint = if (reading) Tokens.Primary else Tokens.OnSurfaceMuted)
                     }
                 }
             }
@@ -166,7 +178,10 @@ fun WorkingCard(status: String, lines: List<String>, onStop: () -> Unit) {
  * by itself (docs/design.md §10.4).
  */
 @Composable
-fun PromptBar(vm: AppViewModel, enabled: Boolean = true, onSend: suspend (String, String, String) -> Unit) {
+fun PromptBar(
+    vm: AppViewModel, enabled: Boolean = true, header: @Composable (() -> Unit)? = null,
+    onSend: suspend (String, String, String) -> Unit,
+) {
     val settings by vm.repo.settings.flow.collectAsStateWithLifecycle(AppSettings())
     val catalog by vm.repo.catalog.collectAsStateWithLifecycle()
     var value by remember { mutableStateOf(TextFieldValue("")) }
@@ -181,6 +196,7 @@ fun PromptBar(vm: AppViewModel, enabled: Boolean = true, onSend: suspend (String
     }
 
     Column(Modifier.fillMaxWidth().background(Tokens.Surface).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        header?.invoke()
         OutlinedTextField(
             value = value, onValueChange = { value = it }, placeholder = { Text("Ask Claude Code…") },
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp, max = 200.dp), enabled = enabled,

@@ -1,25 +1,26 @@
 package app.codenvi.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.codenvi.data.AppSettings
 import app.codenvi.repo.UserException
 import app.codenvi.ui.AppViewModel
+import app.codenvi.ui.components.ChatIcon
 import app.codenvi.ui.components.StatusDot
 import app.codenvi.ui.components.color
 import app.codenvi.ui.theme.Tokens
@@ -46,8 +48,8 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 
 /**
- * Multimode (docs/design.md §10.3 screen 6): one input at the top, a 3-column grid of every project on every PC
- * below (the selected one is orange). Send goes to the selected project's default session; the selection stays after sending.
+ * Multimode (docs/design.md §10.3 screen 6): pick a project in the grid, pick one of its sessions above the input,
+ * and send. The chat icon in the title bar opens that session's chat (and the chat page has an icon back to here).
  */
 @Composable
 fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
@@ -56,37 +58,54 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
     val settings by repo.settings.flow.collectAsStateWithLifecycle(AppSettings())
     val selectedId = settings.multimodeProject?.takeIf { id -> projects.any { it.id == id } } ?: projects.firstOrNull { !it.locked }?.id
     val selected = projects.firstOrNull { it.id == selectedId }
-    val replies by remember(selectedId) { selectedId?.let { repo.recentReplies(it) } ?: emptyFlow() }.collectAsStateWithLifecycle(emptyList())
+    val sessions by remember(selectedId) { selectedId?.let { repo.sessions(it) } ?: emptyFlow() }.collectAsStateWithLifecycle(emptyList())
+    // The chosen session if it belongs to this project, else the project's default session, else the first usable one.
+    val usable = sessions.filter { !it.locked }
+    val sessionId = usable.firstOrNull { it.id == settings.multimodeSession }?.id
+        ?: usable.firstOrNull { it.id == selected?.defaultSessionId }?.id
+        ?: usable.firstOrNull()?.id
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) { vm.run { repo.refreshDevices() } }
+    LaunchedEffect(selectedId) { selectedId?.let { id -> runCatching { repo.refreshSessions(id) } } }
 
     Column(Modifier.fillMaxSize().imePadding()) {
-        CodenviTopBar("Multimode")
-
-        // Top: input, model/effort dropdowns, mic and Send (shared PromptBar).
-        PromptBar(vm, enabled = selected != null && !selected.locked) { text, model, effort ->
-            val target = selected ?: throw UserException("Pick a project below.")
-            val sessionId = repo.defaultSession(target.id) ?: throw UserException("That project has no session yet. Create one on the project screen.")
-            repo.sendPrompt(sessionId, text, model, effort)
+        CodenviTopBar("Multimode") {
+            IconButton(enabled = sessionId != null, onClick = { sessionId?.let(onOpenChat) }) { Icon(ChatIcon, "Open chat") }
         }
 
-        // Compact reply feed for the selected project.
-        if (selected != null && replies.isNotEmpty()) {
-            Column(
-                Modifier.fillMaxWidth().heightIn(max = 180.dp).padding(horizontal = 12.dp, vertical = 6.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                replies.take(5).forEach { r ->
-                    Text(
-                        r.text.replace(Regex("\\s+"), " ").take(220),
-                        color = Tokens.OnSurface, style = MaterialTheme.typography.bodyMedium, maxLines = 3,
-                        modifier = Modifier.fillMaxWidth().background(Tokens.SurfaceVariant, RoundedCornerShape(10.dp))
-                            .clickable { scope.launch { repo.defaultSession(selected.id)?.let(onOpenChat) } }.padding(10.dp),
-                    )
+        // Input with the session row above it, so one tap chooses which session of the project receives the prompt.
+        PromptBar(
+            vm,
+            enabled = selected != null && !selected.locked && sessionId != null,
+            header = {
+                if (selected != null) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (usable.isEmpty()) {
+                            item {
+                                Text("No sessions yet. Create one on the project screen.", color = Tokens.OnSurfaceMuted,
+                                    style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                        items(usable, key = { it.id }) { s ->
+                            val on = s.id == sessionId
+                            val shape = RoundedCornerShape(50)
+                            Text(
+                                s.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge,
+                                color = if (on) Color.White else Tokens.OnSurface,
+                                modifier = Modifier.clip(shape)
+                                    .background(if (on) Tokens.Primary else Tokens.SurfaceVariant, shape)
+                                    .selectable(selected = on, role = Role.RadioButton,
+                                        onClick = { scope.launch { repo.settings.setMultimodeSession(s.id) } })
+                                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                            )
+                        }
+                    }
                 }
-            }
+            },
+        ) { text, model, effort ->
+            val target = sessionId ?: throw UserException("Pick a project and a session.")
+            repo.sendPrompt(target, text, model, effort)
         }
 
         Text("Projects", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp))

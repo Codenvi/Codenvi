@@ -12,10 +12,16 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Tests now also run on pushes to `main`.
 
 ### Fixed
+- Android: the first tap on the dictation button no longer shows "Speech recognition error (11)"; the app quietly retries while the speech service is starting up.
 - Android: the Devices, Projects, project (Sessions, Memory, Commits) and Multimode pages now fill the screen height; the page area no longer double-counts the status bar and no longer shrinks to its content.
 - Android: dictation no longer fails with "Speech recognition error (12)" when the offline language pack is missing; it retries online and with the phone's default language, and explains the error if it still fails.
 
 ### Changed
+- Windows: Settings > Paired installs: "Revoke selected" is a plain button (no coloured border) and the duplicate "Connect a phone" button is removed (it is in the header).
+- Android: Multimode no longer shows the project's recent replies. Choose a project in the grid and one of its sessions in the row above the input, then send. A chat icon at the right of the title bar opens that session's chat. Every chat page has a Multimode icon in the same place that opens Multimode with that chat's project and session preselected.
+- Android: the title-bar icons on the project page (new session, reload, save) use the same colour as the icons on the Devices page.
+- Android: the read-aloud button on replies is a speaker icon, muted by default and orange while the reply is being read (tap again to stop).
+- Android: read aloud now defaults to speed 0.8 and the voice `en-us-x-iom-local` (until you pick others in Settings). If that voice is not installed on the phone, the system default voice is used.
 - Android: Settings > Speech input uses a language drop-down (Phone default, English, German, French, Georgian and others) instead of a text field; the choice is saved as soon as you pick it.
 - Android: Settings > Read aloud has a play button next to the voice picker that speaks a sample sentence with the selected voice and speed (tap again to stop).
 - Android: the Multimode project list is a 3-column grid of blocks (project name over device name); the selected block is orange with white text.

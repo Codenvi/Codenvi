@@ -121,7 +121,7 @@ fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
                 colors = SliderDefaults.colors(thumbColor = Tokens.Primary, activeTrackColor = Tokens.Primary))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (voices.isNotEmpty()) Picker(settings.ttsVoice ?: "", listOf("" to "System default") + voices.map { it to it },
-                    { v -> scope.launch { repo.settings.setTtsVoice(v.ifEmpty { null }) } }, label = "Voice")
+                    { v -> scope.launch { repo.settings.setTtsVoice(v) } }, label = "Voice")
                 Spacer(Modifier.weight(1f))
                 // Preview: speaks a short sentence with the selected voice and speed; tap again to stop.
                 IconButton(onClick = {

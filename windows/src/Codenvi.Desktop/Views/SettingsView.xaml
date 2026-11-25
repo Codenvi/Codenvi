@@ -20,10 +20,9 @@
           </DataGrid.Columns>
         </DataGrid>
         <WrapPanel Margin="0,8,0,18">
-          <Button Content="Revoke selected" Style="{StaticResource DangerButton}" Click="OnRevoke" />
+          <Button Content="Revoke selected" Click="OnRevoke" />
           <Button Content="Rename selected" Click="OnRenameInstall" />
           <Button Content="Refresh" Click="OnRefresh" />
-          <Button Content="Connect a phone" Click="OnConnectPhone" Style="{StaticResource PrimaryButton}" />
           <Button Content="Pair another PC" Click="OnPairPc" />
           <Button Content="Regenerate key" Click="OnRegenerateKey" />
         </WrapPanel>

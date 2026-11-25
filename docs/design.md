@@ -808,10 +808,10 @@ okhttp = "4.12.0"
    - A **🔊 Read aloud** icon on every assistant message.
    - Status per prompt: queued / delivered / running / done / failed (with error text). "Waiting for Claude sign-in" tells the user to sign in to Claude Code on that PC.
 6. **Multimode:**
-   - **Top:** multi-line `OutlinedTextField`, the model and effort dropdowns in a row beneath it, then the mic and **Send** buttons.
-   - **Below:** a vertically scrolling `LazyColumn` listing **every project from every connected device** as radio-button rows (`RadioButton` + "Project name · Device name" + status dot). Selection is single and stays selected after sending.
-   - Send posts the message to the selected project's **default session**, which is the project's `default_session_id`, or the most recently used one (set from the project screen).
-   - Replies appear as a compact feed under the input, filtered to the selected project. Tapping one opens the full chat.
+   - **Top:** a row of the selected project's sessions (tap one to choose it), then the multi-line `OutlinedTextField`, the model and effort dropdowns beneath it, then the mic and **Send** buttons.
+   - **Below:** a 3-column grid of **every project from every connected device** (project name over device name, status dot). Selection is single, orange when active, and stays selected after sending.
+   - Send posts the message to the **selected session**. Until one is chosen it is the project's `default_session_id`, or else its first session.
+   - A **chat icon** at the right end of the title bar opens the selected session's chat. Every chat page has a **Multimode icon** in the same slot: it presets Multimode to that chat's project and session and opens it, however the chat was reached.
 7. **Settings:** server host, paired installs (rename, **Revoke**), **Disconnect this phone**, TTS voice/speed, speech language, app version, and **About** (MIT license notice, third-party notices, repository link, disclaimer).
 
 ### 10.4 Voice input (no paid AI API)

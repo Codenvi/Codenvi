@@ -114,7 +114,6 @@ public partial class SettingsView : UserControl
         catch (Exception ex) when (ex is ApiException or HttpRequestException) { Dialogs.Error(Win, ex.Message); }
     }
 
-    private async void OnConnectPhone(object sender, RoutedEventArgs e) => await _vm.ConnectPhoneCommand.ExecuteAsync(null);
     private async void OnPairPc(object sender, RoutedEventArgs e) => await _vm.PairAnotherPcCommand.ExecuteAsync(null);
     private async void OnRegenerateKey(object sender, RoutedEventArgs e) => await _vm.RegenerateKeyCommand.ExecuteAsync(null);
 

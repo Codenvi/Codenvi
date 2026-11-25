@@ -80,10 +80,10 @@ fun ProjectScreen(vm: AppViewModel, projectId: String, onBack: () -> Unit, onCha
 
     Column(Modifier.fillMaxSize()) {
         CodenviTopBar(project?.name ?: "Project", onBack) {
-            if (tab == 0) IconButton(onClick = { creating = true }) { Icon(Icons.Filled.Add, "New session", tint = Tokens.Primary) }
+            if (tab == 0) IconButton(onClick = { creating = true }) { Icon(Icons.Filled.Add, "New session") }
             if (tab == 1) {
-                IconButton(enabled = !memoryBusy, onClick = { loadMemory() }) { Icon(Icons.Filled.Refresh, "Reload", tint = Tokens.OnSurface) }
-                IconButton(enabled = memoryLoaded && !memoryBusy, onClick = { saveMemory() }) { Icon(SaveIcon, "Save", tint = Tokens.Primary) }
+                IconButton(enabled = !memoryBusy, onClick = { loadMemory() }) { Icon(Icons.Filled.Refresh, "Reload") }
+                IconButton(enabled = memoryLoaded && !memoryBusy, onClick = { saveMemory() }) { Icon(SaveIcon, "Save") }
             }
         }
         project?.let { p ->

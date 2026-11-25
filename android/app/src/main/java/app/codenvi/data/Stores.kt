@@ -72,13 +72,19 @@ class SecureStore(context: Context) {
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
+/** Read-aloud defaults until the user changes them in Settings. */
+const val DEFAULT_TTS_SPEED = 0.8f
+const val DEFAULT_TTS_VOICE = "en-us-x-iom-local"
+
 data class AppSettings(
-    val ttsSpeed: Float = 1.0f,
-    val ttsVoice: String? = null,
+    val ttsSpeed: Float = DEFAULT_TTS_SPEED,
+    /** "" = the system default voice (chosen on purpose); null is never returned, an unset value reads as [DEFAULT_TTS_VOICE]. */
+    val ttsVoice: String? = DEFAULT_TTS_VOICE,
     val speechLanguage: String? = null,
     val lastModel: String = "default",
     val lastEffort: String = "default",
     val multimodeProject: String? = null,
+    val multimodeSession: String? = null,
 )
 
 /** Non-secret preferences in DataStore. */
@@ -90,23 +96,27 @@ class SettingsStore(private val context: Context) {
         val lastModel = stringPreferencesKey("last_model")
         val lastEffort = stringPreferencesKey("last_effort")
         val multimodeProject = stringPreferencesKey("multimode_project")
+        val multimodeSession = stringPreferencesKey("multimode_session")
     }
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { p ->
         AppSettings(
-            ttsSpeed = p[Keys.ttsSpeed] ?: 1.0f,
-            ttsVoice = p[Keys.ttsVoice],
+            ttsSpeed = p[Keys.ttsSpeed] ?: DEFAULT_TTS_SPEED,
+            ttsVoice = p[Keys.ttsVoice] ?: DEFAULT_TTS_VOICE,
             speechLanguage = p[Keys.speechLanguage],
             lastModel = p[Keys.lastModel] ?: "default",
             lastEffort = p[Keys.lastEffort] ?: "default",
             multimodeProject = p[Keys.multimodeProject],
+            multimodeSession = p[Keys.multimodeSession],
         )
     }
 
     suspend fun setTtsSpeed(v: Float) = context.dataStore.edit { it[Keys.ttsSpeed] = v }
-    suspend fun setTtsVoice(v: String?) = context.dataStore.edit { if (v == null) it.remove(Keys.ttsVoice) else it[Keys.ttsVoice] = v }
+    /** Stores "" for "System default" so it is not mistaken for "never chosen" (which means [DEFAULT_TTS_VOICE]). */
+    suspend fun setTtsVoice(v: String) = context.dataStore.edit { it[Keys.ttsVoice] = v }
     suspend fun setSpeechLanguage(v: String?) = context.dataStore.edit { if (v.isNullOrBlank()) it.remove(Keys.speechLanguage) else it[Keys.speechLanguage] = v }
     suspend fun setModel(model: String, effort: String) = context.dataStore.edit { it[Keys.lastModel] = model; it[Keys.lastEffort] = effort }
     suspend fun setMultimodeProject(id: String?) = context.dataStore.edit { if (id == null) it.remove(Keys.multimodeProject) else it[Keys.multimodeProject] = id }
+    suspend fun setMultimodeSession(id: String?) = context.dataStore.edit { if (id == null) it.remove(Keys.multimodeSession) else it[Keys.multimodeSession] = id }
     suspend fun clear() = context.dataStore.edit { it.clear() }
 }

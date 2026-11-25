@@ -14,14 +14,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
 
+// SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED / _UNAVAILABLE (API 31); literals keep it compiling on older SDK levels.
+private const val ERROR_LANGUAGE_NOT_SUPPORTED = 12
+private const val ERROR_LANGUAGE_UNAVAILABLE = 13
+private const val ERROR_SERVER_DISCONNECTED = 11
+
 /**
  * Speech-to-text with the built-in SpeechRecognizer (docs/design.md §10.4): free, no API key, prefers offline.
  * Partial results stream to [onPartial]; the final text goes to [onFinal]. Never auto-sends.
  */
-// SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED / _UNAVAILABLE (API 31); literals keep it compiling on older SDK levels.
-private const val ERROR_LANGUAGE_NOT_SUPPORTED = 12
-private const val ERROR_LANGUAGE_UNAVAILABLE = 13
-
 class SpeechInput(private val context: Context) {
     private var recognizer: SpeechRecognizer? = null
     private val _listening = MutableStateFlow(false)
@@ -29,15 +30,21 @@ class SpeechInput(private val context: Context) {
 
     val isAvailable: Boolean get() = SpeechRecognizer.isRecognitionAvailable(context)
 
+    /** Bumped by every start and stop, so a pending quiet retry is dropped when the user has stopped meanwhile. */
+    private var session = 0
+
     /**
      * Error 12 (language not supported) / 13 (language unavailable) usually means the offline pack for the language is
      * missing. So we retry in steps: offline first, then online, then the phone's own default language.
      */
-    fun start(language: String?, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) =
-        begin(language, 0, onPartial, onFinal, onError)
+    fun start(language: String?, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) {
+        session++
+        begin(language, 0, 0, onPartial, onFinal, onError)
+    }
 
-    private fun begin(language: String?, step: Int, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) {
-        stop()
+    private fun begin(language: String?, step: Int, retries: Int = 0, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) {
+        release()
+        val mySession = session
         val r = SpeechRecognizer.createSpeechRecognizer(context)
         recognizer = r
         r.setRecognitionListener(object : RecognitionListener {
@@ -60,9 +67,15 @@ class SpeechInput(private val context: Context) {
                     val next = if (step == 0) 1 else if (step == 1 && !language.isNullOrBlank()) 2 else -1
                     if (next >= 0) {
                         // Leave the recognizer callback before tearing it down, then try again with fewer demands.
-                        Handler(Looper.getMainLooper()).post { begin(language, next, onPartial, onFinal, onError) }
+                        Handler(Looper.getMainLooper()).post { if (mySession == session) begin(language, next, 0, onPartial, onFinal, onError) }
                         return
                     }
+                }
+                // Error 11 (service disconnected) or 8 (busy) is typical on the first use, while the speech service is still
+                // starting. A fresh attempt a moment later works, so retry quietly instead of showing an error.
+                if ((error == ERROR_SERVER_DISCONNECTED || error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) && retries < 2) {
+                    Handler(Looper.getMainLooper()).postDelayed({ if (mySession == session) begin(language, step, retries + 1, onPartial, onFinal, onError) }, 500)
+                    return
                 }
                 onError(
                     when (error) {
@@ -70,8 +83,7 @@ class SpeechInput(private val context: Context) {
                             "This language isn't available for speech recognition. Check the speech language in Settings, or install the language in your phone's voice input settings."
                         SpeechRecognizer.ERROR_AUDIO -> "Couldn't use the microphone."
                         SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognition is busy. Try again."
-                        SpeechRecognizer.ERROR_SERVER -> "The speech service had a problem. Try again."
-
+                        SpeechRecognizer.ERROR_SERVER, ERROR_SERVER_DISCONNECTED -> "The speech service had a problem. Try again."
                         SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Didn't catch that."
                         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission is needed."
                         SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
@@ -91,6 +103,11 @@ class SpeechInput(private val context: Context) {
     }
 
     fun stop() {
+        session++
+        release()
+    }
+
+    private fun release() {
         recognizer?.run { stopListening(); destroy() }
         recognizer = null
         _listening.value = false
