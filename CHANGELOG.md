@@ -17,6 +17,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Android: dictation no longer fails with "Speech recognition error (12)" when the offline language pack is missing; it retries online and with the phone's default language, and explains the error if it still fails.
 
 ### Changed
+- Website: new hero slogan ("One phone - All your projects - Every PC") and description.
 - Windows: Settings > Paired installs: "Revoke selected" is a plain button (no coloured border) and the duplicate "Connect a phone" button is removed (it is in the header).
 - Android: Multimode no longer shows the project's recent replies. Choose a project in the grid and one of its sessions in the row above the input, then send. A chat icon at the right of the title bar opens that session's chat. Every chat page has a Multimode icon in the same place that opens Multimode with that chat's project and session preselected.
 - Android: the title-bar icons on the project page (new session, reload, save) use the same colour as the icons on the Devices page.
