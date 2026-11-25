@@ -283,20 +283,16 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
     }
 
     // ---------------- Commits & rollback ----------------
-    public async Task<(string? hash, int filesChanged)> CommitAfterTaskAsync(LocalProject project, Guid jobId, Guid sessionId,
-        string? model, string? resolvedModel, string? effort, string prompt, string reply, string? preHash)
+    /// <summary>
+    /// Records commits Claude made itself during the job. Codenvi never commits automatically: leftover changes stay in the
+    /// working tree until the user taps the Commit button in the Android app (see <see cref="CommitLeftoversAsync"/>).
+    /// </summary>
+    public async Task<(string? hash, int filesChanged)> RecordTaskCommitsAsync(LocalProject project, Guid jobId, string? preHash)
     {
-        var folder = project.FolderPath;
-        // Commits Claude made itself during the job count as task commits (docs/design.md §9.2).
-        var own = await git.RevListAsync(folder, preHash);
+        var own = await git.RevListAsync(project.FolderPath, preHash);
         foreach (var h in own) await RecordCommitAsync(project, jobId, h, "task");
-
-        var body = GitService.TaskBody(model, resolvedModel, effort, reply, jobId, sessionId);
-        var hash = await git.CommitTaskAsync(folder, GitService.TaskSummary(prompt), body, Author, Email);
-        var files = 0;
-        if (hash is not null) files = (await RecordCommitAsync(project, jobId, hash, "task")).FilesChanged;
-        else if (own.Count > 0) files = db.CommitByHash(project.Id, own[^1])?.FilesChanged ?? 0;
-        return (hash ?? own.LastOrDefault(), files);
+        var files = own.Count > 0 ? db.CommitByHash(project.Id, own[^1])?.FilesChanged ?? 0 : 0;
+        return (own.LastOrDefault(), files);
     }
 
     /// <summary>Commits whatever is left in the working tree after a cancelled/timed-out/failed job (docs/design.md §9.2).</summary>

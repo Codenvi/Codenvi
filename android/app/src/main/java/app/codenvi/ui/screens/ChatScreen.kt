@@ -87,7 +87,8 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
     // Everything in an open chat counts as seen (clears the red dot on the Multimode grid), including replies arriving now.
     LaunchedEffect(sessionId, chatItems.lastOrNull()?.id) { if (chatItems.isNotEmpty()) repo.markSeen(sessionId) }
     LaunchedEffect(chatItems.size) { if (chatItems.isNotEmpty()) listState.animateScrollToItem(chatItems.lastIndex) }
-    LaunchedEffect(project?.id, project?.deviceOnline) { project?.let { if (it.deviceOnline) refreshStatus(it.id) } }
+    // Also re-checks when a new message arrives: the PC no longer commits automatically, so the Commit button must show up after a reply.
+    LaunchedEffect(project?.id, project?.deviceOnline, chatItems.lastOrNull()?.id) { project?.let { if (it.deviceOnline) refreshStatus(it.id) } }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         CodenviTopBar(session?.name ?: "Chat", onBack) {

@@ -361,19 +361,23 @@ public sealed class JobScheduler(
             return;
         }
 
-        // 7. Commit step (docs/design.md §9.2).
+        // 7. No automatic commit: changes stay in the working tree until the user taps Commit in the Android app.
+        // Only commits Claude made itself are recorded.
         if (session.RollbackNote is not null) { session.RollbackNote = null; db.UpsertSession(session); }
         string? commitHash;
         int filesChanged = 0;
         try
         {
-            (commitHash, filesChanged) = await projects.CommitAfterTaskAsync(project, job.Id, job.SessionId, job.Model, resolvedModel, job.Effort, prompt.Text, result.Text, preHash);
+            (commitHash, filesChanged) = await projects.RecordTaskCommitsAsync(project, job.Id, preHash);
         }
         catch (GitException e)
         {
-            await FailAsync(job, ErrorCodes.GitFailed, "Claude finished, but committing failed: " + e.Message, null);
+            await FailAsync(job, ErrorCodes.GitFailed, "Claude finished, but reading git state failed: " + e.Message, null);
             return;
         }
+        var leftover = await SafeDirty(project.FolderPath);
+        local.HasUncommittedChanges = leftover;
+        state.UpdateRuntime(job.ProjectId, r => r.HasUncommittedChanges = leftover);
 
         // 8. Reply.
         var chunks = Chunk(result.Text.Length == 0 ? "(no text reply)" : result.Text, ResultChunkChars);
@@ -393,7 +397,7 @@ public sealed class JobScheduler(
         local.CommitHash = commitHash;
         db.UpsertJob(local);
         await FinishAsync(job, JobStatuses.Succeeded, null, null);
-        state.AddActivity(job.ProjectId, commitHash is null ? "✓ Done (no file changes)" : $"✓ Done - commit {commitHash[..7]}" +
+        state.AddActivity(job.ProjectId, commitHash is null ? (leftover ? "✓ Done (changes left uncommitted)" : "✓ Done (no file changes)") : $"✓ Done - commit {commitHash[..7]}" +
             (result.CostUsd is { } cost ? $" · ${cost:0.####}" : ""));
     }
 
