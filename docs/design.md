@@ -719,7 +719,7 @@ All git operations use the **git CLI** (`git.exe`) through the same process runn
 ### 9.1 Branch
 
 - Each project has a configurable dev branch, `codenvi-dev` by default.
-- Codenvi never pushes, merges to `main` or rewrites history. Merging the dev branch is left to the user.
+- Codenvi never rewrites history. It merges the dev branch into `main` and pushes `main` only when the user presses **Publish** (§9.4) - never automatically.
 
 ### 9.2 Commit after each task
 
@@ -730,9 +730,10 @@ git -c user.name="Codenvi" -c user.email="codenvi@local" commit -m "<summary>" -
 ```
 
 - **Summary:** the first 60 characters of the prompt (decrypted locally), prefixed with `Codenvi:`.
-- **Body:** the model and the first 500 characters of Claude's reply, plus trailers `Codenvi-Job: <jobId>` and `Codenvi-Session: <sessionId>`.
+- **Body:** `Model: <requested alias>`, with the model id Claude Code itself resolved in parentheses when it differs from the alias; `Effort: <requested> (requested)` when an effort was requested (Claude Code never reports back which effort it actually ran at, so this is only ever what was asked for); then the first 500 characters of Claude's reply, plus trailers `Codenvi-Job: <jobId>` and `Codenvi-Session: <sessionId>`.
 - If Claude made its own commits during the job, Codenvi records every commit in `preHash..HEAD` (`git rev-list --reverse`) as task commits for that job, then commits any leftovers.
 - The commits are stored locally and on the server (encrypted meta, plaintext hash), and they show in both apps.
+- If a job is cancelled, times out, or Claude Code fails, this step is skipped and the tree is left dirty: the phone's `project.commit` command (or the desktop Activity tab's Commit button) commits it later as `"Codenvi: keep changes from an unfinished job"`.
 
 ### 9.3 Rollback (revert, history kept)
 
@@ -746,7 +747,19 @@ Triggered from the desktop Commits tab or by the phone's `project.rollback` comm
 
 Rolling forward again is the same operation targeting the commit just before the rollback commit, or a revert of the rollback commit. Both appear in the list.
 
----
+### 9.4 Publish (merge to main, push)
+
+Triggered only by the phone's `project.publish` command - there is no desktop button for it, since the phone shows a project across all its sessions while the desktop UI is per-project already.
+
+1. Refuse if a job is running, or if the working tree is dirty (commit or discard first).
+2. If the repo has an `origin` remote, `git fetch origin <main>` so the merge target is current.
+3. If there is no local `main` but `origin/main` exists, create `main` tracking it; otherwise error.
+4. `git switch main`, then `git merge --no-edit <devBranch>`.
+5. On conflict: `git merge --abort`, switch back to the dev branch, and report "Publish conflicts - resolve manually, then push yourself." Nothing is pushed.
+6. On success, `git push origin main` (skipped if there is no `origin`). A push failure is reported but the local merge is kept.
+7. Always switch back to the dev branch at the end, whether Publish succeeded or failed, so the job scheduler finds the PC where it expects it.
+
+`project.status`'s `aheadOfMain` (`git rev-list --count main..<devBranch>`, 0 if there is no local `main`) is what the phone uses to decide whether to show the Publish button at all.
 
 ## 10. Android app (Codenvi.apk)
 
@@ -807,6 +820,7 @@ okhttp = "4.12.0"
    - Input bar: text field, **mic** button, **model** and **effort** dropdowns, **Send**.
    - A **🔊 Read aloud** icon on every assistant message.
    - Status per prompt: queued / delivered / running / done / failed (with error text). "Waiting for Claude sign-in" tells the user to sign in to Claude Code on that PC.
+   - While the PC is online, a **Commit** icon (next to Multimode) shows up when `project.status` reports the dev branch dirty, and a **Publish** icon shows up when it reports commits ahead of `main`; both ask for confirmation, then run `project.commit` / `project.publish` (§9.2, §9.4) and refresh the status.
 6. **Multimode:**
    - **Top:** a row of the selected project's sessions (tap one to choose it), then the multi-line `OutlinedTextField`, the model and effort dropdowns beneath it, then the mic and **Send** buttons.
    - **Below:** a 3-column grid of **every project from every connected device** (project name over device name, status dot). Selection is single, orange when active, and stays selected after sending.

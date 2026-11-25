@@ -439,6 +439,12 @@ class Repository(
     /** Asks the PC to stop the script it started for this project. */
     suspend fun stopScript(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.STOP_SCRIPT, projectId)) }
 
+    /** Commits whatever a cancelled/failed job left uncommitted in the dev branch working tree, on the PC. */
+    suspend fun commitLeftovers(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.COMMIT, projectId)) }
+
+    /** Merges the dev branch into "main" and pushes "main" to origin, on the PC. */
+    suspend fun publish(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.PUBLISH, projectId)) }
+
     // ---------------- Projects & sessions ----------------
     suspend fun renameProject(projectId: String, name: String) = withContext(Dispatchers.IO) {
         val p = dao.project(projectId) ?: throw UserException("Unknown project.")

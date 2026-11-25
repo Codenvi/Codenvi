@@ -122,6 +122,8 @@ Encrypted `{command, projectId, sessionId?, name?, text?, commitHash?}`; result 
 | `session.clearMemory` | clear server chat, new Claude session UUID (old transcript deleted if the PC's setting says so) |
 | `project.memory.get` / `project.memory.set` | read / write `CLAUDE.md` |
 | `project.rollback` | revert every commit after `commitHash` in one commit |
-| `project.status` | `{branch, dirty, lastCommitHash, lastCommitMessage, runningJobId, branchOk}` |
+| `project.status` | `{branch, dirty, lastCommitHash, lastCommitMessage, runningJobId, branchOk, aheadOfMain}` |
 | `project.script.run` | start the project's PC-local shell script (cmd.exe commands, one per line, in the project folder) in the background and answer `Script started` at once; errors if none is saved or it is already running. The command carries no script text: the PC only runs what the user saved on the PC. |
 | `project.script.stop` | stop the script the PC started for the project (kills its process tree). Answers ok even when none is running. |
+| `project.commit` | commit whatever a cancelled/timed-out/failed job left uncommitted in the dev branch working tree; answers `text: "Nothing to commit"` if the tree was already clean |
+| `project.publish` | merge the dev branch into `main` and `git push origin main`; errors (and aborts the merge, pushing nothing) on conflicts or a failed push (docs/design.md §9.4) |

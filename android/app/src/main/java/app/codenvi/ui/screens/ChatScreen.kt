@@ -45,15 +45,19 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.codenvi.CodenviApp
+import app.codenvi.crypto.ProjectStatusPlain
 import app.codenvi.data.AppSettings
 import app.codenvi.net.JobStatuses
 import app.codenvi.repo.ChatItem
 import app.codenvi.ui.AppViewModel
+import app.codenvi.ui.components.ConfirmDialog
 import app.codenvi.ui.components.MarkdownText
 import app.codenvi.ui.components.ModelEffortPicker
 import app.codenvi.ui.components.rememberDictation
 import app.codenvi.ui.components.GridIcon
+import app.codenvi.ui.components.PublishIcon
 import app.codenvi.ui.components.RecordButton
+import app.codenvi.ui.components.SaveIcon
 import app.codenvi.ui.components.SoundIcon
 import app.codenvi.ui.components.rememberMicPermission
 import app.codenvi.ui.theme.MonoStyle
@@ -66,18 +70,34 @@ import kotlinx.coroutines.launch
 fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultimode: () -> Unit) {
     val repo = vm.repo
     val session by remember(sessionId) { repo.session(sessionId) }.collectAsStateWithLifecycle(null)
+    val project by remember(session?.projectId) { session?.projectId?.let { repo.project(it) } ?: emptyFlow() }.collectAsStateWithLifecycle(null)
     val chatItems by remember(sessionId) { repo.chat(sessionId) }.collectAsStateWithLifecycle(emptyList())
     val active by remember(sessionId) { repo.activeJobs(sessionId) }.collectAsStateWithLifecycle(emptyList())
     val progress by repo.progress.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    var status by remember(sessionId) { mutableStateOf<ProjectStatusPlain?>(null) }
+    var confirmCommit by remember { mutableStateOf(false) }
+    var confirmPublish by remember { mutableStateOf(false) }
+
+    fun refreshStatus(projectId: String) {
+        vm.run { status = runCatching { repo.projectStatus(projectId) }.getOrNull() }
+    }
 
     LaunchedEffect(sessionId) { vm.run { repo.syncMessages(sessionId) } }
     // Everything in an open chat counts as seen (clears the red dot on the Multimode grid), including replies arriving now.
     LaunchedEffect(sessionId, chatItems.lastOrNull()?.id) { if (chatItems.isNotEmpty()) repo.markSeen(sessionId) }
     LaunchedEffect(chatItems.size) { if (chatItems.isNotEmpty()) listState.animateScrollToItem(chatItems.lastIndex) }
+    LaunchedEffect(project?.id, project?.deviceOnline) { project?.let { if (it.deviceOnline) refreshStatus(it.id) } }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         CodenviTopBar(session?.name ?: "Chat", onBack) {
+            // Commit/Publish only show up once we know the PC's git state, and only while that PC is online.
+            if (project?.deviceOnline == true && status?.dirty == true) {
+                IconButton(onClick = { confirmCommit = true }) { Icon(SaveIcon, "Commit uncommitted changes on the PC") }
+            }
+            if (project?.deviceOnline == true && (status?.aheadOfMain ?: 0) > 0) {
+                IconButton(onClick = { confirmPublish = true }) { Icon(PublishIcon, "Publish to main") }
+            }
             // Always available: presets Multimode to this chat's project and session, then switches to it.
             IconButton(enabled = session != null, onClick = {
                 session?.let { s ->
@@ -97,6 +117,17 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
             onStop = { vm.run { repo.cancel(running.id) } },
         )
         PromptBar(vm, onSend = { text, model, effort -> repo.sendPrompt(sessionId, text, model, effort) })
+    }
+
+    if (confirmCommit) project?.let { p ->
+        ConfirmDialog("Commit", "Commit the uncommitted changes left on \"${p.name}\" (${p.deviceName}) on branch ${p.devBranch}?", "Commit",
+            onConfirm = { vm.run(onOk = { vm.ok("Committed on the PC."); refreshStatus(p.id) }) { repo.commitLeftovers(p.id) } },
+            onDismiss = { confirmCommit = false })
+    }
+    if (confirmPublish) project?.let { p ->
+        ConfirmDialog("Publish", "Merge ${p.devBranch} into main and push main to origin, on \"${p.name}\" (${p.deviceName})?", "Publish",
+            onConfirm = { vm.run(onOk = { vm.ok("Published to main."); refreshStatus(p.id) }) { repo.publish(p.id) } },
+            onDismiss = { confirmPublish = false })
     }
 }
 
