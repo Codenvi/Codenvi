@@ -56,6 +56,9 @@ data class MessageEntity(
     val createdAtMs: Long,
 )
 
+/** Result row of [Dao.latestReplies]. */
+data class SessionLatest(val sessionId: String, val projectId: String, val maxSeq: Long, val lastAtMs: Long)
+
 @Entity(tableName = "jobs", indices = [Index("sessionId"), Index("projectId")])
 data class JobEntity(
     @PrimaryKey val id: String,
@@ -116,6 +119,10 @@ interface CodenviDao {
     @Query("SELECT coalesce(max(seq), 0) FROM messages WHERE sessionId = :sessionId") suspend fun maxSeq(sessionId: String): Long
     @Upsert suspend fun upsertMessages(items: List<MessageEntity>)
     @Query("DELETE FROM messages WHERE sessionId = :sessionId") suspend fun clearMessages(sessionId: String)
+    /** Newest assistant reply per session (for the "unseen reply" dot on Multimode). */
+    @Query("SELECT m.sessionId AS sessionId, s.projectId AS projectId, MAX(m.seq) AS maxSeq, MAX(m.createdAtMs) AS lastAtMs " +
+        "FROM messages m JOIN sessions s ON s.id = m.sessionId WHERE m.role = 'assistant' GROUP BY m.sessionId")
+    fun latestReplies(): Flow<List<SessionLatest>>
     @Query("SELECT * FROM messages WHERE role = 'assistant' AND sessionId IN (SELECT id FROM sessions WHERE projectId = :projectId) ORDER BY createdAtMs DESC LIMIT :limit")
     fun recentReplies(projectId: String, limit: Int): Flow<List<MessageEntity>>
 

@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -21,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.codenvi.data.AppSettings
+import app.codenvi.repo.ProjectState
 import app.codenvi.repo.UserException
 import app.codenvi.ui.AppViewModel
 import app.codenvi.ui.components.ChatIcon
@@ -65,6 +69,9 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
         ?: usable.firstOrNull { it.id == selected?.defaultSessionId }?.id
         ?: usable.firstOrNull()?.id
     val scope = rememberCoroutineScope()
+    // Active jobs of the selected session lock the prompt bar until the reply arrives.
+    val activeJobs by remember(sessionId) { sessionId?.let { repo.activeJobs(it) } ?: emptyFlow() }.collectAsStateWithLifecycle(emptyList())
+    val unseen by repo.unseenProjects.collectAsStateWithLifecycle(emptySet())
 
     LaunchedEffect(Unit) { vm.run { repo.refreshDevices() } }
     LaunchedEffect(selectedId) { selectedId?.let { id -> runCatching { repo.refreshSessions(id) } } }
@@ -78,6 +85,10 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
         PromptBar(
             vm,
             enabled = selected != null && !selected.locked && sessionId != null,
+            // Multimode only: read the newest reply of the selected session aloud (the chat page has no such button here).
+            topRight = { ReadAloudButton(vm, sessionId) },
+            busy = activeJobs.isNotEmpty(),
+            onStop = { activeJobs.firstOrNull()?.let { j -> vm.run { repo.cancel(j.id) } } },
             header = {
                 if (selected != null) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -118,22 +129,34 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
                 val active = p.id == selectedId
                 val shape = RoundedCornerShape(12.dp)
                 Box(
-                    Modifier.fillMaxWidth().heightIn(min = 76.dp).clip(shape)
+                    Modifier.fillMaxWidth().clip(shape)
                         .background(if (active) Tokens.Primary else Tokens.Surface, shape)
                         .border(1.dp, if (active) Tokens.Primary else Tokens.Outline, shape)
                         .selectable(selected = active, enabled = !p.locked, role = Role.RadioButton,
                             onClick = { scope.launch { repo.settings.setMultimodeProject(p.id) } })
-                        .padding(10.dp),
                 ) {
-                    Column(Modifier.align(Alignment.CenterStart).padding(end = 10.dp)) {
-                        Text(p.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold,
-                            color = if (active) Color.White else if (p.locked) Tokens.OnSurfaceMuted else Tokens.OnSurface)
-                        Text(p.deviceName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall,
-                            color = if (active) Color.White.copy(alpha = 0.85f) else Tokens.OnSurfaceMuted)
+                    Box(Modifier.fillMaxWidth().heightIn(min = 76.dp).padding(10.dp)) {
+                        Column(Modifier.align(Alignment.CenterStart).padding(end = 10.dp)) {
+                            Text(p.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold,
+                                color = if (active) Color.White else if (p.locked) Tokens.OnSurfaceMuted else Tokens.OnSurface)
+                            Text(p.deviceName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall,
+                                color = if (active) Color.White.copy(alpha = 0.85f) else Tokens.OnSurfaceMuted)
+                        }
+                        // Status dot (bottom right). On the orange block it gets a white ring so it is still readable.
+                        StatusDot(if (!p.deviceOnline) Tokens.OnSurfaceMuted else p.state.color(),
+                            Modifier.align(Alignment.BottomEnd).then(if (active) Modifier.border(1.5.dp, Color.White, CircleShape) else Modifier))
+                        // Red dot (top right): a reply in one of this project's sessions that was not seen in the chat yet.
+                        if (p.id in unseen) Box(
+                            Modifier.align(Alignment.TopEnd).size(11.dp).background(Tokens.Error, CircleShape)
+                                .border(1.5.dp, if (active) Color.White else Tokens.Surface, CircleShape),
+                        )
                     }
-                    // Status stays visible; on the orange block it gets a white ring so it is still readable.
-                    StatusDot(if (!p.deviceOnline) Tokens.OnSurfaceMuted else p.state.color(),
-                        Modifier.align(Alignment.TopEnd).then(if (active) Modifier.border(1.5.dp, Color.White, CircleShape) else Modifier))
+                    // Loading bar along the bottom edge while the project is working on a prompt.
+                    if (p.state != ProjectState.IDLE) LinearProgressIndicator(
+                        Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp),
+                        color = if (active) Color.White else Tokens.Primary,
+                        trackColor = if (active) Color.White.copy(alpha = 0.3f) else Tokens.SurfaceVariant,
+                    )
                 }
             }
         }

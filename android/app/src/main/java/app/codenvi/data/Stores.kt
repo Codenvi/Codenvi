@@ -3,6 +3,7 @@ package app.codenvi.data
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import app.codenvi.crypto.KeystoreBox
@@ -73,7 +74,7 @@ class SecureStore(context: Context) {
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
 /** Read-aloud defaults until the user changes them in Settings. */
-const val DEFAULT_TTS_SPEED = 0.8f
+const val DEFAULT_TTS_SPEED = 1.0f
 const val DEFAULT_TTS_VOICE = "en-us-x-iom-local"
 
 data class AppSettings(
@@ -85,6 +86,10 @@ data class AppSettings(
     val lastEffort: String = "default",
     val multimodeProject: String? = null,
     val multimodeSession: String? = null,
+    /** Per session: the highest message seq the user has seen (chat opened) or answered (prompt sent). */
+    val seenSeq: Map<String, Long> = emptyMap(),
+    /** Phone time when "unseen reply" tracking started; older replies are never counted as unseen. */
+    val unseenBaselineMs: Long = 0,
 )
 
 /** Non-secret preferences in DataStore. */
@@ -97,6 +102,8 @@ class SettingsStore(private val context: Context) {
         val lastEffort = stringPreferencesKey("last_effort")
         val multimodeProject = stringPreferencesKey("multimode_project")
         val multimodeSession = stringPreferencesKey("multimode_session")
+        val seenSeq = stringPreferencesKey("seen_seq")
+        val unseenBaselineMs = longPreferencesKey("unseen_baseline_ms")
     }
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -108,6 +115,8 @@ class SettingsStore(private val context: Context) {
             lastEffort = p[Keys.lastEffort] ?: "default",
             multimodeProject = p[Keys.multimodeProject],
             multimodeSession = p[Keys.multimodeSession],
+            seenSeq = parseSeen(p[Keys.seenSeq]),
+            unseenBaselineMs = p[Keys.unseenBaselineMs] ?: 0L,
         )
     }
 
@@ -118,5 +127,19 @@ class SettingsStore(private val context: Context) {
     suspend fun setModel(model: String, effort: String) = context.dataStore.edit { it[Keys.lastModel] = model; it[Keys.lastEffort] = effort }
     suspend fun setMultimodeProject(id: String?) = context.dataStore.edit { if (id == null) it.remove(Keys.multimodeProject) else it[Keys.multimodeProject] = id }
     suspend fun setMultimodeSession(id: String?) = context.dataStore.edit { if (id == null) it.remove(Keys.multimodeSession) else it[Keys.multimodeSession] = id }
+    /** Remembers that [sessionId] is seen up to [seq] (never moves backwards). */
+    suspend fun markSeen(sessionId: String, seq: Long) = context.dataStore.edit { p ->
+        val m = parseSeen(p[Keys.seenSeq]).toMutableMap()
+        if ((m[sessionId] ?: -1L) < seq) {
+            m[sessionId] = seq
+            p[Keys.seenSeq] = m.entries.joinToString(",") { "${it.key}=${it.value}" }
+        }
+    }
+    suspend fun ensureUnseenBaseline() = context.dataStore.edit { p ->
+        if (p[Keys.unseenBaselineMs] == null) p[Keys.unseenBaselineMs] = System.currentTimeMillis()
+    }
+    private fun parseSeen(raw: String?): Map<String, Long> =
+        raw?.split(",")?.mapNotNull { e -> e.split("=").takeIf { it.size == 2 }?.let { it[0] to (it[1].toLongOrNull() ?: return@mapNotNull null) } }?.toMap()
+            ?: emptyMap()
     suspend fun clear() = context.dataStore.edit { it.clear() }
 }

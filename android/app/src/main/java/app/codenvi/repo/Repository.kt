@@ -58,6 +58,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -121,6 +122,7 @@ class Repository(
     val catalog: StateFlow<List<ModelCatalogEntry>> = _catalog
 
     init {
+        scope.launch { settings.ensureUnseenBaseline() }
         scope.launch { ws.events.collect { runCatching { handle(it) } } }
         scope.launch {
             ws.connected.collect { if (it) runCatching { refreshAll() } }
@@ -291,6 +293,17 @@ class Repository(
 
     fun activeJobs(sessionId: String): Flow<List<JobEntity>> = dao.jobs(sessionId).map { l -> l.filter { it.status in JobStatuses.ACTIVE } }
 
+    /** Projects with at least one reply the user has not seen in a chat and has not answered since. */
+    val unseenProjects: Flow<Set<String>> = combine(dao.latestReplies(), settings.flow) { latest, s ->
+        latest.filter { l ->
+            val seen = s.seenSeq[l.sessionId]
+            if (seen != null) l.maxSeq > seen else l.lastAtMs > s.unseenBaselineMs
+        }.map { it.projectId }.toSet()
+    }.distinctUntilChanged()
+
+    /** The user has the chat of [sessionId] open: everything in it counts as seen. */
+    suspend fun markSeen(sessionId: String) = withContext(Dispatchers.IO) { settings.markSeen(sessionId, dao.maxSeq(sessionId)) }
+
     fun commits(projectId: String): Flow<List<CommitUi>> = combine(dao.commits(projectId), store.flow) { list, _ ->
         val p = dao.project(projectId) ?: return@combine emptyList()
         list.map { c ->
@@ -367,6 +380,7 @@ class Repository(
         val res = http.api().sendPrompt(sessionId, SendPromptRequest(messageId, ciphertext, now, m, e))
         dao.upsertMessages(listOf(MessageEntity(messageId, sessionId, res.seq, "user", res.jobId, ciphertext, now, now)))
         dao.upsertJobs(listOf(JobEntity(res.jobId, d.id, p.id, sessionId, messageId, JobStatuses.QUEUED, null, null, m, e, now, null)))
+        settings.markSeen(sessionId, res.seq) // sending another message clears an unseen reply of this session
         settings.setModel(model, effort)
         res
     }

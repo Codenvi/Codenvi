@@ -27,6 +27,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -58,6 +59,7 @@ import app.codenvi.ui.components.SoundIcon
 import app.codenvi.ui.components.rememberMicPermission
 import app.codenvi.ui.theme.MonoStyle
 import app.codenvi.ui.theme.Tokens
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 
 /** Chat per session (docs/design.md §10.3 screen 5). */
@@ -71,6 +73,8 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
     val listState = rememberLazyListState()
 
     LaunchedEffect(sessionId) { vm.run { repo.syncMessages(sessionId) } }
+    // Everything in an open chat counts as seen (clears the red dot on the Multimode grid), including replies arriving now.
+    LaunchedEffect(sessionId, chatItems.lastOrNull()?.id) { if (chatItems.isNotEmpty()) repo.markSeen(sessionId) }
     LaunchedEffect(chatItems.size) { if (chatItems.isNotEmpty()) listState.animateScrollToItem(chatItems.lastIndex) }
 
     Column(Modifier.fillMaxSize().imePadding()) {
@@ -181,6 +185,10 @@ fun WorkingCard(status: String, lines: List<String>, onStop: () -> Unit) {
 @Composable
 fun PromptBar(
     vm: AppViewModel, enabled: Boolean = true, header: @Composable (() -> Unit)? = null,
+    /** Shown in the top right corner of the message block (Multimode puts its read-aloud button here). */
+    topRight: @Composable (() -> Unit)? = null,
+    /** While true the bar is locked with a loading animation (a prompt for this session is still being answered). */
+    busy: Boolean = false, onStop: (() -> Unit)? = null,
     onSend: suspend (String, String, String) -> Unit,
 ) {
     val settings by vm.repo.settings.flow.collectAsStateWithLifecycle(AppSettings())
@@ -197,7 +205,12 @@ fun PromptBar(
     }
 
     Column(Modifier.fillMaxWidth().background(Tokens.Surface).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        header?.invoke()
+        if (header != null || topRight != null) {
+            Box(Modifier.fillMaxWidth()) {
+                Box(Modifier.padding(end = if (topRight != null) 48.dp else 0.dp)) { header?.invoke() }
+                if (topRight != null) Box(Modifier.align(Alignment.TopEnd)) { topRight() }
+            }
+        }
         OutlinedTextField(
             value = value, onValueChange = { value = it }, placeholder = { Text("Ask Claude Code…") },
             // X inside the field: clears the text (and stops dictation, so it does not type it back).
@@ -206,15 +219,22 @@ fun PromptBar(
                     Icon(Icons.Filled.Close, "Clear text", tint = Tokens.OnSurfaceMuted)
                 }
             },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp, max = 200.dp), enabled = enabled,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp, max = 200.dp), enabled = enabled && !busy,
         )
+        if (busy) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LinearProgressIndicator(Modifier.weight(1f), color = Tokens.Primary, trackColor = Tokens.SurfaceVariant)
+                Text("Waiting for the reply…", color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelMedium)
+                if (onStop != null) TextButton(onClick = onStop) { Text("Stop", color = Tokens.Error) }
+            }
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(1f)) { ModelEffortPicker(catalog, model, effort) { m, e -> model = m; effort = e } }
             if (dictation.available) {
-                RecordButton(recording = listening, onClick = mic)
+                RecordButton(recording = listening, onClick = { if (!busy) mic() })
             }
             FilledIconButton(
-                enabled = enabled && !sending && value.text.isNotBlank(),
+                enabled = enabled && !busy && !sending && value.text.isNotBlank(),
                 colors = IconButtonDefaults.filledIconButtonColors(containerColor = Tokens.Primary, contentColor = Tokens.OnPrimary),
                 onClick = {
                     val text = value.text.trim()
@@ -233,5 +253,28 @@ fun PromptBar(
         }
         if (!dictation.available) Text("Voice input needs Google speech services or an offline language pack.",
             color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+/**
+ * Reads the newest reply of [sessionId] aloud (tap again to stop). Same icon and colours as the speaker on a reply in the chat:
+ * muted, orange while reading. Disabled until the session has a reply.
+ */
+@Composable
+fun ReadAloudButton(vm: AppViewModel, sessionId: String?) {
+    val context = LocalContext.current
+    val readAloud = remember { (context.applicationContext as CodenviApp).container.readAloud }
+    val playing by readAloud.playing.collectAsStateWithLifecycle()
+    val settings by vm.repo.settings.flow.collectAsStateWithLifecycle(AppSettings())
+    val items by remember(sessionId) { sessionId?.let { vm.repo.chat(it) } ?: emptyFlow() }.collectAsStateWithLifecycle(emptyList())
+    val last = items.lastOrNull { it.role != "user" }
+    val reading = last != null && playing == last.id
+    IconButton(enabled = last != null, onClick = {
+        if (last != null) {
+            readAloud.configure(settings.ttsSpeed, settings.ttsVoice)
+            readAloud.toggle(last.id, last.text)
+        }
+    }) {
+        Icon(SoundIcon, if (reading) "Stop reading" else "Read last reply aloud", tint = if (reading) Tokens.Primary else Tokens.OnSurfaceMuted)
     }
 }

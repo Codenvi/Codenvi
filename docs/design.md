@@ -811,6 +811,7 @@ okhttp = "4.12.0"
    - **Top:** a row of the selected project's sessions (tap one to choose it), then the multi-line `OutlinedTextField`, the model and effort dropdowns beneath it, then the mic and **Send** buttons.
    - **Below:** a 3-column grid of **every project from every connected device** (project name over device name, status dot). Selection is single, orange when active, and stays selected after sending.
    - Send posts the message to the **selected session**. Until one is chosen it is the project's `default_session_id`, or else its first session.
+   - After a send, the message block is locked with a loading bar (and a **Stop** button) until that session's reply arrives; locking is per session. A project block shows a loading bar while it is working and a **red dot** (top right) for a reply not yet seen in a chat. The dot clears when that session's chat is opened or another message is sent in it.
    - A **chat icon** at the right end of the title bar opens the selected session's chat. Every chat page has a **Multimode icon** in the same slot: it presets Multimode to that chat's project and session and opens it, however the chat was reached.
 7. **Settings:** server host, paired installs (rename, **Revoke**), **Disconnect this phone**, TTS voice/speed, speech language, app version, and **About** (MIT license notice, third-party notices, repository link, disclaimer).
 
