@@ -45,8 +45,6 @@ import app.codenvi.repo.ProjectState
 import app.codenvi.repo.UserException
 import app.codenvi.ui.AppViewModel
 import app.codenvi.ui.components.ChatIcon
-import app.codenvi.ui.components.StatusDot
-import app.codenvi.ui.components.color
 import app.codenvi.ui.theme.Tokens
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -142,9 +140,6 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
                             Text(p.deviceName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall,
                                 color = if (active) Color.White.copy(alpha = 0.85f) else Tokens.OnSurfaceMuted)
                         }
-                        // Status dot (bottom right). On the orange block it gets a white ring so it is still readable.
-                        StatusDot(if (!p.deviceOnline) Tokens.OnSurfaceMuted else p.state.color(),
-                            Modifier.align(Alignment.BottomEnd).then(if (active) Modifier.border(1.5.dp, Color.White, CircleShape) else Modifier))
                         // Red dot (top right): a reply in one of this project's sessions that was not seen in the chat yet.
                         if (p.id in unseen) Box(
                             Modifier.align(Alignment.TopEnd).size(11.dp).background(Tokens.Error, CircleShape)

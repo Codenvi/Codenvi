@@ -27,7 +27,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -187,7 +186,7 @@ fun PromptBar(
     vm: AppViewModel, enabled: Boolean = true, header: @Composable (() -> Unit)? = null,
     /** Shown in the top right corner of the message block (Multimode puts its read-aloud button here). */
     topRight: @Composable (() -> Unit)? = null,
-    /** While true the bar is locked with a loading animation (a prompt for this session is still being answered). */
+    /** While true the bar is locked and Send spins (a prompt for this session is still being answered); tapping Send then calls [onStop]. */
     busy: Boolean = false, onStop: (() -> Unit)? = null,
     onSend: suspend (String, String, String) -> Unit,
 ) {
@@ -206,9 +205,10 @@ fun PromptBar(
 
     Column(Modifier.fillMaxWidth().background(Tokens.Surface).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (header != null || topRight != null) {
-            Box(Modifier.fillMaxWidth()) {
-                Box(Modifier.padding(end = if (topRight != null) 48.dp else 0.dp)) { header?.invoke() }
-                if (topRight != null) Box(Modifier.align(Alignment.TopEnd)) { topRight() }
+            // One row, centred vertically: the session pills (taking the free width) and the top-right button on the same line.
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { header?.invoke() }
+                topRight?.invoke()
             }
         }
         OutlinedTextField(
@@ -221,22 +221,17 @@ fun PromptBar(
             },
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp, max = 200.dp), enabled = enabled && !busy,
         )
-        if (busy) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LinearProgressIndicator(Modifier.weight(1f), color = Tokens.Primary, trackColor = Tokens.SurfaceVariant)
-                Text("Waiting for the reply…", color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelMedium)
-                if (onStop != null) TextButton(onClick = onStop) { Text("Stop", color = Tokens.Error) }
-            }
-        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(1f)) { ModelEffortPicker(catalog, model, effort) { m, e -> model = m; effort = e } }
             if (dictation.available) {
                 RecordButton(recording = listening, onClick = { if (!busy) mic() })
             }
+            // While a prompt for this session is being answered the Send button spins; tapping it then stops that job.
             FilledIconButton(
-                enabled = enabled && !busy && !sending && value.text.isNotBlank(),
+                enabled = if (busy) onStop != null else enabled && !sending && value.text.isNotBlank(),
                 colors = IconButtonDefaults.filledIconButtonColors(containerColor = Tokens.Primary, contentColor = Tokens.OnPrimary),
                 onClick = {
+                    if (busy) { onStop?.invoke(); return@FilledIconButton }
                     val text = value.text.trim()
                     sending = true
                     dictation.stop()
@@ -249,7 +244,10 @@ fun PromptBar(
                         } finally { sending = false }
                     }
                 },
-            ) { Icon(Icons.Filled.Send, "Send") }
+            ) {
+                if (busy) CircularProgressIndicator(Modifier.size(22.dp), color = Tokens.OnPrimary, strokeWidth = 2.5.dp)
+                else Icon(Icons.Filled.Send, "Send")
+            }
         }
         if (!dictation.available) Text("Voice input needs Google speech services or an offline language pack.",
             color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelSmall)
