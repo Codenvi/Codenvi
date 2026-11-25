@@ -127,7 +127,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 2em 0; }
 .scr-input .send { margin-left: auto; background: var(--primary); color: var(--on-primary); border-radius: 8px; padding: 3px 10px; font-weight: 600; }
 .chip { position: absolute; display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); font-size: .82rem; font-weight: 500; box-shadow: 0 16px 36px -12px rgba(0, 0, 0, .7); animation: rise .7s both; }
 .chip .icon { color: var(--primary); }
-.chip.c1 { left: -34px; top: 62px; animation-delay: 1.3s; }
+.chip.c1 { left: -20px; top: 128px; animation-delay: 1.3s; }
 .chip.c2 { right: -6px; bottom: 96px; animation-delay: 1.6s; }
 .chip.c2 .icon { color: var(--accent); }
 
