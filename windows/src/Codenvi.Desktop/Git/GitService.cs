@@ -8,8 +8,8 @@ public sealed record GitCommitInfo(string Hash, string Subject, int FilesChanged
 public sealed class GitException(string message) : Exception(message);
 
 /// <summary>
-/// All git work goes through git.exe with porcelain output (docs/design.md §9). Codenvi never pushes,
-/// merges to main or rewrites history.
+/// All git work goes through git.exe with porcelain output (docs/design.md §9). Codenvi never rewrites history.
+/// It merges the dev branch to "main" and pushes "main" only when the user presses Publish (§9.4).
 /// </summary>
 public sealed class GitService
 {
@@ -129,10 +129,18 @@ public sealed class GitService
         return "Codenvi: " + (oneLine.Length == 0 ? "(empty prompt)" : oneLine);
     }
 
-    public static string TaskBody(string? model, string reply, Guid jobId, Guid sessionId)
+    /// <summary>
+    /// <paramref name="model"/> is the alias Codenvi was asked to use; <paramref name="resolvedModel"/> is the
+    /// model id Claude Code itself reported for the run (when available). <paramref name="effort"/> is only ever
+    /// what was requested - Claude Code never confirms back which effort it actually ran at.
+    /// </summary>
+    public static string TaskBody(string? model, string? resolvedModel, string? effort, string reply, Guid jobId, Guid sessionId)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Model: {(string.IsNullOrWhiteSpace(model) ? "default" : model)}");
+        var modelLine = string.IsNullOrWhiteSpace(model) ? "default" : model;
+        if (!string.IsNullOrWhiteSpace(resolvedModel) && resolvedModel != model) modelLine += $" ({resolvedModel})";
+        sb.AppendLine($"Model: {modelLine}");
+        if (!string.IsNullOrWhiteSpace(effort)) sb.AppendLine($"Effort: {effort} (requested)");
         sb.AppendLine();
         var r = reply.Trim();
         sb.AppendLine(r.Length > 500 ? r[..500] + "…" : r);
@@ -192,4 +200,53 @@ public sealed class GitService
     }
 
     public async Task<string> StatusShortAsync(string folder) => (await Git(folder, ["status", "--short", "--branch"])).StdOut.Trim();
+
+    /// <summary>Commits on <paramref name="branch"/> not yet on <paramref name="baseBranch"/>; 0 if <paramref name="baseBranch"/> does not exist locally.</summary>
+    public async Task<int> CountAheadAsync(string folder, string branch, string baseBranch)
+    {
+        if (!await BranchExistsAsync(folder, baseBranch)) return 0;
+        var r = await Git(folder, ["rev-list", "--count", $"{baseBranch}..{branch}"], check: false);
+        return r.ExitCode == 0 && int.TryParse(r.StdOut.Trim(), out var n) ? n : 0;
+    }
+
+    /// <summary>
+    /// Publish (docs/design.md §9.4): merges <paramref name="devBranch"/> into <paramref name="mainBranch"/> and
+    /// pushes <paramref name="mainBranch"/> to origin, if one is configured. Always ends back on
+    /// <paramref name="devBranch"/>. On conflict the merge is aborted and nothing is pushed.
+    /// </summary>
+    public async Task<string> PublishAsync(string folder, string devBranch, string mainBranch, string author, string email)
+    {
+        if (await IsDirtyAsync(folder)) throw new GitException("The working tree has uncommitted changes - commit or discard them first.");
+        var hasOrigin = (await Git(folder, ["remote"], check: false)).StdOut.Split('\n', StringSplitOptions.TrimEntries)
+            .Contains("origin");
+        try
+        {
+            if (hasOrigin) await Git(folder, ["fetch", "origin", mainBranch], check: false);
+            if (!await BranchExistsAsync(folder, mainBranch))
+            {
+                var hasRemoteMain = hasOrigin && (await Git(folder,
+                    ["rev-parse", "--verify", "--quiet", $"refs/remotes/origin/{mainBranch}"], check: false)).ExitCode == 0;
+                if (!hasRemoteMain) throw new GitException($"No local or remote '{mainBranch}' branch found.");
+                await Git(folder, ["branch", mainBranch, $"origin/{mainBranch}"]);
+            }
+            await Git(folder, ["switch", mainBranch]);
+            var merge = await Git(folder, ["merge", "--no-edit", devBranch], author, email, check: false);
+            if (merge.ExitCode != 0)
+            {
+                await Git(folder, ["merge", "--abort"], check: false);
+                throw new GitException("Publish conflicts merging into " + mainBranch + " - resolve manually, then push yourself.");
+            }
+            if (hasOrigin)
+            {
+                var push = await Git(folder, ["push", "origin", mainBranch], check: false);
+                if (push.ExitCode != 0)
+                    throw new GitException($"Merged into {mainBranch} locally, but push failed: " + FirstLines(push.StdErr + push.StdOut, 5));
+            }
+            return (await HeadAsync(folder))!;
+        }
+        finally
+        {
+            await Git(folder, ["switch", devBranch], check: false);
+        }
+    }
 }

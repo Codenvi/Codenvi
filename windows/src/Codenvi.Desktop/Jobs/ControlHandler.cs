@@ -90,6 +90,16 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
             }
             case ControlCommands.Status:
                 return new ControlResultPlain(true, Status: await projects.StatusAsync(project.Id));
+            case ControlCommands.Commit:
+            {
+                var hash = await projects.CommitLeftoversAsync(project, "Committed from the Codenvi Android app.");
+                return new ControlResultPlain(true, Text: hash ?? "Nothing to commit");
+            }
+            case ControlCommands.Publish:
+            {
+                var hash = await projects.PublishAsync(project.Id);
+                return new ControlResultPlain(true, Text: hash);
+            }
             case ControlCommands.RunScript:
             {
                 // The script text is never taken from the phone: only the PC-local one runs.

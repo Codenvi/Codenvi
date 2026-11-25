@@ -29,6 +29,7 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
     private JobScheduler Scheduler => services.GetRequiredService<JobScheduler>();
     private string Author => state.Settings.GitAuthorName;
     private string Email => state.Settings.GitAuthorEmail;
+    public const string MainBranch = "main";
 
     // ---------------- Register ----------------
     public async Task<LocalProject?> RegisterAsync(string folder, string name, IUserPrompts ui)
@@ -283,18 +284,39 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
 
     // ---------------- Commits & rollback ----------------
     public async Task<(string? hash, int filesChanged)> CommitAfterTaskAsync(LocalProject project, Guid jobId, Guid sessionId,
-        string? model, string prompt, string reply, string? preHash)
+        string? model, string? resolvedModel, string? effort, string prompt, string reply, string? preHash)
     {
         var folder = project.FolderPath;
         // Commits Claude made itself during the job count as task commits (docs/design.md §9.2).
         var own = await git.RevListAsync(folder, preHash);
         foreach (var h in own) await RecordCommitAsync(project, jobId, h, "task");
 
-        var hash = await git.CommitTaskAsync(folder, GitService.TaskSummary(prompt), GitService.TaskBody(model, reply, jobId, sessionId), Author, Email);
+        var body = GitService.TaskBody(model, resolvedModel, effort, reply, jobId, sessionId);
+        var hash = await git.CommitTaskAsync(folder, GitService.TaskSummary(prompt), body, Author, Email);
         var files = 0;
         if (hash is not null) files = (await RecordCommitAsync(project, jobId, hash, "task")).FilesChanged;
         else if (own.Count > 0) files = db.CommitByHash(project.Id, own[^1])?.FilesChanged ?? 0;
         return (hash ?? own.LastOrDefault(), files);
+    }
+
+    /// <summary>Commits whatever is left in the working tree after a cancelled/timed-out/failed job (docs/design.md §9.2).</summary>
+    public async Task<string?> CommitLeftoversAsync(LocalProject project, string body = "Committed from the Codenvi Activity tab.")
+    {
+        var hash = await git.CommitTaskAsync(project.FolderPath, "Codenvi: keep changes from an unfinished job", body, Author, Email);
+        if (hash is not null) await RecordCommitAsync(project, null, hash, "task");
+        state.UpdateRuntime(project.Id, r => r.HasUncommittedChanges = false);
+        return hash;
+    }
+
+    /// <summary>Publish (docs/design.md §9.4): merges the dev branch into "main" and pushes "main" to origin.</summary>
+    public async Task<string> PublishAsync(Guid projectId)
+    {
+        var project = db.Project(projectId) ?? throw new ProjectException("Unknown project.");
+        if (Scheduler.IsRunning(projectId)) throw new ProjectException("A job is running in this project. Wait for it or cancel it first.");
+        if (project.DevBranch == MainBranch) throw new ProjectException($"The dev branch is already '{MainBranch}'.");
+        var hash = await git.PublishAsync(project.FolderPath, project.DevBranch, MainBranch, Author, Email);
+        state.RaiseProjectsListChanged();
+        return hash;
     }
 
     public async Task<LocalCommit> RecordCommitAsync(LocalProject project, Guid? jobId, string hash, string kind)
@@ -352,7 +374,8 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
         var dirty = await git.IsDirtyAsync(p.FolderPath);
         var head = await git.HeadAsync(p.FolderPath);
         var info = head is null ? null : await git.CommitInfoAsync(p.FolderPath, head);
-        return new ProjectStatusPlain(branch, dirty, head, info?.Subject, Scheduler.RunningJob(projectId), branch == p.DevBranch);
+        var ahead = await git.CountAheadAsync(p.FolderPath, p.DevBranch, MainBranch);
+        return new ProjectStatusPlain(branch, dirty, head, info?.Subject, Scheduler.RunningJob(projectId), branch == p.DevBranch, ahead);
     }
 
     public static string ClaudeMdPath(LocalProject p) => Path.Combine(p.FolderPath, "CLAUDE.md");

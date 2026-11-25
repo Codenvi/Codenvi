@@ -43,6 +43,8 @@ object ControlCommands {
     const val STATUS = "project.status"
     const val RUN_SCRIPT = "project.script.run"
     const val STOP_SCRIPT = "project.script.stop"
+    const val COMMIT = "project.commit"
+    const val PUBLISH = "project.publish"
 }
 
 @JsonClass(generateAdapter = true)
@@ -63,6 +65,7 @@ data class ProjectStatusPlain(
     val lastCommitMessage: String?,
     val runningJobId: String?,
     val branchOk: Boolean,
+    val aheadOfMain: Int = 0,
 )
 
 @JsonClass(generateAdapter = true)

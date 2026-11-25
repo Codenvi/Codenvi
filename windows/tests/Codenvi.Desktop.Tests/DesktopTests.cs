@@ -106,10 +106,25 @@ public class JobHelpersTests
     {
         Assert.Equal("Codenvi: Add a login page", GitService.TaskSummary("Add a login page"));
         Assert.Equal(60 + "Codenvi: ".Length, GitService.TaskSummary(new string('a', 200)).Length);
-        var body = GitService.TaskBody("opus", "Reply", Guid.Empty, Guid.Empty);
+        var body = GitService.TaskBody("opus", null, null, "Reply", Guid.Empty, Guid.Empty);
         Assert.Contains("Codenvi-Job: 00000000-0000-0000-0000-000000000000", body);
         Assert.Contains("Codenvi-Session:", body);
         Assert.StartsWith("Model: opus", body);
+    }
+
+    [Fact]
+    public void Commit_message_includes_resolved_model_and_requested_effort()
+    {
+        var body = GitService.TaskBody("sonnet", "claude-sonnet-5-20260101", "high", "Reply", Guid.Empty, Guid.Empty);
+        Assert.StartsWith("Model: sonnet (claude-sonnet-5-20260101)", body);
+        Assert.Contains("Effort: high (requested)", body);
+    }
+
+    [Fact]
+    public void Commit_message_omits_resolved_model_when_same_as_requested()
+    {
+        var body = GitService.TaskBody("sonnet", "sonnet", null, "Reply", Guid.Empty, Guid.Empty);
+        Assert.StartsWith("Model: sonnet" + Environment.NewLine, body);
     }
 }
 

@@ -242,10 +242,7 @@ public sealed partial class ProjectViewModel : ObservableObject
     [RelayCommand]
     private async Task CommitLeftoversAsync() => await _main.Guard(async () =>
     {
-        var hash = await _git.CommitTaskAsync(Project.FolderPath, "Codenvi: keep changes from an unfinished job",
-            "Committed from the Codenvi Activity tab.", _state.Settings.GitAuthorName, _state.Settings.GitAuthorEmail);
-        if (hash is not null) await _projects.RecordCommitAsync(Project, null, hash, "task");
-        _state.UpdateRuntime(Id, r => r.HasUncommittedChanges = false);
+        await _projects.CommitLeftoversAsync(Project);
         LoadDetails();
     });
 

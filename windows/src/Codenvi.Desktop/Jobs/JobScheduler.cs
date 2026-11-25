@@ -292,6 +292,7 @@ public sealed class JobScheduler(
             project.PermissionMode, project.AllowedTools, project.MaxTurns);
 
         ResultEvent? result = null;
+        string? resolvedModel = null;
         var lastProgress = DateTime.MinValue;
         var sessionMarked = false;
         void OnLine(string line)
@@ -300,9 +301,10 @@ public sealed class JobScheduler(
             {
                 switch (ev)
                 {
-                    case InitEvent when !sessionMarked:
+                    case InitEvent init when !sessionMarked:
                         sessionMarked = true;
                         session.Started = true;
+                        resolvedModel = init.Model;
                         db.UpsertSession(session);
                         break;
                     case ToolUseEvent tool:
@@ -365,7 +367,7 @@ public sealed class JobScheduler(
         int filesChanged = 0;
         try
         {
-            (commitHash, filesChanged) = await projects.CommitAfterTaskAsync(project, job.Id, job.SessionId, job.Model, prompt.Text, result.Text, preHash);
+            (commitHash, filesChanged) = await projects.CommitAfterTaskAsync(project, job.Id, job.SessionId, job.Model, resolvedModel, job.Effort, prompt.Text, result.Text, preHash);
         }
         catch (GitException e)
         {
