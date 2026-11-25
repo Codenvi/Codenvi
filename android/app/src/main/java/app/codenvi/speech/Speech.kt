@@ -33,12 +33,19 @@ class SpeechInput(private val context: Context) {
     /** Bumped by every start and stop, so a pending quiet retry is dropped when the user has stopped meanwhile. */
     private var session = 0
 
+    /** True from a start until it ends (result, error or stop), including the short gaps while a retry is prepared. */
+    @Volatile var active = false
+        private set
+
     /**
-     * Error 12 (language not supported) / 13 (language unavailable) usually means the offline pack for the language is
-     * missing. So we retry in steps: offline first, then online, then the phone's own default language.
+     * Every (re)start of the recognizer plays the system's mic-on / mic-off sounds, so attempts are kept to a minimum:
+     * the first one lets the speech service choose offline or online itself; only if it rejects the language is there
+     * one more, with the phone's own default language. (Trying "offline only" first made a missing offline pack cost
+     * two extra start-stop cycles.)
      */
     fun start(language: String?, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) {
         session++
+        active = true
         begin(language, 0, 0, onPartial, onFinal, onError)
     }
 
@@ -59,12 +66,13 @@ class SpeechInput(private val context: Context) {
             }
             override fun onResults(results: Bundle?) {
                 _listening.value = false
+                active = false
                 results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let(onFinal) ?: onFinal("")
             }
             override fun onError(error: Int) {
                 _listening.value = false
                 if ((error == ERROR_LANGUAGE_NOT_SUPPORTED || error == ERROR_LANGUAGE_UNAVAILABLE)) {
-                    val next = if (step == 0) 1 else if (step == 1 && !language.isNullOrBlank()) 2 else -1
+                    val next = if (step == 0 && !language.isNullOrBlank()) 1 else -1
                     if (next >= 0) {
                         // Leave the recognizer callback before tearing it down, then try again with fewer demands.
                         Handler(Looper.getMainLooper()).post { if (mySession == session) begin(language, next, 0, onPartial, onFinal, onError) }
@@ -77,6 +85,7 @@ class SpeechInput(private val context: Context) {
                     Handler(Looper.getMainLooper()).postDelayed({ if (mySession == session) begin(language, step, retries + 1, onPartial, onFinal, onError) }, 500)
                     return
                 }
+                active = false
                 onError(
                     when (error) {
                         ERROR_LANGUAGE_NOT_SUPPORTED, ERROR_LANGUAGE_UNAVAILABLE ->
@@ -96,19 +105,20 @@ class SpeechInput(private val context: Context) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            if (step == 0) putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            if (step < 2) putExtra(RecognizerIntent.EXTRA_LANGUAGE, language?.takeIf { it.isNotBlank() } ?: Locale.getDefault().toLanguageTag())
+            if (step == 0) putExtra(RecognizerIntent.EXTRA_LANGUAGE, language?.takeIf { it.isNotBlank() } ?: Locale.getDefault().toLanguageTag())
         }
         r.startListening(intent)
     }
 
     fun stop() {
         session++
+        active = false
         release()
     }
 
     private fun release() {
-        recognizer?.run { stopListening(); destroy() }
+        // cancel() (not stopListening()) ends the session silently; stopListening() would play another mic-off sound.
+        recognizer?.run { runCatching { cancel() }; destroy() }
         recognizer = null
         _listening.value = false
     }

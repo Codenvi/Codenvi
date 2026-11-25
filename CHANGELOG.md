@@ -15,6 +15,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Tests now also run on pushes to `main`.
 
 ### Fixed
+- Android: tapping the dictation button no longer plays the mic on, off, on sounds. The speech service now picks offline or online itself (the offline-only first attempt that failed and restarted the recognizer is gone), a restart is limited to one retry with the phone's default language, and the recognizer is cancelled silently. A tap while it is still starting now stops it instead of starting another round.
 - Android: the first tap on the dictation button no longer shows "Speech recognition error (11)"; the app quietly retries while the speech service is starting up.
 - Android: the Devices, Projects, project (Sessions, Memory, Commits) and Multimode pages now fill the screen height; the page area no longer double-counts the status bar and no longer shrinks to its content.
 - Android: dictation no longer fails with "Speech recognition error (12)" when the offline language pack is missing; it retries online and with the phone's default language, and explains the error if it still fails.

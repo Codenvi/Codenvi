@@ -130,10 +130,12 @@ class Dictation(private val speech: SpeechInput) {
     private var base: TextFieldValue? = null
 
     val listening get() = speech.listening
+    val isActive get() = speech.active
     val available get() = speech.isAvailable
 
     fun toggle(current: TextFieldValue, language: String?, update: (TextFieldValue) -> Unit, onError: (String) -> Unit) {
-        if (speech.listening.value) { speech.stop(); return }
+        // active (not listening) so a tap while the recognizer is still starting or restarting stops it instead of starting another.
+        if (speech.active) { speech.stop(); return }
         base = current
         speech.start(language,
             onPartial = { update(insert(base ?: current, it, moveCursor = false)) },

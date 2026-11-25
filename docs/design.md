@@ -108,7 +108,7 @@ Rules:
 | Users | **Single owner, no registration and no sign-in screens.** Each app install connects once with a **one-time connection string** (pairing code) and then holds its own revocable credential (§4). |
 | Realtime | Plain **WebSockets** with one JSON envelope protocol, used by both clients. Desktop uses `ClientWebSocket` and Android uses OkHttp's WebSocket, so the listed Android stack needs no SignalR client. |
 | DB schema as code | **Drizzle ORM** schema (`server/src/db/schema.ts`) with generated SQL migrations in `server/drizzle/`, applied by `dist/migrate.js` on every deploy before the new release goes live. |
-| Speech-to-text | Android's built-in **`SpeechRecognizer`**, which is free, needs no API key and prefers offline. |
+| Speech-to-text | Android's built-in **`SpeechRecognizer`**, which is free, needs no API key and lets the speech service pick offline or online. |
 | Text-to-speech | Android's built-in **`TextToSpeech`**. |
 | Visual design | **Dark mode with orange as the primary color** in both apps (§0.7). |
 | Repo | **Public monorepo on GitHub.** Deploys are chosen per push with **`[android]`**, **`[windows]`** and **`[server]`** in any commit message. Any combination works. Every workflow can also be run manually. |
