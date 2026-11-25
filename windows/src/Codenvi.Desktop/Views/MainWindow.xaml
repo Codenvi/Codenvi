@@ -91,31 +91,6 @@
                    HorizontalAlignment="Center" VerticalAlignment="Center"
                    Visibility="{Binding Converter={StaticResource NullToVis}, ConverterParameter=invert, FallbackValue=Visible}" />
         <TabControl Visibility="{Binding Converter={StaticResource NullToVis}, FallbackValue=Collapsed}" x:Name="Tabs">
-          <TabItem Header="Overview">
-            <StackPanel>
-              <TextBlock Text="{Binding Name}" Style="{StaticResource Heading}" />
-              <Border Style="{StaticResource Card}">
-                <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-                  <TextBlock Text="Folder" Style="{StaticResource Muted}" />
-                  <TextBlock Grid.Column="1" Text="{Binding FolderPath}" FontFamily="{StaticResource MonoFont}" />
-                  <TextBlock Grid.Row="1" Text="Dev branch" Style="{StaticResource Muted}" Margin="0,6,0,0" />
-                  <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DevBranch}" FontFamily="{StaticResource MonoFont}" Margin="0,6,0,0" />
-                  <TextBlock Grid.Row="2" Text="Git state" Style="{StaticResource Muted}" Margin="0,6,0,0" />
-                  <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding GitState, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource MonoBox}" Margin="0,6,0,0" MaxHeight="160" VerticalScrollBarVisibility="Auto" />
-                </Grid>
-              </Border>
-              <WrapPanel Margin="0,12,0,0">
-                <Button Content="Open folder" Command="{Binding OpenFolderCommand}" />
-                <Button Content="Open in VS Code" Command="{Binding OpenInVsCodeCommand}" />
-                <Button Content="Refresh git state" Command="{Binding RefreshGitCommand}" />
-                <Button Content="Test Claude here" Command="{Binding TestClaudeCommand}" />
-              </WrapPanel>
-              <TextBlock Text="{Binding TestResult}" Style="{StaticResource Muted}" Margin="0,10,0,0" />
-            </StackPanel>
-          </TabItem>
-
           <TabItem Header="Sessions">
             <DockPanel>
               <WrapPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
@@ -199,6 +174,27 @@
           <TabItem Header="Settings">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource Heading}" />
+                <Border Style="{StaticResource Card}">
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                    <TextBlock Text="Folder" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="1" Text="{Binding FolderPath}" FontFamily="{StaticResource MonoFont}" />
+                    <TextBlock Grid.Row="1" Text="Dev branch" Style="{StaticResource Muted}" Margin="0,6,0,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DevBranch}" FontFamily="{StaticResource MonoFont}" Margin="0,6,0,0" />
+                    <TextBlock Grid.Row="2" Text="Git state" Style="{StaticResource Muted}" Margin="0,6,0,0" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding GitState, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource MonoBox}" Margin="0,6,0,0" MaxHeight="160" VerticalScrollBarVisibility="Auto" />
+                  </Grid>
+                </Border>
+                <WrapPanel Margin="0,12,0,0">
+                  <Button Content="Open folder" Command="{Binding OpenFolderCommand}" />
+                  <Button Content="Open in VS Code" Command="{Binding OpenInVsCodeCommand}" />
+                  <Button Content="Refresh git state" Command="{Binding RefreshGitCommand}" />
+                  <Button Content="Test Claude here" Command="{Binding TestClaudeCommand}" />
+                </WrapPanel>
+                <TextBlock Text="{Binding TestResult}" Style="{StaticResource Muted}" Margin="0,10,0,0" />
+              <Separator Margin="0,16,0,16" />
                 <TextBlock Text="Permission mode" Style="{StaticResource Muted}" />
                 <ComboBox ItemsSource="{Binding PermissionModes}" SelectedItem="{Binding PermissionMode}" Width="240" HorizontalAlignment="Left" Margin="0,4,0,12" />
                 <TextBlock Text="Allowed tools (space separated, e.g. Read Edit Write Bash(npm test:*))" Style="{StaticResource Muted}" />

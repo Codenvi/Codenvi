@@ -643,13 +643,12 @@ Packages: `CommunityToolkit.Mvvm`, `Microsoft.Extensions.Hosting` (DI plus backg
 3. **Main window**:
    - Header: server host, device name, server connection dot, Claude Code CLI status (version, signed in yes/no), and the **Show encryption key** button.
    - Left: project list. Each row shows name, status chip (Idle / Queued n / ● Running with spinner and elapsed time / Error) and a pause toggle.
-   - Right (selected project), with tabs:
-     - **Overview**: path, dev branch, git state, Open folder, Open in VS Code.
+   - Right (selected project), with tabs (Sessions is the default):
      - **Sessions**: list, create, rename, clear chat memory, delete.
      - **Activity**: live stream of the running job's progress lines, plus a Cancel button.
      - **Commits**: table of hash, time, message, files, a **Roll back to here** button and a "Reverted" marker.
      - **Memory**: edit `CLAUDE.md`.
-     - **Settings**: permission mode, allowed tools, max turns, timeout, default model and effort.
+     - **Settings**: project block on top (path, dev branch, git state, Open folder, Open in VS Code, Refresh git state, Test Claude here), then permission mode, allowed tools, max turns, timeout, default model and effort.
    - Buttons: **Register project**, **Rename**, **Relocate**, **Delete**.
 4. **Settings**: paired installs with **Revoke**, **Connect a phone**, **Pair another PC**, **Disconnect this PC**, start with Windows (`HKCU\...\Run`), minimize to tray on close, max parallel projects (default 3), git author name/email for Codenvi commits, default dev branch name (`codenvi-dev`), stale job limit, and whether to delete old Claude transcripts on clear (§8.7).
 5. **About**: app version, MIT license notice, link to the repository, third-party notices and the disclaimer (§0.3).

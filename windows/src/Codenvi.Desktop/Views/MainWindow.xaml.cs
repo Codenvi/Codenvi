@@ -18,8 +18,17 @@ public partial class MainWindow : Window
         vm.Owner = this;
         DataContext = vm;
         _state = App.Services.GetRequiredService<AppState>();
+        Guid? lastProjectId = null;
         vm.PropertyChanged += (_, e) =>
         {
+            if (e.PropertyName == nameof(MainViewModel.Selected))
+            {
+                // Opening a different project always starts on the first tab (Sessions).
+                // A list refresh that re-selects the same project keeps the current tab.
+                var id = vm.Selected?.Id;
+                if (id != lastProjectId) { lastProjectId = id; Tabs.SelectedIndex = 0; }
+                return;
+            }
             if (e.PropertyName != nameof(MainViewModel.Page)) return;
             // A fresh page each time, so Settings re-reads the saved values and the installs list.
             PageHost.Content = vm.Page switch { AppPage.Settings => new SettingsView(), AppPage.About => new AboutView(), _ => null };

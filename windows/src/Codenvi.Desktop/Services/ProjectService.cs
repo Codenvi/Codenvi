@@ -95,7 +95,7 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
         ui.Info("Project registered",
             "Claude Code may ask you to trust this folder the first time it runs here.\n\n" +
             "If a job fails with a trust message, open a terminal in the folder, run `claude` once, accept the trust prompt, " +
-            "then press Retry (or use \"Test Claude here\" on the Overview tab).");
+            "then press Retry (or use \"Test Claude here\" on the project Settings tab).");
         return project;
     }
 
