@@ -32,5 +32,8 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs
+      # GitHub's artifact API can lag a few seconds behind the upload; deploy-pages then finds 0 artifacts.
+      - name: Wait for the artifact to be listed
+        run: sleep 20
       - id: deployment
         uses: actions/deploy-pages@v4
