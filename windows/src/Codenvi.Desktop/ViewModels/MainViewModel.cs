@@ -29,6 +29,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly CryptoService _crypto;
     private readonly WsClient _ws;
     private readonly GitService _git;
+    private readonly ScriptRunner _scripts;
     private readonly DispatcherTimer _timer;
 
     public Window? Owner { get; set; }
@@ -49,8 +50,9 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsProjectsPage => Page == AppPage.Projects;
 
     public MainViewModel(AppState state, LocalDb db, SecretStore secrets, ProjectService projects, JobScheduler scheduler,
-        ClaudeCli claude, ApiClient api, CryptoService crypto, WsClient ws, GitService git)
+        ClaudeCli claude, ApiClient api, CryptoService crypto, WsClient ws, GitService git, ScriptRunner scripts)
     {
+        _scripts = scripts;
         _state = state; _db = db; _secrets = secrets; _projects = projects; _scheduler = scheduler;
         _claude = claude; _api = api; _crypto = crypto; _ws = ws; _git = git;
 
@@ -106,7 +108,7 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var l in locals)
         {
             var vm = Projects.FirstOrDefault(p => p.Id == l.Id);
-            if (vm is null) Projects.Add(vm = new ProjectViewModel(l, this, _state, _db, _projects, _scheduler, _claude, _git));
+            if (vm is null) Projects.Add(vm = new ProjectViewModel(l, this, _state, _db, _projects, _scheduler, _claude, _git, _scripts));
             else vm.Update(l);
         }
         Selected = Projects.FirstOrDefault(p => p.Id == selectedId) ?? Selected ?? Projects.FirstOrDefault();

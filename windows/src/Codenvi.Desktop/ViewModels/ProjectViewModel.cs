@@ -31,6 +31,7 @@ public sealed partial class ProjectViewModel : ObservableObject
     private readonly JobScheduler _scheduler;
     private readonly ClaudeCli _claude;
     private readonly GitService _git;
+    private readonly ScriptRunner _scripts;
 
     public LocalProject Project { get; private set; }
     public Guid Id => Project.Id;
@@ -64,15 +65,19 @@ public sealed partial class ProjectViewModel : ObservableObject
     [ObservableProperty] private int _timeoutMinutes;
     [ObservableProperty] private string _defaultModel;
     [ObservableProperty] private string _defaultEffort;
+    [ObservableProperty] private string _shellScript;
+    [ObservableProperty] private bool _scriptRunning;
 
     public ProjectViewModel(LocalProject p, MainViewModel main, AppState state, LocalDb db, ProjectService projects,
-        JobScheduler scheduler, ClaudeCli claude, GitService git)
+        JobScheduler scheduler, ClaudeCli claude, GitService git, ScriptRunner scripts)
     {
+        _scripts = scripts;
         _main = main; _state = state; _db = db; _projects = projects; _scheduler = scheduler; _claude = claude; _git = git;
         Project = p;
         _name = p.Name; _folderPath = p.FolderPath; _devBranch = p.DevBranch; _paused = p.Paused;
         _permissionMode = p.PermissionMode; _allowedTools = p.AllowedTools; _maxTurns = p.MaxTurns; _timeoutMinutes = p.TimeoutMinutes;
         _defaultModel = p.DefaultModel ?? "default"; _defaultEffort = p.DefaultEffort ?? "default";
+        _shellScript = p.ShellScript ?? "";
         RefreshStatus();
     }
 
@@ -90,6 +95,7 @@ public sealed partial class ProjectViewModel : ObservableObject
         var r = _state.Runtime(Id);
         Activity = r.Activity;
         IsRunning = r.RunningJobId is not null;
+        ScriptRunning = r.ScriptRunning;
         HasUncommittedChanges = r.HasUncommittedChanges;
         StatusText = Paused ? "Paused" : r.Activity switch
         {
@@ -273,8 +279,15 @@ public sealed partial class ProjectViewModel : ObservableObject
 
     // ---------------- Settings ----------------
     [RelayCommand]
-    private void SaveSettings()
+    private async Task SaveSettingsAsync()
     {
+        var script = string.IsNullOrWhiteSpace(ShellScript) ? null : ShellScript.Replace("\r\n", "\n").Trim();
+        var scriptChanged = script != (Project.ShellScript is null ? null : Project.ShellScript.Replace("\r\n", "\n").Trim());
+        if (script is not null && scriptChanged &&
+            !Dialogs.Confirm(_main.Owner, "Phone-run script",
+                "Your phone will be able to run this script on this PC with one tap, as you, with full access to your files. Only save commands you trust. Continue?",
+                "Save script"))
+            return;
         Project.PermissionMode = PermissionMode;
         Project.AllowedTools = AllowedTools.Trim();
         Project.MaxTurns = Math.Clamp(MaxTurns, 1, 500);
@@ -286,7 +299,17 @@ public sealed partial class ProjectViewModel : ObservableObject
                 "bypassPermissions lets Claude Code run ANY command on this PC without asking. Only use it for folders you can afford to lose. Continue?",
                 "Use it"))
             return;
+        Project.ShellScript = script;
         _db.UpsertProject(Project);
+        if (scriptChanged)
+        {
+            // The phone only learns that a script exists (a flag inside the encrypted project info).
+            try { await _projects.UploadProjectAsync(Project); }
+            catch (Exception e) { Dialogs.Error(_main.Owner, "Saved on this PC, but the phone could not be told yet: " + e.Message); return; }
+        }
         Dialogs.Info(_main.Owner, "Project settings", "Saved. They apply to the next job.");
     }
+
+    [RelayCommand]
+    private void StopScript() => _scripts.Stop(Id);
 }

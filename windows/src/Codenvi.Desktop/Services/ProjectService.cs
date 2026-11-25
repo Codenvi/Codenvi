@@ -106,7 +106,7 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
 
     public Task UploadProjectAsync(LocalProject p, Guid? defaultSessionId = null) =>
         api.PutProjectAsync(p.Id, new PutProjectRequest(crypto.DeviceId,
-            crypto.EncryptMeta(ObjectTypes.ProjectMeta, p.Id, new ProjectMeta(p.Name, p.DevBranch)), defaultSessionId, p.SortOrder));
+            crypto.EncryptMeta(ObjectTypes.ProjectMeta, p.Id, new ProjectMeta(p.Name, p.DevBranch, string.IsNullOrWhiteSpace(p.ShellScript) ? null : true)), defaultSessionId, p.SortOrder));
 
     public Task UploadSessionAsync(LocalSession s) =>
         api.PutSessionAsync(s.Id, new PutSessionRequest(s.ProjectId, crypto.EncryptMeta(ObjectTypes.SessionMeta, s.Id, new SessionMeta(s.Name))));

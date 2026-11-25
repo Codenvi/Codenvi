@@ -78,6 +78,7 @@ enum class ProjectState { IDLE, QUEUED, RUNNING, WAITING_LOGIN }
 data class ProjectUi(
     val id: String, val deviceId: String, val deviceName: String, val name: String, val devBranch: String,
     val defaultSessionId: String?, val sortOrder: Int, val state: ProjectState, val deviceOnline: Boolean, val locked: Boolean,
+    val hasScript: Boolean = false,
 )
 
 data class SessionUi(val id: String, val projectId: String, val name: String, val locked: Boolean)
@@ -242,7 +243,7 @@ class Repository(
             else -> ProjectState.IDLE
         }
         return ProjectUi(p.id, p.deviceId, d.name, meta?.name ?: "🔒 Locked project", meta?.devBranch ?: "",
-            p.defaultSessionId, p.sortOrder, state, d.online, meta == null)
+            p.defaultSessionId, p.sortOrder, state, d.online, meta == null, meta?.hasScript == true)
     }
 
     fun sessions(projectId: String): Flow<List<SessionUi>> = combine(dao.sessions(projectId), store.flow) { list, _ ->
@@ -431,21 +432,18 @@ class Repository(
     suspend fun rollback(projectId: String, hash: String) { controlOk(projectId, ControlPlain(ControlCommands.ROLLBACK, projectId, commitHash = hash)); refreshCommits(projectId) }
     suspend fun projectStatus(projectId: String) = controlOk(projectId, ControlPlain(ControlCommands.STATUS, projectId)).status
 
+    /** Asks the PC to start the project's own saved script. No script text is sent: the PC runs what it has stored. */
+    suspend fun runScript(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.RUN_SCRIPT, projectId)) }
+
     // ---------------- Projects & sessions ----------------
     suspend fun renameProject(projectId: String, name: String) = withContext(Dispatchers.IO) {
         val p = dao.project(projectId) ?: throw UserException("Unknown project.")
         val d = dao.device(p.deviceId) ?: throw UserException("Unknown PC.")
         val meta = projectMeta(p) ?: throw UserException("Add this PC's key first.")
         val enc = E2E.encrypt(currentKey(d.id, d.keyVersion), d.keyVersion, Aad.meta(d.id, ObjectTypes.PROJECT_META, p.id),
-            ProjectMeta(name.trim(), meta.devBranch).toJsonBytes())
+            meta.copy(name = name.trim()).toJsonBytes())
         check(http.api().patchProject(projectId, PatchProjectRequest(encMeta = enc)))
         dao.upsertProjects(listOf(p.copy(encMeta = enc)))
-    }
-
-    suspend fun moveProject(projectId: String, newOrder: Int) = withContext(Dispatchers.IO) {
-        val p = dao.project(projectId) ?: return@withContext
-        check(http.api().patchProject(projectId, PatchProjectRequest(sortOrder = newOrder)))
-        dao.upsertProjects(listOf(p.copy(sortOrder = newOrder)))
     }
 
     suspend fun setDefaultSession(projectId: String, sessionId: String) = withContext(Dispatchers.IO) {

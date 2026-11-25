@@ -11,7 +11,7 @@ namespace Codenvi.Desktop.Jobs;
 
 /// <summary>Executes encrypted control commands from the phone (docs/design.md §7.5).</summary>
 public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws, ProjectService projects, AppState state,
-    ILogger<ControlHandler> log)
+    ScriptRunner scripts, ILogger<ControlHandler> log)
 {
     public async Task HandleAsync(ControlRequestPayload req)
     {
@@ -90,6 +90,12 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
             }
             case ControlCommands.Status:
                 return new ControlResultPlain(true, Status: await projects.StatusAsync(project.Id));
+            case ControlCommands.RunScript:
+            {
+                // The script text is never taken from the phone: only the PC-local one runs.
+                var error = scripts.Start(project);
+                return error is null ? new ControlResultPlain(true, Text: "Script started") : new ControlResultPlain(false, error);
+            }
             default:
                 return new ControlResultPlain(false, $"Unknown command '{cmd.Command}'.");
         }

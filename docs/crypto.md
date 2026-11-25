@@ -104,7 +104,7 @@ Plaintext is UTF-8 JSON with camelCase names. Unknown fields must be ignored.
 | Prompt | `{"text","projectId","sessionId","model","effort"}` - the desktop rejects the job if `projectId`/`sessionId`/`model`/`effort` differ from the job row |
 | Reply | `{"text","costUsd","durationMs","commitHash","filesChanged","part","parts"}` |
 | Progress | `{"line"}` |
-| Project meta | `{"name","devBranch"}` |
+| Project meta | `{"name","devBranch","hasScript"?}` (`hasScript` only tells the phone to show the script button; the script text never leaves the PC) |
 | Session meta | `{"name"}` |
 | Commit meta | `{"message","filesChanged","insertions","deletions"}` |
 | Job error | `{"summary","detail"}` |

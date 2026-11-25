@@ -46,7 +46,7 @@ public sealed class LocalDb
               id TEXT PRIMARY KEY, name TEXT NOT NULL, folder_path TEXT NOT NULL, dev_branch TEXT NOT NULL,
               permission_mode TEXT NOT NULL, allowed_tools TEXT NOT NULL, max_turns INTEGER NOT NULL,
               timeout_minutes INTEGER NOT NULL DEFAULT 60, default_model TEXT, default_effort TEXT,
-              sort_order INTEGER NOT NULL DEFAULT 0, paused INTEGER NOT NULL DEFAULT 0);
+              sort_order INTEGER NOT NULL DEFAULT 0, paused INTEGER NOT NULL DEFAULT 0, shell_script TEXT);
             CREATE TABLE IF NOT EXISTS sessions (
               id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
               name TEXT NOT NULL, claude_session_id TEXT NOT NULL, started INTEGER NOT NULL DEFAULT 0,
@@ -67,6 +67,9 @@ public sealed class LocalDb
             CREATE INDEX IF NOT EXISTS seen_jobs_time ON seen_jobs (seen_at);
             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             """);
+        // Columns added after the first release: CREATE TABLE IF NOT EXISTS does not touch existing databases.
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM pragma_table_info('projects') WHERE name = 'shell_script'") == 0)
+            c.Execute("ALTER TABLE projects ADD COLUMN shell_script TEXT");
     }
 
     // ---------------- Settings ----------------
@@ -102,14 +105,15 @@ public sealed class LocalDb
         using var c = Open();
         c.Execute("""
             INSERT INTO projects (id, name, folder_path, dev_branch, permission_mode, allowed_tools, max_turns, timeout_minutes,
-                                  default_model, default_effort, sort_order, paused)
+                                  default_model, default_effort, sort_order, paused, shell_script)
             VALUES (@Id, @Name, @FolderPath, @DevBranch, @PermissionMode, @AllowedTools, @MaxTurns, @TimeoutMinutes,
-                    @DefaultModel, @DefaultEffort, @SortOrder, @Paused)
+                    @DefaultModel, @DefaultEffort, @SortOrder, @Paused, @ShellScript)
             ON CONFLICT(id) DO UPDATE SET name = excluded.name, folder_path = excluded.folder_path,
               dev_branch = excluded.dev_branch, permission_mode = excluded.permission_mode,
               allowed_tools = excluded.allowed_tools, max_turns = excluded.max_turns,
               timeout_minutes = excluded.timeout_minutes, default_model = excluded.default_model,
-              default_effort = excluded.default_effort, sort_order = excluded.sort_order, paused = excluded.paused
+              default_effort = excluded.default_effort, sort_order = excluded.sort_order, paused = excluded.paused,
+              shell_script = excluded.shell_script
             """, p);
     }
 

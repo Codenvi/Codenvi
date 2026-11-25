@@ -15,8 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -53,6 +51,7 @@ import app.codenvi.ui.components.Chip
 import app.codenvi.ui.components.ConfirmDialog
 import app.codenvi.ui.components.CountBadge
 import app.codenvi.ui.components.InputDialog
+import app.codenvi.ui.components.ScriptIcon
 import app.codenvi.ui.components.StatusDot
 import app.codenvi.ui.components.color
 import app.codenvi.ui.components.label
@@ -167,6 +166,7 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
     val unseenByProject by vm.repo.unseenCountByProject.collectAsStateWithLifecycle(emptyMap())
     val devices by vm.repo.devices.collectAsStateWithLifecycle(emptyList())
     var rename by remember { mutableStateOf<ProjectUi?>(null) }
+    var runScript by remember { mutableStateOf<ProjectUi?>(null) }
     LaunchedEffect(deviceId) { vm.run { vm.repo.refreshProjects(deviceId) } }
 
     Column(Modifier.fillMaxSize()) {
@@ -178,7 +178,6 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
         LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(projects, key = { it.id }) { p ->
                 var menu by remember { mutableStateOf(false) }
-                val index = projects.indexOf(p)
                 Card(colors = CardDefaults.cardColors(containerColor = Tokens.Surface),
                     modifier = Modifier.fillMaxWidth().clickable(enabled = !p.locked) { onOpen(p.id) }) {
                     Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -189,8 +188,9 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
                                 if (p.devBranch.isNotEmpty()) Text(p.devBranch, style = MonoStyle, color = Tokens.OnSurfaceMuted)
                             }
                         }
-                        IconButton(enabled = index > 0, onClick = { vm.run { reorder(vm, projects, index, index - 1) } }) { Icon(Icons.Filled.KeyboardArrowUp, "Move up") }
-                        IconButton(enabled = index < projects.lastIndex, onClick = { vm.run { reorder(vm, projects, index, index + 1) } }) { Icon(Icons.Filled.KeyboardArrowDown, "Move down") }
+                        if (p.hasScript && !p.locked) {
+                            IconButton(enabled = p.deviceOnline, onClick = { runScript = p }) { Icon(ScriptIcon, "Run script on the PC") }
+                        }
                         unseenByProject[p.id]?.takeIf { it > 0 }?.let { CountBadge(it); Spacer(Modifier.width(4.dp)) }
                         Box {
                             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
@@ -203,10 +203,10 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
             }
         }
     }
+    runScript?.let { p ->
+        ConfirmDialog("Run script", "Run the script of \"${p.name}\" on ${p.deviceName}?", "Run",
+            onConfirm = { vm.run(onOk = { vm.ok("Script started on the PC.") }) { vm.repo.runScript(p.id) } },
+            onDismiss = { runScript = null })
+    }
     rename?.let { p -> InputDialog("Rename project", p.name, onConfirm = { n -> vm.run { vm.repo.renameProject(p.id, n) } }, onDismiss = { rename = null }) }
-}
-
-private suspend fun reorder(vm: AppViewModel, list: List<ProjectUi>, from: Int, to: Int) {
-    val moved = list.toMutableList().apply { add(to, removeAt(from)) }
-    moved.forEachIndexed { i, p -> if (p.sortOrder != i) vm.repo.moveProject(p.id, i) }
 }

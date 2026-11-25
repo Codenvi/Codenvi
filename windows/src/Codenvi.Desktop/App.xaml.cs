@@ -64,6 +64,7 @@ public partial class App : Application
                 s.AddSingleton<ProjectService>();
                 s.AddSingleton<JobScheduler>();
                 s.AddHostedService(sp => sp.GetRequiredService<JobScheduler>());
+                s.AddSingleton<ScriptRunner>();
                 s.AddSingleton<ControlHandler>();
                 s.AddSingleton<SyncService>();
                 s.AddHostedService(sp => sp.GetRequiredService<SyncService>());
@@ -104,6 +105,7 @@ public partial class App : Application
     {
         _tray?.Dispose();
         _tray = null;
+        try { _host?.Services.GetService<ScriptRunner>()?.StopAll(); } catch { }
         if (_host is not null)
         {
             try { await _host.StopAsync(TimeSpan.FromSeconds(5)); } catch { }

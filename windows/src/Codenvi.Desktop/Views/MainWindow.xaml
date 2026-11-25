@@ -209,6 +209,12 @@
                   <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding DefaultModel}" Width="140" Margin="0,0,8,0" />
                   <ComboBox ItemsSource="{Binding Efforts}" SelectedItem="{Binding DefaultEffort}" Width="140" />
                 </StackPanel>
+                <TextBlock Text="Shell script (run from the phone)" Style="{StaticResource Muted}" />
+                <TextBox Text="{Binding ShellScript, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True"
+                         Style="{StaticResource MonoBox}" MinHeight="120" Margin="0,4,0,4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" />
+                <TextBlock Text="One command per line, run in order with PowerShell in the project folder. The phone can start it with one tap; it only ever runs this saved text. Output appears on the Activity tab." Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <Button Content="Stop script" Command="{Binding StopScriptCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Margin="0,0,0,12"
+                        Visibility="{Binding ScriptRunning, Converter={StaticResource BoolToVis}}" />
                 <Button Content="Save project settings" Command="{Binding SaveSettingsCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" />
               </StackPanel>
             </ScrollViewer>

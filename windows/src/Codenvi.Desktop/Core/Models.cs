@@ -17,6 +17,8 @@ public sealed class LocalProject
     public string? DefaultEffort { get; set; }
     public int SortOrder { get; set; }
     public bool Paused { get; set; }
+    /// <summary>Multi-line PowerShell script the phone can start (one command per line). Never leaves the PC.</summary>
+    public string? ShellScript { get; set; }
 }
 
 public sealed class LocalSession

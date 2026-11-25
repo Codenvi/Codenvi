@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Run a project script from the phone: a new shell script field on each project's Settings tab on Windows (PowerShell, one command per line, run in order in the project folder). On Android a script (code) button appears on the project row when a script exists; after a confirmation the PC starts it in the background (for example a localhost dev server), shows its output on the Activity tab and can stop it with Stop script. The phone never sends script text.
 - QR-code pairing: "Connect a phone" and "Show encryption key" on Windows also show a QR code; the Android Connect screen and the "Paste a key string" dialog have a Scan QR code button (Google code scanner, no camera permission). Pasting still works.
 - Community files: security policy, contributing guide, code of conduct, issue forms and a pull request template.
 - Project website and repository links in the About screens (Windows and Android).
@@ -17,6 +18,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Android: dictation no longer fails with "Speech recognition error (12)" when the offline language pack is missing; it retries online and with the phone's default language, and explains the error if it still fails.
 
 ### Changed
+- Windows: the project's Overview tab is gone; its folder, branch and git state block and buttons are now at the top of the Settings tab, and Sessions is the tab shown first.
+- Android: the up/down reorder buttons on projects are removed.
 - Android: unseen replies are also shown outside Multimode. A white number badge (count of unseen replies) sits before the 3-dot button on each device in Devices and each project in the Projects list, and a white dot on each session in the Sessions tab.
 - Android: Multimode unseen-reply dots (white). The session pill of a session with an unseen reply has a dot before its name, the chat icon in the title bar has a dot while the active project has one, and tapping the read-aloud button counts the reply as seen.
 - Android: Multimode polish. The session pills and the read-aloud button sit on one line, the project blocks no longer show the status dot in the bottom right, and the message block no longer shows a loading bar: the Send button spins while that session's reply is pending (tap it to stop the job).

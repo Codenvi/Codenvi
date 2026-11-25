@@ -123,3 +123,4 @@ Encrypted `{command, projectId, sessionId?, name?, text?, commitHash?}`; result 
 | `project.memory.get` / `project.memory.set` | read / write `CLAUDE.md` |
 | `project.rollback` | revert every commit after `commitHash` in one commit |
 | `project.status` | `{branch, dirty, lastCommitHash, lastCommitMessage, runningJobId, branchOk}` |
+| `project.script.run` | start the project's PC-local shell script (PowerShell, one command per line, project folder) in the background and answer `Script started` at once; errors if none is saved or it is already running. The command carries no script text: the PC only runs what the user saved on the PC. |

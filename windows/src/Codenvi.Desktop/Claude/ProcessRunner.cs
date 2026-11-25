@@ -19,7 +19,8 @@ public static class ProcessRunner
         Action<string>? onStdOutLine = null,
         TimeSpan? timeout = null,
         CancellationToken ct = default,
-        int maxCaptureChars = 2_000_000)
+        int maxCaptureChars = 2_000_000,
+        Action<string>? onStdErrLine = null)
     {
         var psi = new ProcessStartInfo(fileName)
         {
@@ -51,6 +52,7 @@ public static class ProcessRunner
         {
             if (e.Data is null) { stderrDone.TrySetResult(); return; }
             if (stderr.Length < maxCaptureChars) stderr.AppendLine(e.Data);
+            try { onStdErrLine?.Invoke(e.Data); } catch { /* never break the reader */ }
         };
 
         process.Start();

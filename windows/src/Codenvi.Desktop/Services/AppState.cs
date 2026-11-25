@@ -14,6 +14,8 @@ public sealed class ProjectRuntime
     public string? LastError { get; set; }
     public bool WaitingLogin { get; set; }
     public bool HasUncommittedChanges { get; set; }
+    /// <summary>A phone-started project script is running (independent of Claude jobs).</summary>
+    public bool ScriptRunning { get; set; }
 
     public ProjectActivity Activity =>
         RunningJobId is not null ? ProjectActivity.Running
