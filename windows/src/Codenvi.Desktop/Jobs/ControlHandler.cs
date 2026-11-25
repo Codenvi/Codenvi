@@ -92,7 +92,8 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
                 return new ControlResultPlain(true, Status: await projects.StatusAsync(project.Id));
             case ControlCommands.Commit:
             {
-                var hash = await projects.CommitLeftoversAsync(project, "Committed from the Codenvi Android app.");
+                if (string.IsNullOrWhiteSpace(cmd.Text)) return new ControlResultPlain(false, "Enter a commit message.");
+                var hash = await projects.CommitLeftoversAsync(project, cmd.Text);
                 return new ControlResultPlain(true, Text: hash ?? "Nothing to commit");
             }
             case ControlCommands.Publish:

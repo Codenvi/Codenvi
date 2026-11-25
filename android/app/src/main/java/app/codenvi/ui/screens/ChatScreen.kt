@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -142,15 +143,32 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
     }
 
     if (confirmCommit) project?.let { p ->
-        ConfirmDialog("Commit", "Commit the uncommitted changes left on \"${p.name}\" (${p.deviceName}) on branch ${p.devBranch}?", "Commit",
-            onConfirm = {
-                confirmCommit = false
-                committing = true
-                vm.run(onOk = { vm.ok("Committed on the PC."); refreshStatus(p.id) }) {
-                    try { repo.commitLeftovers(p.id, sessionId) } finally { committing = false }
+        var message by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { confirmCommit = false },
+            title = { Text("Commit") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Commit the uncommitted changes on \"${p.name}\" (${p.deviceName}), branch ${p.devBranch}. This text becomes the whole commit message.",
+                        color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        value = message, onValueChange = { message = it }, placeholder = { Text("Commit message") },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 220.dp),
+                    )
                 }
             },
-            onDismiss = { confirmCommit = false })
+            confirmButton = {
+                TextButton(enabled = message.isNotBlank(), onClick = {
+                    val text = message
+                    confirmCommit = false
+                    committing = true
+                    vm.run(onOk = { vm.ok("Committed on the PC."); refreshStatus(p.id) }) {
+                        try { repo.commitLeftovers(p.id, sessionId, text) } finally { committing = false }
+                    }
+                }) { Text("Commit") }
+            },
+            dismissButton = { TextButton(onClick = { confirmCommit = false }) { Text("Cancel") } },
+        )
     }
     if (confirmPull) project?.let { p ->
         ConfirmDialog("Pull", "Fetch origin/main and merge it into ${p.devBranch}, on \"${p.name}\" (${p.deviceName})? Uncommitted changes must be committed first.", "Pull",

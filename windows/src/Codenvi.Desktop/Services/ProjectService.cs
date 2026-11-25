@@ -296,9 +296,11 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
     }
 
     /// <summary>Commits whatever is left in the working tree after a cancelled/timed-out/failed job (docs/design.md §9.2).</summary>
-    public async Task<string?> CommitLeftoversAsync(LocalProject project, string body = "Committed from the Codenvi Activity tab.")
+    public async Task<string?> CommitLeftoversAsync(LocalProject project, string? message = null)
     {
-        var hash = await git.CommitTaskAsync(project.FolderPath, "Codenvi: keep changes from an unfinished job", body, Author, Email);
+        // The commit message is exactly what the user typed - nothing else is added to it.
+        var summary = string.IsNullOrWhiteSpace(message) ? "Codenvi: keep changes" : message.Trim();
+        var hash = await git.CommitTaskAsync(project.FolderPath, summary, null, Author, Email);
         if (hash is not null) await RecordCommitAsync(project, null, hash, "task");
         state.UpdateRuntime(project.Id, r => r.HasUncommittedChanges = false);
         return hash;

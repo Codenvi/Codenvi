@@ -454,8 +454,9 @@ class Repository(
     suspend fun stopScript(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.STOP_SCRIPT, projectId)) }
 
     /** Commits whatever a cancelled/failed job left uncommitted in the dev branch working tree, on the PC. */
-    suspend fun commitLeftovers(projectId: String, sessionId: String) {
-        val r = controlOk(projectId, ControlPlain(ControlCommands.COMMIT, projectId))
+    suspend fun commitLeftovers(projectId: String, sessionId: String, message: String) {
+        // The commit message is exactly [message]; the PC adds nothing to it.
+        val r = controlOk(projectId, ControlPlain(ControlCommands.COMMIT, projectId, text = message.trim()))
         val hash = r.text?.takeIf { it.matches(Regex("[0-9a-f]{7,40}")) }
         addChatEvent(sessionId, "commit", if (hash != null) "Committed · ${hash.take(7)}" else "Nothing to commit")
     }

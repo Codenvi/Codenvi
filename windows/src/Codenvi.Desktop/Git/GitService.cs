@@ -113,12 +113,14 @@ public sealed class GitService
     /// <summary>
     /// Commit step after a task (docs/design.md §9.2). Returns the new commit hash, or null if nothing changed.
     /// </summary>
-    public async Task<string?> CommitTaskAsync(string folder, string summary, string body, string author, string email)
+    public async Task<string?> CommitTaskAsync(string folder, string summary, string? body, string author, string email)
     {
         await Git(folder, ["add", "-A"]);
         var diff = await Git(folder, ["diff", "--cached", "--quiet"], check: false);
         if (diff.ExitCode == 0) return null;
-        await Git(folder, ["commit", "-m", summary, "-m", body], author, email);
+        var args = new List<string> { "commit", "-m", summary };
+        if (!string.IsNullOrWhiteSpace(body)) args.AddRange(["-m", body]);
+        await Git(folder, args, author, email);
         return await HeadAsync(folder);
     }
 
@@ -269,6 +271,16 @@ public sealed class GitService
                 await Git(folder, ["branch", mainBranch, $"origin/{mainBranch}"]);
             }
             await Git(folder, ["switch", mainBranch]);
+            // Bring local main up to date with origin/main first, otherwise the push can be rejected.
+            if (hasOrigin && (await Git(folder, ["rev-parse", "--verify", "--quiet", $"refs/remotes/origin/{mainBranch}"], check: false)).ExitCode == 0)
+            {
+                var sync = await Git(folder, ["merge", "--no-edit", $"refs/remotes/origin/{mainBranch}"], author, email, check: false);
+                if (sync.ExitCode != 0)
+                {
+                    await Git(folder, ["merge", "--abort"], check: false);
+                    throw new GitException($"Local {mainBranch} conflicts with origin/{mainBranch} - resolve manually.");
+                }
+            }
             var merge = await Git(folder, ["merge", "--no-edit", devBranch], author, email, check: false);
             if (merge.ExitCode != 0)
             {
