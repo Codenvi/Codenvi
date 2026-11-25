@@ -32,6 +32,13 @@ Android app ──HTTPS/WSS──▶ your VPS (nginx → Node.js server → Post
 
 The full design is in [docs/design.md](docs/design.md).
 
+## What you can do from the phone
+
+- **Prompt and chat:** send prompts to any project on any of your PCs, with sessions per project, model and effort pickers, dictation and read-aloud for replies. **Multimode** sends to several projects from one screen, and unseen replies are marked with a badge or dot.
+- **Git from the chat header:** **Commit** the work in the project, **Publish** the `codenvi-dev` branch, and **Pull** when `origin/main` has commits your dev branch doesn't have yet (the Pull button only appears then). Each action asks for confirmation and shows a spinner until the PC answers. Changes from an unfinished job are kept rather than discarded.
+- **Run a project script:** set a shell script on the project's Settings tab on Windows (for example a localhost dev server). The phone shows a terminal button, the PC runs the script and shows its output on the **Terminal** tab, and the button turns into a stop button while it runs. The phone never sends script text.
+- **Pair by QR code:** **Connect a phone** and **Show encryption key** on Windows show a QR code that the phone can scan.
+
 ## Getting started
 
 You need: a small Ubuntu 24.04 VPS, a domain or subdomain pointing at it, Windows 10/11 PCs with [Git for Windows](https://git-scm.com/download/win) and Claude Code installed, and an Android phone (Android 8+).
@@ -56,8 +63,8 @@ You need: a small Ubuntu 24.04 VPS, a domain or subdomain pointing at it, Window
 | Path | What |
 |---|---|
 | `server/` | Node.js + TypeScript + Express relay server with PostgreSQL (Drizzle): `src/`, `tests/`, `drizzle/` migrations, `deploy/deploy.sh` |
-| `windows/` | WPF app; `windows/Codenvi.exe` is the built app (pairing, keys, project registration, job engine, git, tray) |
-| `android/` | Jetpack Compose app; `android/Codenvi.apk` is the built app (devices, projects, chat, Multimode, voice, read aloud) |
+| `windows/` | WPF app; `windows/Codenvi.exe` is the built app (pairing, keys, project registration, job engine, git, project scripts and terminal, tray) |
+| `android/` | Jetpack Compose app; `android/Codenvi.apk` is the built app (devices, projects, chat, Multimode, commit/publish/pull, project scripts, voice, read aloud) |
 | `shared/` | `Codenvi.Contracts`: DTOs, WebSocket envelope, crypto (C#) used by the Windows app |
 | `docs/` | [design](docs/design.md), [deployment](docs/deployment.md), [protocol](docs/protocol.md), [crypto + test vectors](docs/crypto.md), [building](docs/building.md), [self-hosting](docs/self-hosting.md) |
 | `.github/` | Workflows (GitHub requires this folder at the root) and the gitleaks configuration |
