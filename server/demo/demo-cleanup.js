@@ -38,12 +38,12 @@ function connect() {
     url = loadEnv(envFile).DATABASE_URL;
     if (!url) throw new Error(`DATABASE_URL is not set in ${envFile}.`);
   }
-  const candidates = [path.join(path.dirname(envFile), "..", "current", "package.json"), path.join(process.cwd(), "package.json"), __filename];
+  const candidates = [path.join(path.dirname(envFile), "..", "package.json"), path.join(process.cwd(), "package.json"), __filename];
   let Client;
   for (const c of candidates) {
     try { ({ Client } = createRequire(c)("pg")); break; } catch { /* try the next */ }
   }
-  if (!Client) throw new Error("Cannot load the 'pg' package. Run: NODE_PATH=/var/www/<name>/current/node_modules node demo-cleanup.js");
+  if (!Client) throw new Error("Cannot load the 'pg' package. Run: NODE_PATH=/var/www/<name>/node_modules node demo-cleanup.js");
   return new Client({ connectionString: url });
 }
 

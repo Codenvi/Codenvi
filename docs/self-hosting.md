@@ -64,10 +64,10 @@ Or run **Actions → publish → Run workflow** and tick **server**. The `server
    - Generates `JWT_SECRET`, the database password and the server password on the first deploy (reuses them afterwards).
    - Creates the database role and database (named after the app) if they do not exist, and keeps the role's password in sync with the stored one.
    - Writes `/var/www/<name>/shared/.env` (mode 600).
-   - Unpacks the release into `/var/www/<name>/releases/<timestamp>/`, backs up the database (`pg_dump`, if it has tables), and applies new migrations. If a migration fails, it stops and the running server is untouched.
-   - Points `/var/www/<name>/current` at the new release and (re)starts PM2 process `<name>`. If `/health` does not answer within 30 s, it switches back to the previous release.
+   - Unpacks the new code into a staging folder, backs up the database (`pg_dump`, if it has tables), and applies new migrations from there. If a migration fails, it stops and the running server is untouched.
+   - Replaces the code in `/var/www/<name>/` in place (`dist/`, `drizzle/`, `demo/`, `node_modules/`) and restarts PM2 process `<name>`. If `/health` does not answer within 30 s, the deploy fails (there is no automatic rollback).
    - Writes nginx site `<name>` (WebSocket-ready), tests the nginx configuration before reloading, and gets or attaches the Let's Encrypt certificate for the host name.
-   - Installs `/usr/local/bin/<name>-admin` and keeps the last 3 releases.
+   - Installs `/usr/local/bin/<name>-admin`.
 5. Checks `https://<domain>/health` from GitHub.
 
 ## 4a. Connect the apps (host name + password, no command to run)
@@ -141,7 +141,7 @@ pm2 start codenvi
 
 ## 8. Rollback
 
-Revert the commits and push again with `[server]`. Migrations are forward-only, so keep them backward-compatible with the previous release (add columns before using them, remove them a release later). To switch the code back immediately on the VPS: `ln -sfn /var/www/codenvi/releases/<older> /var/www/codenvi/current && pm2 restart codenvi`.
+Revert the commits and push again with `[server]`. Migrations are forward-only, so keep them backward-compatible with the previous release (add columns before using them, remove them a release later). The VPS keeps no older copies of the code; the database backups made before each deploy are in `/var/www/<name>/backups/`.
 
 ## 9. Removing the server from the VPS
 
@@ -184,7 +184,7 @@ and add `CODENVI_PIN=<pin>` to `ENV_VARS`. Connection strings then carry `&pin=�
 
 | Path | What |
 |---|---|
-| `/var/www/<name>/current` | the running release (symlink into `releases/`) |
+| `/var/www/<name>/dist/`, `node_modules/`, `drizzle/`, `demo/` | the running code, replaced in place on every deploy |
 | `/var/www/<name>/shared/.env` | secrets and settings (mode 600) |
 | `/var/www/<name>/shared/generated.env` | the keys the deploy generated: `JWT_SECRET`, database password, server password (mode 600; keep it, deleting it makes the next deploy generate new ones) |
 | `/var/www/<name>/logs/` | server logs |

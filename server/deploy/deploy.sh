@@ -22,8 +22,9 @@
 #   - The port must be free or held by this app's own process. The host name must not be served by another vhost.
 #   - Never: firewall changes, apt upgrades, other vhosts, other PM2 processes, other databases or roles,
 #     PostgreSQL/nginx configuration, Node.js upgrades. nginx is reloaded only after `nginx -t` passes.
-# Each deploy goes into a new release folder; migrations run before the switch; a failed health check
-# switches back to the previous release.
+# Each deploy replaces the code in /var/www/<APP_NAME> in place (dist/, drizzle/, demo/, node_modules/): no release
+# folders, no symlink, no rollback bookkeeping. Migrations run from a staging folder BEFORE the old code is replaced,
+# so a failed migration leaves the running server untouched.
 # =============================================================================
 set -euo pipefail
 
@@ -37,7 +38,6 @@ VHOST="/etc/nginx/sites-available/$APP_NAME"
 VHOST_ENABLED="/etc/nginx/sites-enabled/$APP_NAME"
 OWN_TAG="managed-by: codenvi-deploy app=$APP_NAME"
 ADMIN_BIN="/usr/local/bin/$APP_NAME-admin"
-KEEP_RELEASES=3
 KEEP_BACKUPS=10
 
 log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
@@ -148,7 +148,7 @@ if [[ -d /etc/nginx ]]; then
 fi
 ok "No collisions: folder, PM2 process, nginx site, port $PORT, host $DOMAIN, database $DB_NAME"
 
-mkdir -p "$APP_DIR/releases" "$APP_DIR/shared" "$APP_DIR/logs" "$APP_DIR/backups"
+mkdir -p "$APP_DIR/shared" "$APP_DIR/logs" "$APP_DIR/backups"
 chmod 700 "$APP_DIR/shared" "$APP_DIR/backups"
 printf 'name=%s\ndatabase=%s\n' "$APP_NAME" "$DB_NAME" > "$MARKER"
 
@@ -216,37 +216,43 @@ umask 022
 ok ".env written (mode 600)"
 
 # ---------------------------------------------------------------------------- #
-#  5. New release, backup, migrations (the running release is not touched yet) #
+#  5. Unpack, backup, migrations (the running code is not touched yet)         #
 # ---------------------------------------------------------------------------- #
-RELEASE="$(date -u +%Y%m%d%H%M%S)"
-REL_DIR="$APP_DIR/releases/$RELEASE"
-log "Release $RELEASE"
-mkdir -p "$REL_DIR"
-tar -xzf "$WORK/release.tgz" -C "$REL_DIR"
-[[ -f "$REL_DIR/dist/index.js" && -f "$REL_DIR/dist/migrate.js" && -d "$REL_DIR/node_modules" ]] || { rm -rf "$REL_DIR"; die "Release bundle is incomplete."; }
+STAMP="$(date -u +%Y%m%d%H%M%S)"
+STAGE="$APP_DIR/.staging"
+log "Deploy $STAMP"
+rm -rf "$STAGE" && mkdir -p "$STAGE"
+tar -xzf "$WORK/release.tgz" -C "$STAGE"
+[[ -f "$STAGE/dist/index.js" && -f "$STAGE/dist/migrate.js" && -d "$STAGE/node_modules" ]] || { rm -rf "$STAGE"; die "Release bundle is incomplete."; }
 
 HAS_TABLES="$(pg -d "$DB_NAME" -c "SELECT count(*) FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog','information_schema')")"
 if (( HAS_TABLES > 0 )); then
-  BACKUP="$APP_DIR/backups/pre-$RELEASE.sql.gz"
+  BACKUP="$APP_DIR/backups/pre-$STAMP.sql.gz"
   runuser -u postgres -- pg_dump --no-owner "$DB_NAME" | gzip > "$BACKUP"
   chmod 600 "$BACKUP"
   ls -1t "$APP_DIR"/backups/pre-*.sql.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
   ok "Backup: $BACKUP"
 fi
 
-if ! (cd "$REL_DIR" && DOTENV_CONFIG_PATH="$ENV_FILE" node dist/migrate.js); then
-  rm -rf "$REL_DIR"
+if ! (cd "$STAGE" && DOTENV_CONFIG_PATH="$ENV_FILE" node dist/migrate.js); then
+  rm -rf "$STAGE"
   die "Migrations failed. The running server was not touched."
 fi
 ok "Migrations applied"
 
 # ---------------------------------------------------------------------------- #
-#  6. Switch and (re)start under PM2                                           #
+#  6. Replace the code in place and (re)start under PM2                        #
 # ---------------------------------------------------------------------------- #
 log "Starting $APP_NAME"
-PREVIOUS="$(readlink -f "$APP_DIR/current" 2>/dev/null || true)"
-ln -sfn "$REL_DIR" "$APP_DIR/current.tmp"
-mv -Tf "$APP_DIR/current.tmp" "$APP_DIR/current"
+# Stop our own process first so node_modules is not replaced under a running server (a few seconds of downtime).
+pm2 delete "$APP_NAME" >/dev/null 2>&1 || true
+for item in dist drizzle demo node_modules package.json package-lock.json; do
+  rm -rf -- "${APP_DIR:?}/$item"
+  [[ -e "$STAGE/$item" ]] && mv "$STAGE/$item" "$APP_DIR/$item"
+done
+rm -rf "$STAGE"
+# Folders from the old release-based layout are not used any more.
+rm -rf -- "${APP_DIR:?}/releases"; rm -f -- "$APP_DIR/current" "$APP_DIR/current.tmp"
 
 cat > "$APP_DIR/ecosystem.config.cjs" <<EOF
 // $OWN_TAG. Written on every deploy.
@@ -254,7 +260,7 @@ module.exports = {
   apps: [{
     name: "$APP_NAME",
     script: "dist/index.js",
-    cwd: "$APP_DIR/current",
+    cwd: "$APP_DIR",
     exec_mode: "fork",
     instances: 1,
     autorestart: true,
@@ -269,7 +275,7 @@ module.exports = {
   }],
 };
 EOF
-pm2 startOrRestart "$APP_DIR/ecosystem.config.cjs" --update-env >/dev/null
+pm2 start "$APP_DIR/ecosystem.config.cjs" --update-env >/dev/null
 pm2 save >/dev/null
 
 healthy=0
@@ -279,12 +285,7 @@ for _ in $(seq 1 30); do
 done
 if (( ! healthy )); then
   pm2 logs "$APP_NAME" --lines 30 --nostream || true
-  if [[ -n "$PREVIOUS" && -d "$PREVIOUS" ]]; then
-    ln -sfn "$PREVIOUS" "$APP_DIR/current.tmp" && mv -Tf "$APP_DIR/current.tmp" "$APP_DIR/current"
-    pm2 restart "$APP_NAME" --update-env >/dev/null || true
-    die "Health check failed; switched back to $(basename "$PREVIOUS"). Migrations are not rolled back."
-  fi
-  die "Health check failed on the first release; see the logs above."
+  die "Health check failed; see the logs above. There is no automatic rollback: fix the problem and deploy again."
 fi
 ok "Healthy: $(curl -fsS "http://127.0.0.1:$PORT/health")"
 
@@ -356,7 +357,7 @@ fi
 nginx -t 2>/dev/null && systemctl reload nginx
 
 # ---------------------------------------------------------------------------- #
-#  8. Admin command, old releases                                              #
+#  8. Admin command                                                            #
 # ---------------------------------------------------------------------------- #
 if [[ ! -e "$ADMIN_BIN" ]] || grep -q "$OWN_TAG" "$ADMIN_BIN"; then
   cat > "$ADMIN_BIN" <<EOF
@@ -368,19 +369,14 @@ if [[ "\${1:-}" == "password" ]]; then   # the password to type in the apps (nex
   sed -n 's/^CODENVI_ACCESS_KEY=//p' "$ENV_FILE" | head -1 | sed -E 's/^"(.*)"\$/\1/'
   exit 0
 fi
-cd "$APP_DIR/current" && DOTENV_CONFIG_PATH="$ENV_FILE" exec node dist/admin.js "\$@"
+cd "$APP_DIR" && DOTENV_CONFIG_PATH="$ENV_FILE" exec node dist/admin.js "\$@"
 EOF
   chmod 755 "$ADMIN_BIN"
 else
-  warn "$ADMIN_BIN belongs to something else; not created. Use: cd $APP_DIR/current && DOTENV_CONFIG_PATH=$ENV_FILE node dist/admin.js"
+  warn "$ADMIN_BIN belongs to something else; not created. Use: cd $APP_DIR && DOTENV_CONFIG_PATH=$ENV_FILE node dist/admin.js"
 fi
 
-CURRENT="$(readlink -f "$APP_DIR/current")"
-ls -1dt "$APP_DIR"/releases/*/ 2>/dev/null | sed 's:/$::' | tail -n +$((KEEP_RELEASES + 1)) | while read -r old; do
-  [[ "$old" == "$CURRENT" ]] || rm -rf -- "$old"
-done
-
-log "Deployed $APP_NAME release $RELEASE"
+log "Deployed $APP_NAME ($STAMP)"
 echo "  URL:      https://$DOMAIN"
 echo "  Folder:   $APP_DIR"
 echo "  Port:     127.0.0.1:$PORT"

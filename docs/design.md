@@ -575,7 +575,7 @@ No e-mail address is used: certbot registers without one, and certificates still
 
 | Item | Where |
 |---|---|
-| Code | `/var/www/<name>/releases/<timestamp>/`, `/var/www/<name>/current` → the live one (last 3 kept) |
+| Code | `/var/www/<name>/` itself: `dist/`, `drizzle/`, `demo/`, `node_modules/`, replaced in place on every deploy (no release folders) |
 | Settings and secrets | `/var/www/<name>/shared/.env` (mode 600), from `ENV_VARS` (without the three name lines) plus the generated `JWT_SECRET` and `CODENVI_ACCESS_KEY`, plus `NODE_ENV`, `PORT`, `HOST`, `CODENVI_PUBLIC_HOST`, `DATABASE_URL` |
 | Process | PM2 process `<name>` (fork mode), listening on `127.0.0.1:<port>`; logs in `/var/www/<name>/logs/` |
 | Database | database `<database>` owned by role `<database>`, generated password; created if it does not exist |

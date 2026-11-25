@@ -288,12 +288,12 @@ function connect() {
     if (!url) throw new Error(`DATABASE_URL is not set in ${envFile}.`);
   }
   // Use the pg package that the deployed server already has (…/<app>/current/node_modules).
-  const candidates = [path.join(path.dirname(envFile), "..", "current", "package.json"), path.join(process.cwd(), "package.json"), __filename];
+  const candidates = [path.join(path.dirname(envFile), "..", "package.json"), path.join(process.cwd(), "package.json"), __filename];
   let Client;
   for (const c of candidates) {
     try { ({ Client } = createRequire(c)("pg")); break; } catch { /* try the next */ }
   }
-  if (!Client) throw new Error("Cannot load the 'pg' package. Run: NODE_PATH=/var/www/<name>/current/node_modules node demo-seed.js");
+  if (!Client) throw new Error("Cannot load the 'pg' package. Run: NODE_PATH=/var/www/<name>/node_modules node demo-seed.js");
   return new Client({ connectionString: url });
 }
 
