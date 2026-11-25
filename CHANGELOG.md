@@ -17,9 +17,11 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Android: dictation no longer fails with "Speech recognition error (12)" when the offline language pack is missing; it retries online and with the phone's default language, and explains the error if it still fails.
 
 ### Changed
+- Android: unseen replies are also shown outside Multimode. A white number badge (count of unseen replies) sits before the 3-dot button on each device in Devices and each project in the Projects list, and a white dot on each session in the Sessions tab.
+- Android: Multimode unseen-reply dots (white). The session pill of a session with an unseen reply has a dot before its name, the chat icon in the title bar has a dot while the active project has one, and tapping the read-aloud button counts the reply as seen.
 - Android: Multimode polish. The session pills and the read-aloud button sit on one line, the project blocks no longer show the status dot in the bottom right, and the message block no longer shows a loading bar: the Send button spins while that session's reply is pending (tap it to stop the job).
 - Android: on the Multimode page the message block has a speaker button at its top right that reads the newest reply of the selected session aloud (the chat page's message block does not have it).
-- Android: Multimode shows progress and new replies. After you send, the message block is locked with a loading bar (with a Stop button) until that session's reply arrives, and the project block shows a loading bar while it works. A red dot on a project block marks a reply you have not seen in the chat; opening the chat, or sending another message in that session, clears it.
+- Android: Multimode shows progress and new replies. After you send, the message block is locked with a loading bar (with a Stop button) until that session's reply arrives, and the project block shows a loading bar while it works. A white dot on a project block marks a reply you have not seen in the chat; opening the chat, or sending another message in that session, clears it.
 - Android: the chat message field has an X inside it that clears the text. Multimode has a new grid icon, used in the bottom tab bar and in the chat title bar.
 - Website: new hero slogan ("One phone - All your projects - Every PC") and description.
 - Windows: Settings > Paired installs: "Revoke selected" is a plain button (no coloured border) and the duplicate "Connect a phone" button is removed (it is in the header).

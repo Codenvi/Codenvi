@@ -293,13 +293,19 @@ class Repository(
 
     fun activeJobs(sessionId: String): Flow<List<JobEntity>> = dao.jobs(sessionId).map { l -> l.filter { it.status in JobStatuses.ACTIVE } }
 
-    /** Projects with at least one reply the user has not seen in a chat and has not answered since. */
-    val unseenProjects: Flow<Set<String>> = combine(dao.latestReplies(), settings.flow) { latest, s ->
-        latest.filter { l ->
-            val seen = s.seenSeq[l.sessionId]
-            if (seen != null) l.maxSeq > seen else l.lastAtMs > s.unseenBaselineMs
-        }.map { it.projectId }.toSet()
-    }.distinctUntilChanged()
+    /** Replies the user has not seen in a chat (or heard read aloud) and has not answered since. */
+    private val unseenReplies: Flow<List<ReplyRow>> = combine(dao.replyRows(), settings.flow) { rows, s ->
+        rows.filter { r ->
+            val seen = s.seenSeq[r.sessionId]
+            if (seen != null) r.seq > seen else r.createdAtMs > s.unseenBaselineMs
+        }
+    }
+    val unseenSessions: Flow<Set<String>> = unseenReplies.map { l -> l.map { it.sessionId }.toSet() }.distinctUntilChanged()
+    val unseenProjects: Flow<Set<String>> = unseenReplies.map { l -> l.map { it.projectId }.toSet() }.distinctUntilChanged()
+
+    /** How many unseen replies each project / device has (shown as a number badge on the Projects and Devices pages). */
+    val unseenCountByProject: Flow<Map<String, Int>> = unseenReplies.map { l -> l.groupingBy { it.projectId }.eachCount() }.distinctUntilChanged()
+    val unseenCountByDevice: Flow<Map<String, Int>> = unseenReplies.map { l -> l.groupingBy { it.deviceId }.eachCount() }.distinctUntilChanged()
 
     /** The user has the chat of [sessionId] open: everything in it counts as seen. */
     suspend fun markSeen(sessionId: String) = withContext(Dispatchers.IO) { settings.markSeen(sessionId, dao.maxSeq(sessionId)) }

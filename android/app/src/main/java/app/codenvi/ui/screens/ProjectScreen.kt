@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -50,6 +52,7 @@ import app.codenvi.ui.components.Chip
 import app.codenvi.ui.components.ConfirmDialog
 import app.codenvi.ui.components.InputDialog
 import app.codenvi.ui.components.SaveIcon
+import app.codenvi.ui.components.UnseenDot
 import app.codenvi.ui.components.color
 import app.codenvi.ui.components.label
 import app.codenvi.ui.theme.MonoStyle
@@ -117,6 +120,7 @@ private fun SessionsTab(
     creating: Boolean, onCreateDismiss: () -> Unit,
 ) {
     val sessions by remember(projectId) { vm.repo.sessions(projectId) }.collectAsStateWithLifecycle(emptyList())
+    val unseenSessions by vm.repo.unseenSessions.collectAsStateWithLifecycle(emptySet())
     var rename by remember { mutableStateOf<SessionUi?>(null) }
     var clear by remember { mutableStateOf<SessionUi?>(null) }
     var delete by remember { mutableStateOf<SessionUi?>(null) }
@@ -131,6 +135,8 @@ private fun SessionsTab(
                     Row(Modifier.padding(start = 16.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(s.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                         if (s.id == defaultSessionId) Icon(Icons.Filled.Star, "Default session", tint = Tokens.Primary)
+                        // White dot just before the 3-dot button: this session has a reply you have not seen yet.
+                        if (s.id in unseenSessions) { UnseenDot(); Spacer(Modifier.width(4.dp)) }
                         Box {
                             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {

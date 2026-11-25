@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -21,6 +24,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -70,13 +75,19 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
     // Active jobs of the selected session lock the prompt bar until the reply arrives.
     val activeJobs by remember(sessionId) { sessionId?.let { repo.activeJobs(it) } ?: emptyFlow() }.collectAsStateWithLifecycle(emptyList())
     val unseen by repo.unseenProjects.collectAsStateWithLifecycle(emptySet())
+    val unseenSessions by repo.unseenSessions.collectAsStateWithLifecycle(emptySet())
 
     LaunchedEffect(Unit) { vm.run { repo.refreshDevices() } }
     LaunchedEffect(selectedId) { selectedId?.let { id -> runCatching { repo.refreshSessions(id) } } }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         CodenviTopBar("Multimode") {
-            IconButton(enabled = sessionId != null, onClick = { sessionId?.let(onOpenChat) }) { Icon(ChatIcon, "Open chat") }
+            IconButton(enabled = sessionId != null, onClick = { sessionId?.let(onOpenChat) }) {
+                // White dot on the chat icon when the active project has an unseen reply.
+                BadgedBox(badge = { if (selected != null && selected.id in unseen) Badge(containerColor = Color.White) }) {
+                    Icon(ChatIcon, "Open chat")
+                }
+            }
         }
 
         // Input with the session row above it, so one tap chooses which session of the project receives the prompt.
@@ -99,15 +110,23 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
                         items(usable, key = { it.id }) { s ->
                             val on = s.id == sessionId
                             val shape = RoundedCornerShape(50)
-                            Text(
-                                s.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge,
-                                color = if (on) Color.White else Tokens.OnSurface,
-                                modifier = Modifier.clip(shape)
+                            Row(
+                                Modifier.clip(shape)
                                     .background(if (on) Tokens.Primary else Tokens.SurfaceVariant, shape)
                                     .selectable(selected = on, role = Role.RadioButton,
                                         onClick = { scope.launch { repo.settings.setMultimodeSession(s.id) } })
                                     .padding(horizontal = 14.dp, vertical = 7.dp),
-                            )
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                // White dot before the name: this session has a reply that was not seen yet.
+                                if (s.id in unseenSessions) {
+                                    Box(Modifier.size(9.dp).background(Color.White, CircleShape)
+                                        .border(1.dp, if (on) Tokens.Primary else Tokens.SurfaceVariant, CircleShape))
+                                    Spacer(Modifier.width(7.dp))
+                                }
+                                Text(s.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge,
+                                    color = if (on) Color.White else Tokens.OnSurface)
+                            }
                         }
                     }
                 }
@@ -140,10 +159,10 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
                             Text(p.deviceName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall,
                                 color = if (active) Color.White.copy(alpha = 0.85f) else Tokens.OnSurfaceMuted)
                         }
-                        // Red dot (top right): a reply in one of this project's sessions that was not seen in the chat yet.
+                        // White dot (top right): a reply in one of this project's sessions that was not seen in the chat yet.
                         if (p.id in unseen) Box(
-                            Modifier.align(Alignment.TopEnd).size(11.dp).background(Tokens.Error, CircleShape)
-                                .border(1.5.dp, if (active) Color.White else Tokens.Surface, CircleShape),
+                            Modifier.align(Alignment.TopEnd).size(11.dp).background(Color.White, CircleShape)
+                                .border(1.5.dp, if (active) Tokens.Primary else Tokens.Surface, CircleShape),
                         )
                     }
                     // Loading bar along the bottom edge while the project is working on a prompt.

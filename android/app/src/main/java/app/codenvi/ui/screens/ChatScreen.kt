@@ -271,6 +271,8 @@ fun ReadAloudButton(vm: AppViewModel, sessionId: String?) {
         if (last != null) {
             readAloud.configure(settings.ttsSpeed, settings.ttsVoice)
             readAloud.toggle(last.id, last.text)
+            // Having it read out counts as seen: clears the red dots for this session.
+            if (sessionId != null) vm.run { vm.repo.markSeen(sessionId) }
         }
     }) {
         Icon(SoundIcon, if (reading) "Stop reading" else "Read last reply aloud", tint = if (reading) Tokens.Primary else Tokens.OnSurfaceMuted)

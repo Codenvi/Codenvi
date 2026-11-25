@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -180,4 +182,22 @@ fun rememberMicPermission(onDenied: () -> Unit, action: () -> Unit): () -> Unit 
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) action()
         else launcher.launch(Manifest.permission.RECORD_AUDIO)
     }
+}
+
+/** White pill with the number of unseen replies (Devices and Projects pages). Larger than [UnseenDot] because it carries a count. */
+@Composable
+fun CountBadge(count: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier.defaultMinSize(minWidth = 24.dp, minHeight = 24.dp).background(Color.White, RoundedCornerShape(50)).padding(horizontal = 7.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(if (count > 99) "99+" else count.toString(), color = Tokens.Background, fontWeight = FontWeight.Bold,
+            style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+    }
+}
+
+/** White dot (same size as the one on the Multimode project blocks) for a session with an unseen reply. */
+@Composable
+fun UnseenDot(modifier: Modifier = Modifier) {
+    Box(modifier.size(11.dp).background(Color.White, CircleShape))
 }

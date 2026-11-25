@@ -51,6 +51,7 @@ import app.codenvi.repo.ProjectUi
 import app.codenvi.ui.AppViewModel
 import app.codenvi.ui.components.Chip
 import app.codenvi.ui.components.ConfirmDialog
+import app.codenvi.ui.components.CountBadge
 import app.codenvi.ui.components.InputDialog
 import app.codenvi.ui.components.StatusDot
 import app.codenvi.ui.components.color
@@ -74,6 +75,7 @@ fun CodenviTopBar(title: String, onBack: (() -> Unit)? = null, actions: @Composa
 @Composable
 fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> Unit) {
     val devices by vm.repo.devices.collectAsStateWithLifecycle(emptyList())
+    val unseenByDevice by vm.repo.unseenCountByDevice.collectAsStateWithLifecycle(emptyMap())
     val connected by vm.repo.connected.collectAsStateWithLifecycle()
     var keyFor by remember { mutableStateOf<DeviceUi?>(null) }
     var keyString by remember { mutableStateOf(false) }
@@ -112,6 +114,8 @@ fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> 
                                 Text(if (d.hasKey) "New key needed (key was rotated)" else "Key needed - tap to add", color = Tokens.Warning)
                             }
                         }
+                        // Number of unseen replies on this PC, just before the 3-dot button.
+                        unseenByDevice[d.id]?.takeIf { it > 0 }?.let { CountBadge(it); Spacer(Modifier.width(4.dp)) }
                         Box {
                             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -160,6 +164,7 @@ fun KeyDialog(activity: MainActivity, title: String, onDismiss: () -> Unit, onMe
 @Composable
 fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpen: (String) -> Unit) {
     val projects by remember(deviceId) { vm.repo.projects(deviceId) }.collectAsStateWithLifecycle(emptyList())
+    val unseenByProject by vm.repo.unseenCountByProject.collectAsStateWithLifecycle(emptyMap())
     val devices by vm.repo.devices.collectAsStateWithLifecycle(emptyList())
     var rename by remember { mutableStateOf<ProjectUi?>(null) }
     LaunchedEffect(deviceId) { vm.run { vm.repo.refreshProjects(deviceId) } }
@@ -186,6 +191,7 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
                         }
                         IconButton(enabled = index > 0, onClick = { vm.run { reorder(vm, projects, index, index - 1) } }) { Icon(Icons.Filled.KeyboardArrowUp, "Move up") }
                         IconButton(enabled = index < projects.lastIndex, onClick = { vm.run { reorder(vm, projects, index, index + 1) } }) { Icon(Icons.Filled.KeyboardArrowDown, "Move down") }
+                        unseenByProject[p.id]?.takeIf { it > 0 }?.let { CountBadge(it); Spacer(Modifier.width(4.dp)) }
                         Box {
                             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {

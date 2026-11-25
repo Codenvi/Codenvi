@@ -56,8 +56,8 @@ data class MessageEntity(
     val createdAtMs: Long,
 )
 
-/** Result row of [Dao.latestReplies]. */
-data class SessionLatest(val sessionId: String, val projectId: String, val maxSeq: Long, val lastAtMs: Long)
+/** One assistant reply with where it belongs (result row of [CodenviDao.replyRows]). */
+data class ReplyRow(val sessionId: String, val projectId: String, val deviceId: String, val seq: Long, val createdAtMs: Long)
 
 @Entity(tableName = "jobs", indices = [Index("sessionId"), Index("projectId")])
 data class JobEntity(
@@ -119,10 +119,10 @@ interface CodenviDao {
     @Query("SELECT coalesce(max(seq), 0) FROM messages WHERE sessionId = :sessionId") suspend fun maxSeq(sessionId: String): Long
     @Upsert suspend fun upsertMessages(items: List<MessageEntity>)
     @Query("DELETE FROM messages WHERE sessionId = :sessionId") suspend fun clearMessages(sessionId: String)
-    /** Newest assistant reply per session (for the "unseen reply" dot on Multimode). */
-    @Query("SELECT m.sessionId AS sessionId, s.projectId AS projectId, MAX(m.seq) AS maxSeq, MAX(m.createdAtMs) AS lastAtMs " +
-        "FROM messages m JOIN sessions s ON s.id = m.sessionId WHERE m.role = 'assistant' GROUP BY m.sessionId")
-    fun latestReplies(): Flow<List<SessionLatest>>
+    /** Every assistant reply with its session, project and device (for the unseen-reply dots and counts). */
+    @Query("SELECT m.sessionId AS sessionId, s.projectId AS projectId, p.deviceId AS deviceId, m.seq AS seq, m.createdAtMs AS createdAtMs " +
+        "FROM messages m JOIN sessions s ON s.id = m.sessionId JOIN projects p ON p.id = s.projectId WHERE m.role = 'assistant'")
+    fun replyRows(): Flow<List<ReplyRow>>
     @Query("SELECT * FROM messages WHERE role = 'assistant' AND sessionId IN (SELECT id FROM sessions WHERE projectId = :projectId) ORDER BY createdAtMs DESC LIMIT :limit")
     fun recentReplies(projectId: String, limit: Int): Flow<List<MessageEntity>>
 
