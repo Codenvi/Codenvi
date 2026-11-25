@@ -25,6 +25,7 @@ import app.codenvi.db.DeviceEntity
 import app.codenvi.db.JobEntity
 import app.codenvi.db.MessageEntity
 import app.codenvi.db.ProjectEntity
+import app.codenvi.db.ReplyRow
 import app.codenvi.db.SessionEntity
 import app.codenvi.net.ControlRequest
 import app.codenvi.net.ControlResponsePayload
