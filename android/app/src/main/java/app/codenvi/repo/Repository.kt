@@ -20,6 +20,7 @@ import app.codenvi.data.ConnectionString
 import app.codenvi.data.SecureStore
 import app.codenvi.data.SettingsStore
 import app.codenvi.db.AppDatabase
+import app.codenvi.db.ChatEventEntity
 import app.codenvi.db.CommitEntity
 import app.codenvi.db.DeviceEntity
 import app.codenvi.db.JobEntity
@@ -87,6 +88,8 @@ data class SessionUi(val id: String, val projectId: String, val name: String, va
 data class ChatItem(
     val id: String, val role: String, val text: String, val timeMs: Long, val jobId: String?,
     val status: String?, val error: String?, val costUsd: Double? = null, val commitHash: String? = null,
+    /** Non-null for the small in-chat markers: "commit" or "publish" ([text] is the label). */
+    val eventKind: String? = null,
 )
 
 data class CommitUi(val id: String, val gitHash: String, val kind: String, val message: String, val files: Int,
@@ -263,13 +266,22 @@ class Repository(
         }
     }
 
-    fun chat(sessionId: String): Flow<List<ChatItem>> = combine(dao.messages(sessionId), dao.jobs(sessionId), store.flow) { msgs, jobs, _ ->
+    fun chat(sessionId: String): Flow<List<ChatItem>> = combine(dao.messages(sessionId), dao.jobs(sessionId), dao.chatEvents(sessionId), store.flow) { msgs, jobs, events, _ ->
         val s = dao.session(sessionId) ?: return@combine emptyList()
         val p = dao.project(s.projectId) ?: return@combine emptyList()
         val dev = p.deviceId
         val jobsById = jobs.associateBy { it.id }
-        msgs.map { m ->
-            when (m.role) {
+        val out = ArrayList<ChatItem>()
+        var next = 0
+        fun flushEvents(beforeSeq: Long) {
+            while (next < events.size && events[next].afterSeq < beforeSeq) {
+                val e = events[next++]
+                out += ChatItem("evt-${e.id}", "event", e.label, e.createdAtMs, null, null, null, eventKind = e.kind)
+            }
+        }
+        msgs.forEach { m ->
+            flushEvents(m.seq)
+            out += when (m.role) {
                 "user" -> {
                     val plain: PromptPlain? = decrypt(dev, Aad(dev, ObjectTypes.MESSAGE, m.id, Directions.P2D, m.clientCreatedAtMs), m.ciphertext)
                     val job = m.jobId?.let { jobsById[it] }
@@ -284,6 +296,8 @@ class Repository(
                 }
             }
         }
+        flushEvents(Long.MAX_VALUE)
+        out
     }
 
     fun recentReplies(projectId: String): Flow<List<ChatItem>> = combine(dao.recentReplies(projectId, 20), store.flow) { msgs, _ ->
@@ -440,10 +454,24 @@ class Repository(
     suspend fun stopScript(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.STOP_SCRIPT, projectId)) }
 
     /** Commits whatever a cancelled/failed job left uncommitted in the dev branch working tree, on the PC. */
-    suspend fun commitLeftovers(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.COMMIT, projectId)) }
+    suspend fun commitLeftovers(projectId: String, sessionId: String) {
+        val r = controlOk(projectId, ControlPlain(ControlCommands.COMMIT, projectId))
+        val hash = r.text?.takeIf { it.matches(Regex("[0-9a-f]{7,40}")) }
+        addChatEvent(sessionId, "commit", if (hash != null) "Committed · ${hash.take(7)}" else "Nothing to commit")
+    }
 
     /** Merges the dev branch into "main" and pushes "main" to origin, on the PC. */
-    suspend fun publish(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.PUBLISH, projectId)) }
+    suspend fun publish(projectId: String, sessionId: String) {
+        val r = controlOk(projectId, ControlPlain(ControlCommands.PUBLISH, projectId))
+        val hash = r.text?.takeIf { it.matches(Regex("[0-9a-f]{7,40}")) }
+        addChatEvent(sessionId, "publish", if (hash != null) "Pushed to main · ${hash.take(7)}" else "Pushed to main")
+    }
+
+    /** Drops a small marker into the chat at this moment, after the newest message. */
+    private suspend fun addChatEvent(sessionId: String, kind: String, label: String) = withContext(Dispatchers.IO) {
+        dao.insertChatEvent(ChatEventEntity(sessionId = sessionId, kind = kind, label = label,
+            afterSeq = dao.maxSeq(sessionId), createdAtMs = System.currentTimeMillis()))
+    }
 
     // ---------------- Projects & sessions ----------------
     suspend fun renameProject(projectId: String, name: String) = withContext(Dispatchers.IO) {
@@ -495,6 +523,7 @@ class Repository(
         check(http.api().deleteSession(sessionId))
         dao.deleteSession(sessionId)
         dao.clearMessages(sessionId)
+        dao.clearChatEvents(sessionId)
         dao.clearJobs(sessionId)
     }
 
@@ -503,6 +532,7 @@ class Repository(
         val s = dao.session(sessionId) ?: throw UserException("Unknown session.")
         controlOk(s.projectId, ControlPlain(ControlCommands.SESSION_CLEAR_MEMORY, s.projectId, sessionId = sessionId))
         dao.clearMessages(sessionId)
+        dao.clearChatEvents(sessionId)
         dao.clearJobs(sessionId)
     }
 
@@ -530,7 +560,7 @@ class Repository(
     }
 
     private suspend fun wipeCache() {
-        dao.wipeMessages(); dao.wipeJobs(); dao.wipeCommits(); dao.wipeSessions(); dao.wipeProjects(); dao.wipeDevices()
+        dao.wipeMessages(); dao.wipeChatEvents(); dao.wipeJobs(); dao.wipeCommits(); dao.wipeSessions(); dao.wipeProjects(); dao.wipeDevices()
     }
 
     private fun check(res: Response<Unit>) {
@@ -586,7 +616,7 @@ class Repository(
                         "device" -> refreshDevices()
                         "project" -> p.parentId?.let { refreshProjects(it) } ?: refreshDevices()
                         "session" -> p.parentId?.let { refreshSessions(it) }
-                        "messages" -> { dao.clearMessages(p.id); syncMessages(p.id) }
+                        "messages" -> { dao.clearMessages(p.id); dao.clearChatEvents(p.id); syncMessages(p.id) }
                         "commits" -> refreshCommits(p.id)
                         else -> Unit
                     }

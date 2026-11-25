@@ -87,8 +87,28 @@ data class CommitEntity(
     val createdAtMs: Long,
 )
 
+/**
+ * Local-only marker shown in a chat between messages when a Commit or Publish was done from this phone.
+ * [afterSeq] anchors it after the last message that existed at that moment (no clock comparison needed).
+ */
+@Entity(tableName = "chat_events", indices = [Index("sessionId")])
+data class ChatEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sessionId: String,
+    val kind: String,
+    val label: String,
+    val afterSeq: Long,
+    val createdAtMs: Long,
+)
+
 @Dao
 interface CodenviDao {
+    // Chat events (commit / publish markers)
+    @Query("SELECT * FROM chat_events WHERE sessionId = :sessionId ORDER BY id") fun chatEvents(sessionId: String): Flow<List<ChatEventEntity>>
+    @androidx.room.Insert suspend fun insertChatEvent(item: ChatEventEntity)
+    @Query("DELETE FROM chat_events WHERE sessionId = :sessionId") suspend fun clearChatEvents(sessionId: String)
+    @Query("DELETE FROM chat_events") suspend fun wipeChatEvents()
+
     // Devices
     @Query("SELECT * FROM devices ORDER BY createdAtMs") fun devices(): Flow<List<DeviceEntity>>
     @Query("SELECT * FROM devices WHERE id = :id") suspend fun device(id: String): DeviceEntity?
@@ -148,8 +168,8 @@ interface CodenviDao {
 }
 
 @Database(
-    entities = [DeviceEntity::class, ProjectEntity::class, SessionEntity::class, MessageEntity::class, JobEntity::class, CommitEntity::class],
-    version = 1,
+    entities = [DeviceEntity::class, ProjectEntity::class, SessionEntity::class, MessageEntity::class, JobEntity::class, CommitEntity::class, ChatEventEntity::class],
+    version = 2,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -1,6 +1,8 @@
 package app.codenvi.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -78,6 +80,8 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
     var status by remember(sessionId) { mutableStateOf<ProjectStatusPlain?>(null) }
     var confirmCommit by remember { mutableStateOf(false) }
     var confirmPublish by remember { mutableStateOf(false) }
+    var committing by remember { mutableStateOf(false) }
+    var publishing by remember { mutableStateOf(false) }
 
     fun refreshStatus(projectId: String) {
         vm.run { status = runCatching { repo.projectStatus(projectId) }.getOrNull() }
@@ -93,11 +97,18 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
     Column(Modifier.fillMaxSize().imePadding()) {
         CodenviTopBar(session?.name ?: "Chat", onBack) {
             // Commit/Publish only show up once we know the PC's git state, and only while that PC is online.
-            if (project?.deviceOnline == true && status?.dirty == true) {
-                IconButton(onClick = { confirmCommit = true }) { Icon(SaveIcon, "Commit uncommitted changes on the PC") }
+            // While a commit/publish is running its icon is replaced by a spinner (and stays put until the PC answers).
+            if (committing || (project?.deviceOnline == true && status?.dirty == true)) {
+                IconButton(enabled = !committing, onClick = { confirmCommit = true }) {
+                    if (committing) CircularProgressIndicator(Modifier.size(20.dp), color = Tokens.Primary, strokeWidth = 2.dp)
+                    else Icon(SaveIcon, "Commit uncommitted changes on the PC")
+                }
             }
-            if (project?.deviceOnline == true && (status?.aheadOfMain ?: 0) > 0) {
-                IconButton(onClick = { confirmPublish = true }) { Icon(PublishIcon, "Publish to main") }
+            if (publishing || (project?.deviceOnline == true && (status?.aheadOfMain ?: 0) > 0)) {
+                IconButton(enabled = !publishing, onClick = { confirmPublish = true }) {
+                    if (publishing) CircularProgressIndicator(Modifier.size(20.dp), color = Tokens.Primary, strokeWidth = 2.dp)
+                    else Icon(PublishIcon, "Publish to main")
+                }
             }
             // Always available: presets Multimode to this chat's project and session, then switches to it.
             IconButton(enabled = session != null, onClick = {
@@ -122,12 +133,24 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
 
     if (confirmCommit) project?.let { p ->
         ConfirmDialog("Commit", "Commit the uncommitted changes left on \"${p.name}\" (${p.deviceName}) on branch ${p.devBranch}?", "Commit",
-            onConfirm = { vm.run(onOk = { vm.ok("Committed on the PC."); refreshStatus(p.id) }) { repo.commitLeftovers(p.id) } },
+            onConfirm = {
+                confirmCommit = false
+                committing = true
+                vm.run(onOk = { vm.ok("Committed on the PC."); refreshStatus(p.id) }) {
+                    try { repo.commitLeftovers(p.id, sessionId) } finally { committing = false }
+                }
+            },
             onDismiss = { confirmCommit = false })
     }
     if (confirmPublish) project?.let { p ->
         ConfirmDialog("Publish", "Merge ${p.devBranch} into main and push main to origin, on \"${p.name}\" (${p.deviceName})?", "Publish",
-            onConfirm = { vm.run(onOk = { vm.ok("Published to main."); refreshStatus(p.id) }) { repo.publish(p.id) } },
+            onConfirm = {
+                confirmPublish = false
+                publishing = true
+                vm.run(onOk = { vm.ok("Published to main."); refreshStatus(p.id) }) {
+                    try { repo.publish(p.id, sessionId) } finally { publishing = false }
+                }
+            },
             onDismiss = { confirmPublish = false })
     }
 }
@@ -138,6 +161,7 @@ fun ChatBubble(vm: AppViewModel, item: ChatItem) {
     val readAloud = remember { (context.applicationContext as CodenviApp).container.readAloud }
     val playing by readAloud.playing.collectAsStateWithLifecycle()
     val settings by vm.repo.settings.flow.collectAsStateWithLifecycle(AppSettings())
+    if (item.eventKind != null) { ChatEventBlock(item.eventKind, item.text); return }
     val mine = item.role == "user"
     Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
         Column(
@@ -165,6 +189,21 @@ fun ChatBubble(vm: AppViewModel, item: ChatItem) {
                 }
             }
         }
+    }
+}
+
+/** Small centred marker between messages: yellow for a commit, blue for a push (semi-transparent fill + solid border). */
+@Composable
+private fun ChatEventBlock(kind: String, label: String) {
+    val color = if (kind == "publish") Color(0xFF42A5F5) else Tokens.Warning
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Text(
+            label, color = color, style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier
+                .background(color.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
+                .border(1.dp, color, RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+        )
     }
 }
 
@@ -297,7 +336,7 @@ fun ReadAloudButton(vm: AppViewModel, sessionId: String?) {
     val playing by readAloud.playing.collectAsStateWithLifecycle()
     val settings by vm.repo.settings.flow.collectAsStateWithLifecycle(AppSettings())
     val items by remember(sessionId) { sessionId?.let { vm.repo.chat(it) } ?: emptyFlow() }.collectAsStateWithLifecycle(emptyList())
-    val last = items.lastOrNull { it.role != "user" }
+    val last = items.lastOrNull { it.role != "user" && it.eventKind == null }
     val reading = last != null && playing == last.id
     IconButton(enabled = last != null, onClick = {
         if (last != null) {
