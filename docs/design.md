@@ -733,7 +733,7 @@ git -c user.name="Codenvi" -c user.email="codenvi@local" commit -m "<summary>" -
 - **Body:** `Model: <requested alias>`, with the model id Claude Code itself resolved in parentheses when it differs from the alias; `Effort: <requested> (requested)` when an effort was requested (Claude Code never reports back which effort it actually ran at, so this is only ever what was asked for); then the first 500 characters of Claude's reply, plus trailers `Codenvi-Job: <jobId>` and `Codenvi-Session: <sessionId>`.
 - If Claude made its own commits during the job, Codenvi records every commit in `preHash..HEAD` (`git rev-list --reverse`) as task commits for that job, then commits any leftovers.
 - The commits are stored locally and on the server (encrypted meta, plaintext hash), and they show in both apps.
-- If a job is cancelled, times out, or Claude Code fails, this step is skipped and the tree is left dirty: the phone's `project.commit` command (or the desktop Activity tab's Commit button) commits it later as `"Codenvi: keep changes from an unfinished job"`.
+- Codenvi never commits automatically. Changes Claude leaves in the working tree stay there (this also applies when a job is cancelled, times out, or Claude Code fails), and the phone's `project.commit` command (or the desktop Activity tab's Commit button) commits them later. The commit message is exactly the text the user typed in the phone's Commit dialog, with nothing added; without text it is `"Codenvi: keep changes"`.
 
 ### 9.3 Rollback (revert, history kept)
 
@@ -760,6 +760,18 @@ Triggered only by the phone's `project.publish` command - there is no desktop bu
 7. Always switch back to the dev branch at the end, whether Publish succeeded or failed, so the job scheduler finds the PC where it expects it.
 
 `project.status`'s `aheadOfMain` (`git rev-list --count main..<devBranch>`, 0 if there is no local `main`) is what the phone uses to decide whether to show the Publish button at all.
+
+### 9.5 Pull (merge origin/main into the dev branch)
+
+Triggered only by the phone's `project.pull` command.
+
+1. Refuse if the project has no `origin` remote, if the working tree is dirty (commit or discard first), or if the PC is not on the dev branch.
+2. `git fetch origin <main>`; a failed fetch is reported.
+3. `git merge --no-edit refs/remotes/origin/<main>` into the dev branch.
+4. On conflict: `git merge --abort` and report "Pull conflicts merging origin/main - resolve manually." The branch is left as it was.
+5. On success the answer's `text` is the new HEAD hash.
+
+`project.status`'s `behindOrigin` (`git rev-list --count <devBranch>..origin/<main>`, 0 without `origin/main`) is what the phone uses to decide whether to show the Pull button.
 
 ## 10. Android app (Codenvi.apk)
 
@@ -820,7 +832,8 @@ okhttp = "4.12.0"
    - Input bar: text field, **mic** button, **model** and **effort** dropdowns, **Send**.
    - A **🔊 Read aloud** icon on every assistant message.
    - Status per prompt: queued / delivered / running / done / failed (with error text). "Waiting for Claude sign-in" tells the user to sign in to Claude Code on that PC.
-   - While the PC is online, a **Commit** icon (next to Multimode) shows up when `project.status` reports the dev branch dirty, and a **Publish** icon shows up when it reports commits ahead of `main`; both ask for confirmation, then run `project.commit` / `project.publish` (§9.2, §9.4) and refresh the status.
+   - While the PC is online, a **Commit** icon (next to Multimode) shows up when `project.status` reports the dev branch dirty, a **Pull** icon (down arrow, before Publish) when it reports `behindOrigin` above 0, and a **Publish** icon when it reports commits ahead of `main`. Each asks for confirmation (Commit also asks for the commit message), then runs `project.commit` / `project.pull` / `project.publish` (§9.2, §9.4, §9.5) and refreshes the status. While one runs, its icon is replaced by a spinner until the PC answers.
+   - Each finished action leaves a small centred marker in the chat, on one line and cut with "…" if long: yellow `Committed · <short hash> · <commit message>`, blue `Pushed to main · <short hash> · <message of the dev branch's newest commit>`, green `Pulled origin/main · <short hash>`. The markers are stored on the phone only.
 6. **Multimode:**
    - **Top:** a row of the selected project's sessions (tap one to choose it), then the multi-line `OutlinedTextField`, the model and effort dropdowns beneath it, then the mic and **Send** buttons.
    - **Below:** a 3-column grid of **every project from every connected device** (project name over device name, status dot). Selection is single, orange when active, and stays selected after sending.
