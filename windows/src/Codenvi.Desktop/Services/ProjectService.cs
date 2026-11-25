@@ -388,6 +388,15 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
         return hash;
     }
 
+    /// <summary>Subject of the newest pulled commit (the tip of origin/main, just merged by <see cref="PullAsync"/>); null if unknown.</summary>
+    public async Task<string?> PulledMessageAsync(Guid projectId)
+    {
+        var project = db.Project(projectId);
+        if (project is null) return null;
+        try { return (await git.CommitInfoAsync(project.FolderPath, $"refs/remotes/origin/{MainBranch}")).Subject; }
+        catch (Exception) { return null; }
+    }
+
     public static string ClaudeMdPath(LocalProject p) => Path.Combine(p.FolderPath, "CLAUDE.md");
 
     public string ReadMemory(LocalProject p) => File.Exists(ClaudeMdPath(p)) ? File.ReadAllText(ClaudeMdPath(p)) : "";

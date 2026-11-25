@@ -457,30 +457,30 @@ class Repository(
     suspend fun commitLeftovers(projectId: String, sessionId: String, message: String) {
         // The commit message is exactly [message]; the PC adds nothing to it.
         val r = controlOk(projectId, ControlPlain(ControlCommands.COMMIT, projectId, text = message.trim()))
-        val hash = r.text?.takeIf { it.matches(Regex("[0-9a-f]{7,40}")) }
-        addChatEvent(sessionId, "commit", if (hash != null) eventLabel("Committed", hash, message) else "Nothing to commit")
+        val committed = r.text?.matches(Regex("[0-9a-f]{7,40}")) == true
+        addChatEvent(sessionId, "commit", if (committed) eventLabel("Committed", message) else "Nothing to commit")
     }
 
-    /** One-line label: "<prefix> · <short hash> · <message>" (message flattened to a single line; the chat block cuts it if long). */
-    private fun eventLabel(prefix: String, hash: String?, message: String?): String {
+    /** One-line label: "<prefix> · <message>" (message flattened to its first line; the chat block cuts it if long). No commit id. */
+    private fun eventLabel(prefix: String, message: String?): String {
         val line = message?.lineSequence()?.map { it.trim() }?.firstOrNull { it.isNotEmpty() }
-        return listOfNotNull(prefix, hash?.take(7), line).joinToString(" · ")
+        return listOfNotNull(prefix, line).joinToString(" · ")
     }
 
     /** Merges the dev branch into "main" and pushes "main" to origin, on the PC. */
     suspend fun publish(projectId: String, sessionId: String) {
         // The last commit being pushed is the dev branch's newest commit; read its message before publishing (best effort).
         val lastMessage = try { projectStatus(projectId)?.lastCommitMessage } catch (e: Exception) { null }
-        val r = controlOk(projectId, ControlPlain(ControlCommands.PUBLISH, projectId))
-        val hash = r.text?.takeIf { it.matches(Regex("[0-9a-f]{7,40}")) }
-        addChatEvent(sessionId, "publish", eventLabel("Pushed to main", hash, lastMessage))
+        controlOk(projectId, ControlPlain(ControlCommands.PUBLISH, projectId))
+        addChatEvent(sessionId, "publish", eventLabel("Pushed", lastMessage))
     }
 
     /** Fetches origin/main and merges it into the dev branch, on the PC. */
     suspend fun pull(projectId: String, sessionId: String) {
         val r = controlOk(projectId, ControlPlain(ControlCommands.PULL, projectId))
-        val hash = r.text?.takeIf { it.matches(Regex("[0-9a-f]{7,40}")) }
-        addChatEvent(sessionId, "pull", if (hash != null) "Pulled origin/main · ${hash.take(7)}" else "Pulled origin/main")
+        // The PC answers with the message of the newest pulled commit (an older PC answered with a hash, which is not shown).
+        val message = r.text?.takeIf { !it.matches(Regex("[0-9a-f]{7,40}")) }
+        addChatEvent(sessionId, "pull", eventLabel("Pulled", message))
     }
 
     /** Drops a small marker into the chat at this moment, after the newest message. */

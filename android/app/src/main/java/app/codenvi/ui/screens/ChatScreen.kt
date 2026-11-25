@@ -232,12 +232,12 @@ fun ChatBubble(vm: AppViewModel, item: ChatItem) {
     }
 }
 
-/** Small centred marker between messages: yellow for a commit, blue for a push (semi-transparent fill + solid border). */
+/** Small centred marker between messages: yellow for a commit, green for a push, blue for a pull (semi-transparent fill + solid border). */
 @Composable
 private fun ChatEventBlock(kind: String, label: String) {
     val color = when (kind) {
-        "publish" -> Color(0xFF42A5F5)
-        "pull" -> Tokens.Success
+        "publish" -> Tokens.Success
+        "pull" -> Color(0xFF42A5F5)
         else -> Tokens.Warning
     }
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {

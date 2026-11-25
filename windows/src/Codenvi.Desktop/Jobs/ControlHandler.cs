@@ -104,7 +104,8 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
             case ControlCommands.Pull:
             {
                 var hash = await projects.PullAsync(project.Id);
-                return new ControlResultPlain(true, Text: hash);
+                // The answer carries the message of the newest pulled commit; older PCs answered with the new HEAD hash.
+                return new ControlResultPlain(true, Text: await projects.PulledMessageAsync(project.Id) ?? hash);
             }
             case ControlCommands.RunScript:
             {

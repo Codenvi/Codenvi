@@ -769,7 +769,7 @@ Triggered only by the phone's `project.pull` command.
 2. `git fetch origin <main>`; a failed fetch is reported.
 3. `git merge --no-edit refs/remotes/origin/<main>` into the dev branch.
 4. On conflict: `git merge --abort` and report "Pull conflicts merging origin/main - resolve manually." The branch is left as it was.
-5. On success the answer's `text` is the new HEAD hash.
+5. On success the answer's `text` is the subject of the newest pulled commit (the tip of `origin/<main>`); older PCs answered with the new HEAD hash, which the phone ignores.
 
 `project.status`'s `behindOrigin` (`git rev-list --count <devBranch>..origin/<main>`, 0 without `origin/main`) is what the phone uses to decide whether to show the Pull button.
 
@@ -833,7 +833,7 @@ okhttp = "4.12.0"
    - A **🔊 Read aloud** icon on every assistant message.
    - Status per prompt: queued / delivered / running / done / failed (with error text). "Waiting for Claude sign-in" tells the user to sign in to Claude Code on that PC.
    - While the PC is online, a **Commit** icon (next to Multimode) shows up when `project.status` reports the dev branch dirty, a **Pull** icon (down arrow, before Publish) when it reports `behindOrigin` above 0, and a **Publish** icon when it reports commits ahead of `main`. Each asks for confirmation (Commit also asks for the commit message), then runs `project.commit` / `project.pull` / `project.publish` (§9.2, §9.4, §9.5) and refreshes the status. While one runs, its icon is replaced by a spinner until the PC answers.
-   - Each finished action leaves a small centred marker in the chat, on one line and cut with "…" if long: yellow `Committed · <short hash> · <commit message>`, blue `Pushed to main · <short hash> · <message of the dev branch's newest commit>`, green `Pulled origin/main · <short hash>`. The markers are stored on the phone only.
+   - Each finished action leaves a small centred marker in the chat, on one line and cut with "…" if long: yellow `Committed · <commit message>`, green `Pushed · <message of the dev branch's newest commit>`, blue `Pulled · <message of the newest pulled commit>`. No commit id is shown. The markers are stored on the phone only.
 6. **Multimode:**
    - **Top:** a row of the selected project's sessions (tap one to choose it), then the multi-line `OutlinedTextField`, the model and effort dropdowns beneath it, then the mic and **Send** buttons.
    - **Below:** a 3-column grid of **every project from every connected device** (project name over device name, status dot). Selection is single, orange when active, and stays selected after sending.
