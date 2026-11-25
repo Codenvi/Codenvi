@@ -304,8 +304,14 @@ class Repository(
     val unseenProjects: Flow<Set<String>> = unseenReplies.map { l -> l.map { it.projectId }.toSet() }.distinctUntilChanged()
 
     /** How many unseen replies each project / device has (shown as a number badge on the Projects and Devices pages). */
-    val unseenCountByProject: Flow<Map<String, Int>> = unseenReplies.map { l -> l.groupingBy { it.projectId }.eachCount() }.distinctUntilChanged()
-    val unseenCountByDevice: Flow<Map<String, Int>> = unseenReplies.map { l -> l.groupingBy { it.deviceId }.eachCount() }.distinctUntilChanged()
+    val unseenCountByProject: Flow<Map<String, Int>> = unseenReplies.map { l -> countBy(l) { r -> r.projectId } }.distinctUntilChanged()
+    val unseenCountByDevice: Flow<Map<String, Int>> = unseenReplies.map { l -> countBy(l) { r -> r.deviceId } }.distinctUntilChanged()
+
+    private fun countBy(rows: List<ReplyRow>, key: (ReplyRow) -> String): Map<String, Int> {
+        val counts = HashMap<String, Int>()
+        for (r in rows) counts[key(r)] = (counts[key(r)] ?: 0) + 1
+        return counts
+    }
 
     /** The user has the chat of [sessionId] open: everything in it counts as seen. */
     suspend fun markSeen(sessionId: String) = withContext(Dispatchers.IO) { settings.markSeen(sessionId, dao.maxSeq(sessionId)) }
