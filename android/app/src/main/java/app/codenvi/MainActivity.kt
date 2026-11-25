@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -38,6 +37,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.codenvi.ui.AppViewModel
+import app.codenvi.ui.components.GridIcon
 import app.codenvi.ui.components.Toast
 import app.codenvi.ui.components.ToastHost
 import app.codenvi.ui.components.ToastKind
@@ -83,7 +83,7 @@ private data class Tab(val route: String, val label: String, val icon: androidx.
 
 private val tabs = listOf(
     Tab("devices", "Devices", Icons.Filled.Home),
-    Tab("multimode", "Multimode", Icons.Filled.List),
+    Tab("multimode", "Multimode", GridIcon),
     Tab("settings", "Settings", Icons.Filled.Settings),
 )
 

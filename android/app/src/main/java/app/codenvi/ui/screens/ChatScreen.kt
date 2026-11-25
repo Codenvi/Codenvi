@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,6 +52,7 @@ import app.codenvi.ui.AppViewModel
 import app.codenvi.ui.components.MarkdownText
 import app.codenvi.ui.components.ModelEffortPicker
 import app.codenvi.ui.components.rememberDictation
+import app.codenvi.ui.components.GridIcon
 import app.codenvi.ui.components.RecordButton
 import app.codenvi.ui.components.SoundIcon
 import app.codenvi.ui.components.rememberMicPermission
@@ -82,7 +83,7 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
                         repo.settings.setMultimodeSession(s.id)
                     }
                 }
-            }) { Icon(Icons.Filled.List, "Multimode") }
+            }) { Icon(GridIcon, "Multimode") }
         }
         LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(chatItems, key = { it.id }) { ChatBubble(vm, it) }
@@ -199,6 +200,12 @@ fun PromptBar(
         header?.invoke()
         OutlinedTextField(
             value = value, onValueChange = { value = it }, placeholder = { Text("Ask Claude Code…") },
+            // X inside the field: clears the text (and stops dictation, so it does not type it back).
+            trailingIcon = {
+                if (value.text.isNotEmpty()) IconButton(onClick = { dictation.stop(); value = TextFieldValue("") }) {
+                    Icon(Icons.Filled.Close, "Clear text", tint = Tokens.OnSurfaceMuted)
+                }
+            },
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp, max = 200.dp), enabled = enabled,
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
