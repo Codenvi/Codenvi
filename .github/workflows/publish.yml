@@ -113,7 +113,7 @@ jobs:
       - name: Bundle release (production dependencies only)
         run: |
           rm -rf "$RUNNER_TEMP/bundle" && mkdir -p "$RUNNER_TEMP/bundle"
-          cp -r dist drizzle package.json package-lock.json "$RUNNER_TEMP/bundle/"
+          cp -r dist drizzle demo package.json package-lock.json "$RUNNER_TEMP/bundle/"
           (cd "$RUNNER_TEMP/bundle" && npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
           tar -czf "$RUNNER_TEMP/release.tgz" -C "$RUNNER_TEMP/bundle" .
           echo "Release bundle: $(du -h "$RUNNER_TEMP/release.tgz" | cut -f1)"
