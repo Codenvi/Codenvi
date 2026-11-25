@@ -39,6 +39,7 @@ public sealed partial class ProjectViewModel : ObservableObject
     public ObservableCollection<LocalSession> Sessions { get; } = new();
     public ObservableCollection<CommitItem> Commits { get; } = new();
     public ObservableCollection<string> ActivityLines { get; } = new();
+    public ObservableCollection<string> TerminalLines { get; } = new();
     public IReadOnlyList<string> PermissionModes { get; } = ["acceptEdits", "default", "plan", "bypassPermissions"];
     public IReadOnlyList<string> Models { get; } = ["default", "sonnet", "opus", "haiku", "fable"];
     public IReadOnlyList<string> Efforts { get; } = ["default", "low", "medium", "high", "xhigh", "max"];
@@ -118,6 +119,12 @@ public sealed partial class ProjectViewModel : ObservableObject
     {
         ActivityLines.Add($"{DateTime.Now:HH:mm:ss}  {line}");
         while (ActivityLines.Count > 500) ActivityLines.RemoveAt(0);
+    }
+
+    public void AddTerminal(string line)
+    {
+        TerminalLines.Add($"{DateTime.Now:HH:mm:ss}  {line}");
+        while (TerminalLines.Count > 2000) TerminalLines.RemoveAt(0);
     }
 
     public void LoadDetails()

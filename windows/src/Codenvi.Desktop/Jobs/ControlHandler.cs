@@ -96,6 +96,13 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
                 var error = scripts.Start(project);
                 return error is null ? new ControlResultPlain(true, Text: "Script started") : new ControlResultPlain(false, error);
             }
+            case ControlCommands.StopScript:
+            {
+                if (scripts.Stop(project.Id)) return new ControlResultPlain(true, Text: "Script stopped");
+                // Nothing is running: re-send the project info so a stale "running" on the phone clears.
+                try { await projects.UploadProjectAsync(project); } catch { /* best effort */ }
+                return new ControlResultPlain(true, Text: "No script was running");
+            }
             default:
                 return new ControlResultPlain(false, $"Unknown command '{cmd.Command}'.");
         }

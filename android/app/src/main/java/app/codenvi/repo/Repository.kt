@@ -79,6 +79,7 @@ data class ProjectUi(
     val id: String, val deviceId: String, val deviceName: String, val name: String, val devBranch: String,
     val defaultSessionId: String?, val sortOrder: Int, val state: ProjectState, val deviceOnline: Boolean, val locked: Boolean,
     val hasScript: Boolean = false,
+    val scriptRunning: Boolean = false,
 )
 
 data class SessionUi(val id: String, val projectId: String, val name: String, val locked: Boolean)
@@ -243,7 +244,7 @@ class Repository(
             else -> ProjectState.IDLE
         }
         return ProjectUi(p.id, p.deviceId, d.name, meta?.name ?: "🔒 Locked project", meta?.devBranch ?: "",
-            p.defaultSessionId, p.sortOrder, state, d.online, meta == null, meta?.hasScript == true)
+            p.defaultSessionId, p.sortOrder, state, d.online, meta == null, meta?.hasScript == true, meta?.scriptRunning == true)
     }
 
     fun sessions(projectId: String): Flow<List<SessionUi>> = combine(dao.sessions(projectId), store.flow) { list, _ ->
@@ -434,6 +435,9 @@ class Repository(
 
     /** Asks the PC to start the project's own saved script. No script text is sent: the PC runs what it has stored. */
     suspend fun runScript(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.RUN_SCRIPT, projectId)) }
+
+    /** Asks the PC to stop the script it started for this project. */
+    suspend fun stopScript(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.STOP_SCRIPT, projectId)) }
 
     // ---------------- Projects & sessions ----------------
     suspend fun renameProject(projectId: String, name: String) = withContext(Dispatchers.IO) {

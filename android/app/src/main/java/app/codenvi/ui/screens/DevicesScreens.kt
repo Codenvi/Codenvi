@@ -52,6 +52,7 @@ import app.codenvi.ui.components.ConfirmDialog
 import app.codenvi.ui.components.CountBadge
 import app.codenvi.ui.components.InputDialog
 import app.codenvi.ui.components.ScriptIcon
+import app.codenvi.ui.components.StopIcon
 import app.codenvi.ui.components.StatusDot
 import app.codenvi.ui.components.color
 import app.codenvi.ui.components.label
@@ -167,6 +168,7 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
     val devices by vm.repo.devices.collectAsStateWithLifecycle(emptyList())
     var rename by remember { mutableStateOf<ProjectUi?>(null) }
     var runScript by remember { mutableStateOf<ProjectUi?>(null) }
+    var stopScript by remember { mutableStateOf<ProjectUi?>(null) }
     LaunchedEffect(deviceId) { vm.run { vm.repo.refreshProjects(deviceId) } }
 
     Column(Modifier.fillMaxSize()) {
@@ -189,7 +191,11 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
                             }
                         }
                         if (p.hasScript && !p.locked) {
-                            IconButton(enabled = p.deviceOnline, onClick = { runScript = p }) { Icon(ScriptIcon, "Run script on the PC") }
+                            if (p.scriptRunning) {
+                                IconButton(enabled = p.deviceOnline, onClick = { stopScript = p }) { Icon(StopIcon, "Stop script on the PC") }
+                            } else {
+                                IconButton(enabled = p.deviceOnline, onClick = { runScript = p }) { Icon(ScriptIcon, "Run script on the PC") }
+                            }
                         }
                         unseenByProject[p.id]?.takeIf { it > 0 }?.let { CountBadge(it); Spacer(Modifier.width(4.dp)) }
                         Box {
@@ -207,6 +213,11 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
         ConfirmDialog("Run script", "Run the script of \"${p.name}\" on ${p.deviceName}?", "Run",
             onConfirm = { vm.run(onOk = { vm.ok("Script started on the PC.") }) { vm.repo.runScript(p.id) } },
             onDismiss = { runScript = null })
+    }
+    stopScript?.let { p ->
+        ConfirmDialog("Stop script", "Stop the running script of \"${p.name}\" on ${p.deviceName}?", "Stop",
+            onConfirm = { vm.run(onOk = { vm.ok("Script stopped.") }) { vm.repo.stopScript(p.id) } },
+            onDismiss = { stopScript = null })
     }
     rename?.let { p -> InputDialog("Rename project", p.name, onConfirm = { n -> vm.run { vm.repo.renameProject(p.id, n) } }, onDismiss = { rename = null }) }
 }

@@ -645,10 +645,11 @@ Packages: `CommunityToolkit.Mvvm`, `Microsoft.Extensions.Hosting` (DI plus backg
    - Left: project list. Each row shows name, status chip (Idle / Queued n / ● Running with spinner and elapsed time / Error) and a pause toggle.
    - Right (selected project), with tabs (Sessions is the default):
      - **Sessions**: list, create, rename, clear chat memory, delete.
-     - **Activity**: live stream of the running job's progress lines, plus a Cancel button.
      - **Commits**: table of hash, time, message, files, a **Roll back to here** button and a "Reverted" marker.
+     - **Activity**: live stream of the running job's progress lines, plus a Cancel button. Scrolls to the newest line.
+     - **Terminal**: output of the phone-started shell script (stdout and stderr) and a **Stop script** button. Scrolls to the newest line.
      - **Memory**: edit `CLAUDE.md`.
-     - **Settings**: project block on top (path, dev branch, git state, Open folder, Open in VS Code, Refresh git state, Test Claude here), then permission mode, allowed tools, max turns, timeout, default model and effort, and the shell script the phone can start (cmd.exe commands, one per line, joined into one command line, runs detached in the project folder, output on the Activity tab, Stop script button).
+     - **Settings**: project block on top (path, dev branch, git state, Open folder, Open in VS Code, Refresh git state, Test Claude here), then permission mode, allowed tools, max turns, timeout, default model and effort, and the shell script the phone can start (cmd.exe commands, one per line, joined into one command line, runs detached in the project folder, output on the Terminal tab).
    - Buttons: **Register project**, **Rename**, **Relocate**, **Delete**.
 4. **Settings**: paired installs with **Revoke**, **Connect a phone**, **Pair another PC**, **Disconnect this PC**, start with Windows (`HKCU\...\Run`), minimize to tray on close, max parallel projects (default 3), git author name/email for Codenvi commits, default dev branch name (`codenvi-dev`), stale job limit, and whether to delete old Claude transcripts on clear (§8.7).
 5. **About**: app version, MIT license notice, link to the repository, third-party notices and the disclaimer (§0.3).
@@ -795,7 +796,7 @@ okhttp = "4.12.0"
    - **Connect device** (enter key → KCV check → saved).
    - Rename device, remove device, and change key (after rotation).
    - Every PC paired with the server appears here automatically. PCs whose key the phone doesn't have yet show **Add key** (paste a key-only string or type the key).
-3. **Device → Projects:** project list with status (idle/running/queued) and rename. A project that has a PC-side shell script shows a script (terminal icon) button that asks the PC to run it, after a confirmation. Projects are created on the desktop only, because they need a local folder.
+3. **Device → Projects:** project list with status (idle/running/queued) and rename. A project that has a PC-side shell script shows a script (terminal icon) button that asks the PC to run it, after a confirmation. While the script runs (the PC updates the project info when it starts and ends) the button becomes a stop icon that asks the PC to stop it. Projects are created on the desktop only, because they need a local folder.
 4. **Project:**
    - **Sessions:** list, **New session**, rename, **Clear memory**, delete (with confirmation).
    - **Memory:** view and edit `CLAUDE.md` (control command).

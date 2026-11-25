@@ -90,7 +90,7 @@ public class ScriptRunnerTests
         var db = new LocalDb(Path.Combine(Path.GetTempPath(), $"codenvi-test-{Guid.NewGuid():N}.db"));
         var state = new AppState(db);
         var lines = new List<string>();
-        state.ActivityLine += (_, l) => { lock (lines) lines.Add(l); };
+        state.TerminalLine += (_, l) => { lock (lines) lines.Add(l); };
         return (new ScriptRunner(state, NullLogger<ScriptRunner>.Instance), lines, state);
     }
 
@@ -164,5 +164,34 @@ public class ScriptRunnerTests
         Assert.True(await WaitAsync(() => !runner.IsRunning(p.Id)));
         Assert.False(state.Runtime(p.Id).ScriptRunning);
         lock (lines) Assert.Contains(lines, l => l.Contains("Script stopped"));
+    }
+}
+
+public class ScriptStopTests
+{
+    [Fact]
+    public void Running_hint_is_omitted_when_not_running_and_written_when_running()
+    {
+        Assert.DoesNotContain("scriptRunning", System.Text.Json.JsonSerializer.Serialize(new ProjectMeta("S", "b", true), CodenviJson.Options));
+        Assert.Contains("\"scriptRunning\":true", System.Text.Json.JsonSerializer.Serialize(new ProjectMeta("S", "b", true, true), CodenviJson.Options));
+        Assert.Equal("project.script.stop", ControlCommands.StopScript);
+    }
+
+    [Fact]
+    public async Task Stop_reports_whether_a_script_was_running_and_start_and_end_raise_RunningChanged()
+    {
+        AppPaths.Root = Path.Combine(Path.GetTempPath(), "codenvi-tests-" + Guid.NewGuid().ToString("N"));
+        var state = new AppState(new LocalDb(Path.Combine(Path.GetTempPath(), $"codenvi-test-{Guid.NewGuid():N}.db")));
+        var runner = new ScriptRunner(state, NullLogger<ScriptRunner>.Instance);
+        var events = new List<bool>();
+        var id = Guid.NewGuid();
+        runner.RunningChanged += i => { lock (events) events.Add(state.Runtime(i).ScriptRunning); };
+        Assert.False(runner.Stop(id));
+        var p = new LocalProject { Id = id, Name = "t", FolderPath = Path.GetTempPath(), ShellScript = "ping -n 120 127.0.0.1 >nul" };
+        Assert.Null(runner.Start(p));
+        Assert.True(runner.Stop(id));
+        var end = DateTime.UtcNow.AddSeconds(30);
+        while (runner.IsRunning(id) && DateTime.UtcNow < end) await Task.Delay(100);
+        lock (events) Assert.Equal(new[] { true, false }, events.ToArray());
     }
 }

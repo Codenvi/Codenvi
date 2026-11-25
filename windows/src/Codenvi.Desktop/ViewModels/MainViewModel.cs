@@ -60,6 +60,18 @@ public sealed partial class MainViewModel : ObservableObject
         state.ProjectsListChanged += () => Ui(Reload);
         state.ProjectChanged += id => Ui(() => Projects.FirstOrDefault(p => p.Id == id)?.RefreshStatus());
         state.ActivityLine += (id, line) => Ui(() => Projects.FirstOrDefault(p => p.Id == id)?.AddActivity(line));
+        state.TerminalLine += (id, line) => Ui(() => Projects.FirstOrDefault(p => p.Id == id)?.AddTerminal(line));
+
+        // Tell the phone when a script starts or ends, so its button switches between Run and Stop.
+        scripts.RunningChanged += id => _ = Task.Run(async () =>
+        {
+            try
+            {
+                var p = _db.Project(id);
+                if (p is not null && !string.IsNullOrWhiteSpace(p.ShellScript)) await _projects.UploadProjectAsync(p);
+            }
+            catch { /* offline: the phone catches up on its next refresh */ }
+        });
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += (_, _) => { foreach (var p in Projects) p.RefreshElapsed(); };

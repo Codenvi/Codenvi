@@ -23,7 +23,7 @@ data class ProgressPlain(val line: String)
 
 /** [hasScript] is only a hint that the PC has a shell script for this project. The script text never leaves the PC. */
 @JsonClass(generateAdapter = true)
-data class ProjectMeta(val name: String, val devBranch: String, val hasScript: Boolean = false)
+data class ProjectMeta(val name: String, val devBranch: String, val hasScript: Boolean = false, val scriptRunning: Boolean = false)
 
 @JsonClass(generateAdapter = true)
 data class SessionMeta(val name: String)
@@ -42,6 +42,7 @@ object ControlCommands {
     const val ROLLBACK = "project.rollback"
     const val STATUS = "project.status"
     const val RUN_SCRIPT = "project.script.run"
+    const val STOP_SCRIPT = "project.script.stop"
 }
 
 @JsonClass(generateAdapter = true)

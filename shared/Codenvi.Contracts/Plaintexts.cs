@@ -14,8 +14,8 @@ public sealed record ResultPlain(string Text, decimal? CostUsd, long? DurationMs
 
 public sealed record ProgressPlain(string Line);
 
-/// <summary>HasScript is only a UI hint for the phone (null = no script, omitted from the JSON). The script text never leaves the PC.</summary>
-public sealed record ProjectMeta(string Name, string DevBranch, bool? HasScript = null);
+/// <summary>HasScript and ScriptRunning are only UI hints for the phone (null = no / not running, omitted from the JSON). The script text never leaves the PC.</summary>
+public sealed record ProjectMeta(string Name, string DevBranch, bool? HasScript = null, bool? ScriptRunning = null);
 
 public sealed record SessionMeta(string Name);
 
@@ -34,6 +34,8 @@ public static class ControlCommands
     public const string Status = "project.status";
     /// <summary>Runs the PC-local shell script of the project in the background. Carries no script text.</summary>
     public const string RunScript = "project.script.run";
+    /// <summary>Stops the script the PC started for this project (kills its process tree).</summary>
+    public const string StopScript = "project.script.stop";
 }
 
 public sealed record ControlPlain(string Command, Guid ProjectId, Guid? SessionId = null, string? Name = null, string? Text = null, string? CommitHash = null);

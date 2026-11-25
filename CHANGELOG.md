@@ -5,7 +5,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
-- Run a project script from the phone: a new shell script field on each project's Settings tab on Windows (cmd.exe commands, one per line, run in order in the project folder, so `code .` and `start chrome http://localhost:3000` work as in a terminal). On Android a script (terminal icon) button appears on the project row when a script exists; after a confirmation the PC starts it in the background (for example a localhost dev server), shows its output on the Activity tab and can stop it with Stop script. The phone never sends script text.
+- Run a project script from the phone: a new shell script field on each project's Settings tab on Windows (cmd.exe commands, one per line, run in order in the project folder, so `code .` and `start chrome http://localhost:3000` work as in a terminal). On Android a script (terminal icon) button appears on the project row when a script exists; after a confirmation the PC starts it in the background (for example a localhost dev server), shows its output on the Terminal tab and can stop it with Stop script. The phone never sends script text.
+- Android: while a project's script runs on the PC, its terminal button turns into a stop button that stops the script (new control command `project.script.stop`; the project info the PC shares now also says whether the script is running).
+- Windows: a **Terminal** tab (Sessions, Commits, Activity, Terminal, Memory, Settings) with the script output and the Stop script button, which moved here from Settings. The Activity and Terminal tabs scroll to the newest line.
 - QR-code pairing: "Connect a phone" and "Show encryption key" on Windows also show a QR code; the Android Connect screen and the "Paste a key string" dialog have a Scan QR code button (Google code scanner, no camera permission). Pasting still works.
 - Community files: security policy, contributing guide, code of conduct, issue forms and a pull request template.
 - Project website and repository links in the About screens (Windows and Android).

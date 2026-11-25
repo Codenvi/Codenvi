@@ -32,6 +32,13 @@ class ScriptMetaTest {
     }
 
     @Test
+    fun running_hint_defaults_to_false_and_is_read() {
+        assertFalse("""{"name":"S","devBranch":"b","hasScript":true}""".toByteArray().parseJson<ProjectMeta>().scriptRunning)
+        assertTrue("""{"name":"S","devBranch":"b","hasScript":true,"scriptRunning":true}""".toByteArray().parseJson<ProjectMeta>().scriptRunning)
+        assertEquals("project.script.stop", ControlCommands.STOP_SCRIPT)
+    }
+
+    @Test
     fun run_script_command_carries_no_script_text() {
         val cmd = ControlPlain(ControlCommands.RUN_SCRIPT, "p1")
         val back = cmd.toJsonBytes().parseJson<ControlPlain>()

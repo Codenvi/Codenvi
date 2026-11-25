@@ -13,6 +13,9 @@ public sealed class ScriptRunner(AppState state, ILogger<ScriptRunner> log)
 {
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _running = new();
 
+    /// <summary>Raised when a script starts or ends, so the phone can be told (it shows Run or Stop).</summary>
+    public event Action<Guid>? RunningChanged;
+
     public bool IsRunning(Guid projectId) => _running.ContainsKey(projectId);
 
     /// <summary>Starts the script and returns immediately. Returns an error text, or null when it started.</summary>
@@ -30,24 +33,24 @@ public sealed class ScriptRunner(AppState state, ILogger<ScriptRunner> log)
         if (!_running.TryAdd(project.Id, cts)) { cts.Dispose(); return "The script is already running."; }
 
         MarkRunning(project.Id, true);
-        state.AddActivity(project.Id, "▶ Script started from the phone");
+        state.AddTerminal(project.Id, "▶ Script started from the phone");
         _ = Task.Run(async () =>
         {
             try
             {
                 var result = await ProcessRunner.RunAsync(cmd, [], project.FolderPath,
                     rawArguments: $"/d /s /c \"{commandLine}\"",
-                    onStdOutLine: line => state.AddActivity(project.Id, line.TrimEnd()),
-                    onStdErrLine: line => state.AddActivity(project.Id, line.TrimEnd()),
+                    onStdOutLine: line => state.AddTerminal(project.Id, line.TrimEnd()),
+                    onStdErrLine: line => state.AddTerminal(project.Id, line.TrimEnd()),
                     ct: cts.Token, maxCaptureChars: 4096);
-                state.AddActivity(project.Id, result.Cancelled
+                state.AddTerminal(project.Id, result.Cancelled
                     ? "■ Script stopped"
                     : $"■ Script finished (exit code {result.ExitCode})");
             }
             catch (Exception e)
             {
                 log.LogWarning(e, "Script for {Project} failed", project.Id);
-                state.AddActivity(project.Id, "■ Script failed: " + e.Message);
+                state.AddTerminal(project.Id, "■ Script failed: " + e.Message);
             }
             finally
             {
@@ -71,9 +74,12 @@ public sealed class ScriptRunner(AppState state, ILogger<ScriptRunner> log)
         return joined.Length <= 7000 ? joined : null;
     }
 
-    public void Stop(Guid projectId)
+    /// <summary>Stops the running script. Returns false when none was running.</summary>
+    public bool Stop(Guid projectId)
     {
-        if (_running.TryGetValue(projectId, out var cts)) try { cts.Cancel(); } catch (ObjectDisposedException) { }
+        if (!_running.TryGetValue(projectId, out var cts)) return false;
+        try { cts.Cancel(); } catch (ObjectDisposedException) { }
+        return true;
     }
 
     /// <summary>Called on quit so no dev server is left running without Codenvi.</summary>
@@ -91,5 +97,9 @@ public sealed class ScriptRunner(AppState state, ILogger<ScriptRunner> log)
         MarkRunning(projectId, false);
     }
 
-    private void MarkRunning(Guid projectId, bool running) => state.UpdateRuntime(projectId, r => r.ScriptRunning = running);
+    private void MarkRunning(Guid projectId, bool running)
+    {
+        state.UpdateRuntime(projectId, r => r.ScriptRunning = running);
+        try { RunningChanged?.Invoke(projectId); } catch (Exception e) { log.LogDebug(e, "RunningChanged handler failed"); }
+    }
 }

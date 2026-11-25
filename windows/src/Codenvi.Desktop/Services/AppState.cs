@@ -49,6 +49,7 @@ public sealed class AppState
     public event Action? Changed;
     public event Action<Guid>? ProjectChanged;
     public event Action<Guid, string>? ActivityLine;
+    public event Action<Guid, string>? TerminalLine;
     public event Action? ProjectsListChanged;
     public event Action<string>? Notify;
 
@@ -76,6 +77,7 @@ public sealed class AppState
     public void SetUpgradeRequired() { UpgradeRequired = true; Changed?.Invoke(); }
     public void SetClaude(ClaudeStatus status) { Claude = status; Changed?.Invoke(); }
     public void AddActivity(Guid projectId, string line) => ActivityLine?.Invoke(projectId, line);
+    public void AddTerminal(Guid projectId, string line) => TerminalLine?.Invoke(projectId, line);
     public void RaiseProjectsListChanged() => ProjectsListChanged?.Invoke();
     public void RaiseNotify(string message) => Notify?.Invoke(message);
 }

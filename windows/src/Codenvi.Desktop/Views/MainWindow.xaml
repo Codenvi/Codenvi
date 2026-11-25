@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Codenvi.Desktop.ViewModels"
+        xmlns:local="clr-namespace:Codenvi.Desktop.Views"
         mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:MainViewModel}"
         Title="Codenvi" Width="1180" Height="760" MinWidth="900" MinHeight="560"
         Style="{StaticResource CodenviWindow}" Icon="/Assets/codenvi.ico"
@@ -115,6 +116,24 @@
             </DockPanel>
           </TabItem>
 
+          <TabItem Header="Commits">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
+                <Button Content="Roll back to here" Command="{Binding RollbackCommand}" Style="{StaticResource PrimaryButton}" />
+                <TextBlock Text="Reverts every later commit in one new commit. History is kept." Style="{StaticResource Muted}" VerticalAlignment="Center" />
+              </StackPanel>
+              <DataGrid ItemsSource="{Binding Commits}" SelectedItem="{Binding SelectedCommit}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Hash" Binding="{Binding ShortHash}" FontFamily="Cascadia Mono, Consolas" Width="80" />
+                  <DataGridTextColumn Header="Time" Binding="{Binding When}" Width="140" />
+                  <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
+                  <DataGridTextColumn Header="Files" Binding="{Binding Files}" Width="110" />
+                  <DataGridTextColumn Header="" Binding="{Binding Marker}" Width="80" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+          </TabItem>
+
           <TabItem Header="Activity">
             <DockPanel>
               <Border DockPanel.Dock="Top" Background="{StaticResource PrimaryContainer}" CornerRadius="8" Padding="12,8" Margin="0,0,0,10"
@@ -137,25 +156,21 @@
                 </DockPanel>
               </Border>
               <ListBox ItemsSource="{Binding ActivityLines}" FontFamily="{StaticResource MonoFont}" FontSize="12"
-                       VirtualizingPanel.IsVirtualizing="True" />
+                       VirtualizingPanel.IsVirtualizing="True" local:AutoScroll.Enabled="True" />
             </DockPanel>
           </TabItem>
 
-          <TabItem Header="Commits">
+          <TabItem Header="Terminal">
             <DockPanel>
-              <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
-                <Button Content="Roll back to here" Command="{Binding RollbackCommand}" Style="{StaticResource PrimaryButton}" />
-                <TextBlock Text="Reverts every later commit in one new commit. History is kept." Style="{StaticResource Muted}" VerticalAlignment="Center" />
-              </StackPanel>
-              <DataGrid ItemsSource="{Binding Commits}" SelectedItem="{Binding SelectedCommit}">
-                <DataGrid.Columns>
-                  <DataGridTextColumn Header="Hash" Binding="{Binding ShortHash}" FontFamily="Cascadia Mono, Consolas" Width="80" />
-                  <DataGridTextColumn Header="Time" Binding="{Binding When}" Width="140" />
-                  <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
-                  <DataGridTextColumn Header="Files" Binding="{Binding Files}" Width="110" />
-                  <DataGridTextColumn Header="" Binding="{Binding Marker}" Width="80" />
-                </DataGrid.Columns>
-              </DataGrid>
+              <Border DockPanel.Dock="Top" Background="{StaticResource PrimaryContainer}" CornerRadius="8" Padding="12,8" Margin="0,0,0,10"
+                      Visibility="{Binding ScriptRunning, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Content="Stop script" Command="{Binding StopScriptCommand}" Style="{StaticResource DangerButton}" Margin="0" />
+                  <TextBlock Text="● Script running" Foreground="{StaticResource OnPrimaryContainer}" VerticalAlignment="Center" />
+                </DockPanel>
+              </Border>
+              <ListBox ItemsSource="{Binding TerminalLines}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                       VirtualizingPanel.IsVirtualizing="True" local:AutoScroll.Enabled="True" />
             </DockPanel>
           </TabItem>
 
@@ -212,9 +227,7 @@
                 <TextBlock Text="Shell script (run from the phone)" Style="{StaticResource Muted}" />
                 <TextBox Text="{Binding ShellScript, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True"
                          Style="{StaticResource MonoBox}" MinHeight="120" Margin="0,4,0,4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" />
-                <TextBlock Text="One command per line (cmd.exe syntax), run in order in the project folder, e.g. code . then start chrome http://localhost:3000. A command that keeps running, such as a dev server, holds back the lines after it: put it last or start it with start. The phone can start it with one tap; it only ever runs this saved text. Output appears on the Activity tab." Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
-                <Button Content="Stop script" Command="{Binding StopScriptCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Margin="0,0,0,12"
-                        Visibility="{Binding ScriptRunning, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Text="One command per line (cmd.exe syntax), run in order in the project folder, e.g. code . then start chrome http://localhost:3000. A command that keeps running, such as a dev server, holds back the lines after it: put it last or start it with start. The phone can start it with one tap; it only ever runs this saved text. Output appears on the Terminal tab, where you can also stop it." Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
                 <Button Content="Save project settings" Command="{Binding SaveSettingsCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" />
               </StackPanel>
             </ScrollViewer>
