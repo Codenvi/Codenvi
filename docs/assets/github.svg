@@ -8,7 +8,7 @@
 <circle cx="640" cy="215" r="300" fill="url(#glow)"/>
 <g filter="url(#sh)"><g transform="translate(540 105) scale(0.390625)"><rect width="512" height="512" rx="112" fill="#121212"/><path fill="#ff8a1f" d="M373 157A155 155 0 1 0 373 353L322 314A88 88 0 1 1 322 197Z"/><circle cx="358" cy="256" r="44" fill="#ff8a1f"/></g></g>
 <text x="640" y="450" text-anchor="middle" font-family="'Segoe UI','Inter',Arial,sans-serif" font-weight="600" font-size="84" fill="#fff">Codenvi</text>
-<text x="640" y="515" text-anchor="middle" font-family="'Segoe UI','Inter',Arial,sans-serif" font-size="34" fill="#b8b8c2">Claude Code on your PCs, <tspan fill="#ff8a1f" font-weight="600">from your phone</tspan></text>
+<text x="640" y="515" text-anchor="middle" font-family="'Segoe UI','Inter',Arial,sans-serif" font-size="34" fill="#b8b8c2">One phone. <tspan fill="#ff8a1f" font-weight="600">All your projects.</tspan> Every PC.</text>
 <rect x="842" y="38" width="400" height="48" rx="24" fill="#ffffff" fill-opacity=".07" stroke="#ffffff" stroke-opacity=".18"/>
 <text x="1042" y="62" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI','Inter',Arial,sans-serif" font-size="22" fill="#e6e6ea">Self-hosted · End-to-end encrypted</text>
 <polygon points="0,150 150,0 262,0 0,262" fill="#2e7d32"/><text transform="translate(103 103) rotate(-45)" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI','Inter',Arial,sans-serif" font-weight="800" font-size="40" letter-spacing="2" fill="#fff">MIT</text>
