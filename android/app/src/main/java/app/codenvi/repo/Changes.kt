@@ -38,7 +38,7 @@ object Changes {
 
     /** The folder tree: folders first, then files, each alphabetical (case-insensitive); single-folder chains are merged. */
     fun tree(files: List<FileChange>): List<ChangeNode> {
-        class Dir { val dirs = sortedMapOf<String, Dir>(String.CASE_INSENSITIVE_ORDER); val files = ArrayList<Pair<String, ChangeKind>>() }
+        class Dir { val dirs = java.util.TreeMap<String, Dir>(String.CASE_INSENSITIVE_ORDER); val files = ArrayList<Pair<String, ChangeKind>>() }
         val root = Dir()
         for (f in files) {
             val parts = f.path.split('/').filter { it.isNotEmpty() }
