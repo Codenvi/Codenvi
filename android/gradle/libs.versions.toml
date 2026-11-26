@@ -13,11 +13,13 @@ okhttp = "4.12.0"
 room = "2.6.1"
 datastore = "1.1.1"
 coreKtx = "1.13.1"
+onnxruntime = "1.22.0"
 coroutines = "1.8.1"
 junit = "4.13.2"
 codeScanner = "16.1.0"
 
 [libraries]
+onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntime" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }

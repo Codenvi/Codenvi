@@ -40,6 +40,9 @@ android {
     }
 
     ndkVersion = "26.3.11579264"
+
+    // The pronunciation dictionary in assets/ is also read by the unit tests of the phonemizer.
+    sourceSets { getByName("test").resources.srcDir("src/main/assets") }
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
@@ -94,6 +97,7 @@ ksp {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.onnxruntime.android) // runs the offline Kokoro voice (MIT)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
