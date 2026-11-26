@@ -19,7 +19,6 @@ private const val ERROR_LANGUAGE_NOT_SUPPORTED = 12
 private const val ERROR_LANGUAGE_UNAVAILABLE = 13
 private const val ERROR_SERVER_DISCONNECTED = 11
 private const val MAX_EMPTY_CYCLES = 60 // ~ many minutes of pure silence in continuous mode before dictation stops itself
-private const val RESTART_DELAY_MS = 150L
 
 /**
  * Speech-to-text with the built-in SpeechRecognizer (docs/design.md §10.4): free, no API key, prefers offline.
@@ -50,7 +49,30 @@ class SpeechInput(private val context: Context) {
      */
     val recording: StateFlow<Boolean> = _recording
 
-    private fun setActive(value: Boolean) { active = value; _recording.value = value }
+    private fun setActive(value: Boolean) {
+        if (value != active) if (value) muteBeeps() else restoreBeeps()
+        active = value
+        _recording.value = value
+    }
+
+    // The recognizer plays a mic-on / mic-off sound every time it (re)starts. While dictating, the streams it uses are muted
+    // so the restarts that keep dictation open through your pauses are silent; they are restored when dictation ends.
+    private val audio = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+    private val mutedByUs = mutableListOf<Int>()
+    private fun muteBeeps() {
+        for (stream in intArrayOf(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.STREAM_NOTIFICATION, android.media.AudioManager.STREAM_SYSTEM)) {
+            runCatching {
+                if (!audio.isStreamMute(stream)) {
+                    audio.adjustStreamVolume(stream, android.media.AudioManager.ADJUST_MUTE, 0)
+                    mutedByUs += stream
+                }
+            }
+        }
+    }
+    private fun restoreBeeps() {
+        for (stream in mutedByUs) runCatching { audio.adjustStreamVolume(stream, android.media.AudioManager.ADJUST_UNMUTE, 0) }
+        mutedByUs.clear()
+    }
 
     /**
      * Every (re)start of the recognizer plays the system's mic-on / mic-off sounds, so attempts are kept to a minimum:
@@ -73,6 +95,22 @@ class SpeechInput(private val context: Context) {
         val mySession = session
         val r = SpeechRecognizer.createSpeechRecognizer(context)
         recognizer = r
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            if (continuous) {
+                // Hints that ask the engine to wait longer before it decides the user has finished (not every engine obeys them).
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 10_000L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 10_000L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 10_000L)
+            }
+            if (step == 0) putExtra(RecognizerIntent.EXTRA_LANGUAGE, language?.takeIf { it.isNotBlank() } ?: Locale.getDefault().toLanguageTag())
+        }
+        // Continuous mode: the same recognizer listens again at once (no teardown, so the gap between sentences is tiny).
+        val listenAgain = {
+            Handler(Looper.getMainLooper()).post { if (mySession == session && recognizer === r) runCatching { r.startListening(intent) } }
+            Unit
+        }
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) { _listening.value = true }
             override fun onBeginningOfSpeech() {}
@@ -90,10 +128,7 @@ class SpeechInput(private val context: Context) {
                     // Keep the microphone open: hand over this sentence, then listen again.
                     if (text.isNullOrBlank()) emptyCycles++ else emptyCycles = 0
                     onFinal(text ?: "")
-                    if (emptyCycles <= MAX_EMPTY_CYCLES) {
-                        Handler(Looper.getMainLooper()).postDelayed({ if (mySession == session) begin(language, step, 0, true, onPartial, onFinal, onError) }, RESTART_DELAY_MS)
-                        return
-                    }
+                    if (emptyCycles <= MAX_EMPTY_CYCLES) { listenAgain(); return }
                 }
                 if (mySession == session) setActive(false)
                 if (!continuous) onFinal(text ?: "")
@@ -110,7 +145,7 @@ class SpeechInput(private val context: Context) {
                 }
                 // Continuous mode: a silence timeout or "no match" is just a pause in the user's talking, so listen again.
                 if (continuous && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) && ++emptyCycles <= MAX_EMPTY_CYCLES) {
-                    Handler(Looper.getMainLooper()).postDelayed({ if (mySession == session) begin(language, step, 0, true, onPartial, onFinal, onError) }, RESTART_DELAY_MS)
+                    listenAgain()
                     return
                 }
                 // Error 11 (service disconnected) or 8 (busy) is typical on the first use, while the speech service is still
@@ -136,17 +171,6 @@ class SpeechInput(private val context: Context) {
                 )
             }
         })
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            if (continuous) {
-                // Hints that ask the engine to wait longer before it decides the user has finished (not every engine obeys them).
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 10_000L)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 10_000L)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 10_000L)
-            }
-            if (step == 0) putExtra(RecognizerIntent.EXTRA_LANGUAGE, language?.takeIf { it.isNotBlank() } ?: Locale.getDefault().toLanguageTag())
-        }
         r.startListening(intent)
     }
 

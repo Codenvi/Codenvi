@@ -8,10 +8,10 @@ data class FileChange(val path: String, val kind: ChangeKind)
 /** The PC's answer to project.changes: the files plus how many more were left out (it lists at most a few thousand). */
 data class ChangesResult(val files: List<FileChange>, val more: Int)
 
-/** A node of the Code changes tree: a folder (kind == null) with children, or a changed file (kind != null). */
-data class ChangeNode(val name: String, val path: String, val kind: ChangeKind?, val children: List<ChangeNode> = emptyList()) {
-    val isFolder get() = kind == null
-}
+/** The files of one folder: [dir] is the full folder path ("" = the project root), shown once above its files. */
+data class ChangeGroup(val dir: String, val files: List<ChangedFile>)
+
+data class ChangedFile(val name: String, val kind: ChangeKind)
 
 object Changes {
     /** Parses the PC's text: one "N|U|D<TAB>path" line per file, and an optional "+<TAB>count" line. Unknown lines are skipped. */
@@ -32,30 +32,17 @@ object Changes {
         return ChangesResult(files, more)
     }
 
-    /** Builds the folder tree (folders first, then files, each alphabetical, case-insensitive). */
-    fun tree(files: List<FileChange>): List<ChangeNode> {
-        class Dir { val dirs = sortedMapOf<String, Dir>(String.CASE_INSENSITIVE_ORDER); val files = ArrayList<Pair<String, ChangeKind>>() }
-        val root = Dir()
+    /**
+     * Groups the files by their full folder path, so a folder with one changed file is shown as one line "a/b/c" followed
+     * by the file, instead of a chain of nested folders. Groups are alphabetical by path (root first), files by name.
+     */
+    fun groups(files: List<FileChange>): List<ChangeGroup> {
+        val byDir = sortedMapOf<String, MutableList<ChangedFile>>(String.CASE_INSENSITIVE_ORDER)
         for (f in files) {
             val parts = f.path.split('/').filter { it.isNotEmpty() }
             if (parts.isEmpty()) continue
-            var d = root
-            for (p in parts.dropLast(1)) d = d.dirs.getOrPut(p) { Dir() }
-            d.files += parts.last() to f.kind
+            byDir.getOrPut(parts.dropLast(1).joinToString("/")) { ArrayList() } += ChangedFile(parts.last(), f.kind)
         }
-        fun build(d: Dir, prefix: String): List<ChangeNode> =
-            d.dirs.map { (name, sub) -> ChangeNode(name, "$prefix$name", null, build(sub, "$prefix$name/")) } +
-                d.files.sortedBy { it.first.lowercase() }.map { (name, kind) -> ChangeNode(name, "$prefix$name", kind) }
-        return build(root, "")
-    }
-
-    /** The tree flattened for display: (node, depth) in order, skipping the children of folders in [collapsed] (by path). */
-    fun flatten(nodes: List<ChangeNode>, collapsed: Set<String>, depth: Int = 0): List<Pair<ChangeNode, Int>> {
-        val out = ArrayList<Pair<ChangeNode, Int>>()
-        for (n in nodes) {
-            out += n to depth
-            if (n.isFolder && n.path !in collapsed) out += flatten(n.children, collapsed, depth + 1)
-        }
-        return out
+        return byDir.map { (dir, list) -> ChangeGroup(dir, list.sortedBy { it.name.lowercase() }) }
     }
 }

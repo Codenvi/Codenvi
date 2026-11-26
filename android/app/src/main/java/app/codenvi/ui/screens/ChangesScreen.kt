@@ -2,18 +2,23 @@ package app.codenvi.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,11 +35,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.codenvi.repo.ChangeKind
-import app.codenvi.repo.ChangeNode
 import app.codenvi.repo.Changes
 import app.codenvi.repo.ChangesResult
 import app.codenvi.repo.RevokedOrUser
@@ -70,7 +77,6 @@ fun ChangesScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
     var result by remember { mutableStateOf<ChangesResult?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
-    var collapsed by remember { mutableStateOf(setOf<String>()) } // folder paths; everything starts expanded
 
     fun load() {
         val p = project ?: return
@@ -93,7 +99,7 @@ fun ChangesScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
     LaunchedEffect(project?.id, project?.deviceOnline) { load() }
 
     Column(Modifier.fillMaxSize()) {
-        CodenviTopBar(project?.name ?: "Code changes", onBack) {
+        CodenviTopBar(session?.name ?: "Code changes", onBack, subtitle = project?.name) {
             GitHeaderButtons(git, project)
             IconButton(onClick = onBack) { Icon(ChatIcon, "Back to chat") }
         }
@@ -107,18 +113,7 @@ fun ChangesScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
                 }
                 r == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Tokens.Primary) }
                 r.files.isEmpty() -> Message(if (loading) "Loading…" else "No uncommitted changes.")
-                else -> {
-                    val rows = remember(r, collapsed) { Changes.flatten(Changes.tree(r.files), collapsed) }
-                    // A plain vertically scrolling list: touch scrolling only, no visible scrollbar.
-                    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 12.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
-                        items(rows, key = { (n, _) -> (if (n.isFolder) "d:" else "f:") + n.path }) { (node, depth) ->
-                            ChangeRow(node, depth, collapsed = node.path in collapsed) {
-                                collapsed = if (node.path in collapsed) collapsed - node.path else collapsed + node.path
-                            }
-                        }
-                        if (r.more > 0) item { Text("+ ${r.more} more files not shown", color = Tokens.OnSurfaceMuted, modifier = Modifier.padding(8.dp)) }
-                    }
-                }
+                else -> ChangesList(r)
             }
         }
     }
@@ -128,24 +123,73 @@ fun ChangesScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
 @Composable
 private fun Message(text: String) = Text(text, color = Tokens.OnSurfaceMuted, modifier = Modifier.padding(16.dp))
 
+/** One row of the list: a folder path header or a changed file. */
+private sealed interface ListRow {
+    data class Dir(val dir: String, val collapsed: Boolean) : ListRow
+    data class File(val dir: String, val name: String, val kind: ChangeKind) : ListRow
+}
+
+/**
+ * The files grouped by their full folder path: the path once as a header, the files indented below it (no nested tree).
+ * Scrolls vertically and, for long paths, horizontally; there is no visible scrollbar. File names take the colour of their dot.
+ */
 @Composable
-private fun ChangeRow(node: ChangeNode, depth: Int, collapsed: Boolean, onToggle: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth()
-            .then(if (node.isFolder) Modifier.clickable(onClick = onToggle) else Modifier)
-            .padding(start = (depth * 16).dp, top = 9.dp, bottom = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (node.isFolder) {
-            Text(if (collapsed) "▸" else "▾", color = Tokens.OnSurfaceMuted, modifier = Modifier.width(20.dp))
-            Text(node.name, style = MaterialTheme.typography.bodyMedium, color = Tokens.OnSurfaceMuted, maxLines = 1,
-                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        } else {
-            Spacer(Modifier.width(20.dp))
-            Text(node.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f))
-            Spacer(Modifier.width(8.dp))
-            StatusDot(node.kind!!.color(), Modifier.size(9.dp))
+private fun ChangesList(r: ChangesResult) {
+    var collapsed by remember { mutableStateOf(setOf<String>()) } // folder paths; everything starts expanded
+    val groups = remember(r) { Changes.groups(r.files) }
+    val rows = remember(groups, collapsed) {
+        buildList {
+            for (g in groups) {
+                add(ListRow.Dir(g.dir, g.dir in collapsed))
+                if (g.dir !in collapsed) g.files.forEach { add(ListRow.File(g.dir, it.name, it.kind)) }
+            }
+        }
+    }
+    // Every row gets the same width: the widest of the longest paths/names (measured), or the screen width if that is wider,
+    // so a long path can be scrolled sideways. The dots sit at the left edge and stay put while the list scrolls sideways.
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val style = MaterialTheme.typography.bodyMedium
+    val textWidth = remember(groups) {
+        val candidates = (groups.map { it.dir } + groups.flatMap { g -> g.files.map { it.name } }).sortedByDescending { it.length }.take(12)
+        candidates.maxOfOrNull { with(density) { measurer.measure(it, style, softWrap = false).size.width.toDp() } } ?: 0.dp
+    }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val rowWidth = maxOf(maxWidth, textWidth + 56.dp)
+        val hScroll = rememberScrollState()
+        Box(Modifier.fillMaxSize().horizontalScroll(hScroll)) {
+            LazyColumn(Modifier.width(rowWidth).fillMaxHeight(), contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp)) {
+                itemsIndexed(rows, key = { _, row -> when (row) { is ListRow.Dir -> "d:" + row.dir; is ListRow.File -> "f:" + row.dir + "/" + row.name } }) { index, row ->
+                    // Table-like stripes: every second row (the 2nd, 4th, …) has a slightly darker background.
+                    // Opaque (not translucent) so the fixed dot can hide the name that slides under it.
+                    val rowBg = if (index % 2 == 1) Color.Black.copy(alpha = 0.22f).compositeOver(Tokens.Background) else Tokens.Background
+                    val stripe = Modifier.background(rowBg)
+                    when (row) {
+                        is ListRow.Dir -> Row(
+                            Modifier.fillMaxWidth().then(stripe).clickable {
+                                collapsed = if (row.dir in collapsed) collapsed - row.dir else collapsed + row.dir
+                            }.padding(start = 12.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(if (row.collapsed) "▸" else "▾", color = Tokens.OnSurfaceMuted, modifier = Modifier.width(20.dp))
+                            Text(row.dir.ifEmpty { "/" }, style = style, color = Tokens.OnSurfaceMuted, softWrap = false, maxLines = 1)
+                        }
+                        is ListRow.File -> Box(Modifier.fillMaxWidth().then(stripe)) {
+                            Text(row.name, style = style, color = row.kind.color(), softWrap = false, maxLines = 1,
+                                modifier = Modifier.padding(start = 32.dp, end = 16.dp, top = 6.dp, bottom = 6.dp))
+                            // The dot at the left edge. It is shifted by the sideways scroll, so it stays at the left of the
+                            // screen while a long name scrolls under it.
+                            Box(
+                                Modifier.align(Alignment.CenterStart).fillMaxHeight()
+                                    .offset { IntOffset(hScroll.value, 0) }
+                                    .background(rowBg).padding(start = 12.dp, end = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) { StatusDot(row.kind.color(), Modifier.size(9.dp)) }
+                        }
+                    }
+                }
+                if (r.more > 0) item { Text("+ ${r.more} more files not shown", color = Tokens.OnSurfaceMuted, modifier = Modifier.padding(16.dp)) }
+            }
         }
     }
 }
