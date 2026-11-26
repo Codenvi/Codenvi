@@ -37,10 +37,12 @@ class PhonemizerTest {
     }
 
     @Test fun endingsAreBuiltFromTheStem() {
-        // "records" = record + z, "recorded" = record + ɪd, "recording" = record + ɪŋ
-        assertEquals(phonemizer.phonemes("record") + "z", phonemizer.phonemes("records"))
-        assertEquals(phonemizer.phonemes("record") + "ɪd", phonemizer.phonemes("recorded"))
-        assertEquals(phonemizer.phonemes("record") + "ɪŋ", phonemizer.phonemes("recording"))
+        // these inflected forms are not in the dictionary, only their stems are
+        assertEquals(phonemizer.phonemes("fidget") + "s", phonemizer.phonemes("fidgets"))
+        assertEquals(phonemizer.phonemes("zebra") + "d", phonemizer.phonemes("zebraed"))
+        assertEquals(phonemizer.phonemes("zebra") + "ɪŋ", phonemizer.phonemes("zebraing"))
+        // forms that are in the dictionary keep their own stress pattern
+        assertEquals("ɹəkˈɔɹdɪŋ", phonemizer.phonemes("recording"))
     }
 
     @Test fun identifiersAndAcronymsAreSplit() {

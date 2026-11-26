@@ -7,6 +7,8 @@ import android.os.Handler
 import android.os.Looper
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Speaks text with Kokoro (docs/design.md §10.5): one thread turns the text into phoneme chunks and synthesises them, another plays
@@ -29,8 +31,8 @@ class KokoroSpeaker(private val manager: KokoroManager) {
         val my = ++generation
         val queue = ArrayBlockingQueue<FloatArray>(2)
         val END = FloatArray(0)
-        @Volatile var failure: String? = null
-        @Volatile var played = false
+        val failure = AtomicReference<String?>(null)
+        val played = AtomicBoolean(false)
 
         producer = Thread {
             try {
@@ -40,7 +42,7 @@ class KokoroSpeaker(private val manager: KokoroManager) {
                     while (my == generation && !queue.offer(audio, 200, TimeUnit.MILLISECONDS)) { /* wait for the player */ }
                 }
             } catch (e: Throwable) {
-                failure = e.message ?: e.javaClass.simpleName
+                failure.set(e.message ?: e.javaClass.simpleName)
             } finally {
                 while (my == generation && !queue.offer(END, 200, TimeUnit.MILLISECONDS)) { /* wait */ }
             }
@@ -57,7 +59,7 @@ class KokoroSpeaker(private val manager: KokoroManager) {
                         t = newTrack()
                         track = t
                         t.play()
-                        played = true
+                        played.set(true)
                         main.post { if (my == generation) onStarted() }
                     }
                     var off = 0
@@ -74,15 +76,15 @@ class KokoroSpeaker(private val manager: KokoroManager) {
                     while (my == generation && t.playbackHeadPosition < frames && guard++ < 6000) Thread.sleep(50)
                 }
             } catch (e: Throwable) {
-                failure = failure ?: (e.message ?: e.javaClass.simpleName)
+                failure.compareAndSet(null, e.message ?: e.javaClass.simpleName)
             } finally {
                 runCatching { t?.release() }
                 if (track === t) track = null
                 if (my == generation) {
-                    val f = failure
+                    val f = failure.get()
                     main.post {
                         if (my != generation) return@post
-                        if (!played && f != null) onFailed(f) else onFinished()
+                        if (!played.get() && f != null) onFailed(f) else onFinished()
                     }
                 }
             }

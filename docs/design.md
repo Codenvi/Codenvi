@@ -876,10 +876,13 @@ okhttp = "4.12.0"
 
 ### 10.5 Read aloud
 
-- Uses `android.speech.tts.TextToSpeech` with the system engine, no network or API key needed, and a `<queries>` entry for `android.intent.action.TTS_SERVICE`.
-- Before speaking, Markdown is stripped and code blocks are replaced with "code block omitted".
-- Text is split into chunks under `getMaxSpeechInputLength()` and queued with `QUEUE_ADD`.
-- The icon toggles between play and stop, and only one message plays at a time.
+- **Natural offline voice (64-bit ARM phones):** replies are read with **Kokoro-82M** (Apache-2.0, ONNX files from `onnx-community/Kokoro-82M-v1.0-ONNX` on huggingface.co), run on the phone with ONNX Runtime (MIT). Nothing is sent anywhere. Until its files are downloaded, and if it fails, the phone's own `TextToSpeech` voice reads instead, so reading aloud never stops working.
+- **Files, downloaded once into the app's private storage** (Settings → Read aloud): the model - **Standard** (8-bit, `model_quantized.onnx`, 88 MB, default, fast) or **High quality** (full precision, `model.onnx`, 310 MB, slower, more memory) - checked by exact size, plus the chosen **voice** (a 0.5 MB style file; 14 voices: American and British, female and male, default `af_heart`). Picking another voice downloads its file at once. The model is loaded on first use and freed after three idle minutes.
+- **Text to phonemes without espeak-ng (GPL):** the app stays MIT, so the phoneme step is `tts/Phonemizer.kt` with the pronunciation dictionaries of the Kokoro authors' misaki project (Apache-2.0, `assets/tts/lexicon_en_us.tsv`, 183 000 words, already in Kokoro's phoneme alphabet) plus rules: numbers, years, ordinals, percentages and money are spelled out; plurals, possessives, -ed, -ing and -ly are built from the stem; snake_case and camelCase identifiers are split; acronyms and short consonant-only words are spelled letter by letter; a small list of developer words (json, github, kotlin, gradle, …) has fixed pronunciations; any other unknown word gets a rough letter-to-sound pronunciation (so rare names may sound slightly off). Phonemes map to token ids with `assets/tts/kokoro_vocab.json`.
+- **Speaking:** Markdown is stripped first (code blocks become "code block omitted"). The text is cut at sentences into chunks of at most 380 tokens (the model limit is 510); the first chunk is short (120) so speech starts quickly. One thread synthesises chunk after chunk (inputs `input_ids`, `style` chosen by the chunk's token count from the voice file, and `speed` = the Settings slider; output 24 kHz audio) while another plays them through an `AudioTrack`, so the next chunk is made while the current one plays.
+- **Phones that cannot run it** (32-bit ARM or x86): Settings keeps the list of the phone's own voices, and reading aloud uses `TextToSpeech` as before: Markdown stripped, chunks under `getMaxSpeechInputLength()` queued with `QUEUE_ADD`, a `<queries>` entry for `android.intent.action.TTS_SERVICE`.
+- The icon toggles between play and stop, and only one message plays at a time. The Settings preview button uses the same engine.
+- Licences: Kokoro and misaki are Apache-2.0 (notice shipped in `assets/tts/LICENSE-misaki-and-kokoro-Apache-2.0.txt` and in the app's third-party notices); ONNX Runtime is MIT.
 
 ### 10.6 Security on device
 
