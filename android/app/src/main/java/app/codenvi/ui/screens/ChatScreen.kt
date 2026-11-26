@@ -89,7 +89,7 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
     LaunchedEffect(project?.id, project?.deviceOnline, chatItems.lastOrNull()?.id) { project?.let { if (it.deviceOnline) git.refresh(it.id) } }
 
     Column(Modifier.fillMaxSize().imePadding()) {
-        CodenviTopBar(session?.name ?: "Chat", onBack) {
+        CodenviTopBar(session?.name ?: "Chat", onBack, subtitle = project?.name) {
             GitHeaderButtons(git, project)
             // Always available: opens the list of uncommitted files of this project.
             IconButton(enabled = session != null, onClick = onChanges) { Icon(ChangesIcon, "Code changes") }

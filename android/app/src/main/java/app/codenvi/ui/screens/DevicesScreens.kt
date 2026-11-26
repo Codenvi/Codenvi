@@ -41,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.codenvi.MainActivity
@@ -62,9 +63,15 @@ import app.codenvi.ui.theme.Tokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CodenviTopBar(title: String, onBack: (() -> Unit)? = null, actions: @Composable () -> Unit = {}) {
+fun CodenviTopBar(title: String, onBack: (() -> Unit)? = null, subtitle: String? = null, actions: @Composable () -> Unit = {}) {
     TopAppBar(
-        title = { Text(title, maxLines = 1) },
+        title = {
+            if (subtitle.isNullOrBlank()) Text(title, maxLines = 1)
+            else Column {
+                Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelMedium, color = Tokens.OnSurfaceMuted)
+            }
+        },
         navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, "Back") } },
         actions = { actions() },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Tokens.Background, titleContentColor = Tokens.OnSurface),
