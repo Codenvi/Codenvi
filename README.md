@@ -100,3 +100,4 @@ TLS on every hop plus AES-256-GCM per message with a 256-bit device key derived 
 ## License
 
 [MIT](LICENSE). Third-party packages keep their own licenses (MIT, Apache-2.0 or compatible); notices are in each app's About screen.
+
