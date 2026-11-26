@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
@@ -46,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.codenvi.BuildConfig
 import app.codenvi.CodenviApp
+import app.codenvi.speech.WhisperModel
 import app.codenvi.R
 import app.codenvi.data.AppSettings
 import app.codenvi.net.InstallDto
@@ -149,6 +152,39 @@ fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
                 context.startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                     .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
             }) { Text("Android notification settings", color = Tokens.Primary) }
+        }
+
+        Section("Voice transcription (offline)") {
+            val whisper = remember { (context.applicationContext as CodenviApp).container.whisper }
+            val download by whisper.download.collectAsStateWithLifecycle()
+            val changes by whisper.changes.collectAsStateWithLifecycle()
+            val model = WhisperModel.fromId(settings.whisperModel)
+            val installed = remember(model, changes, download) { whisper.installed(model) }
+            if (!whisper.available) {
+                Text("Offline transcription needs a 64-bit ARM phone. This phone uses Android's own speech recognizer instead.",
+                    color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelSmall)
+            } else {
+                Picker(model.id, WhisperModel.values().map { it.id to it.label }, { v -> scope.launch { repo.settings.setWhisperModel(v) } }, label = "Model")
+                val d = download
+                when {
+                    d != null -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(18.dp), color = Tokens.Primary, strokeWidth = 2.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Downloading ${d.model.id}: ${d.percent}%")
+                    }
+                    installed -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Downloaded - ready to use", Modifier.weight(1f), color = Tokens.Success)
+                        TextButton(onClick = { whisper.delete(model) }) { Text("Delete", color = Tokens.Error) }
+                    }
+                    else -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Not downloaded (${model.megabytes} MB)", Modifier.weight(1f), color = Tokens.Warning)
+                        OutlinedButton(onClick = { vm.run(onOk = { vm.ok("Voice model ready.") }) { whisper.download(model) } }) { Text("Download") }
+                    }
+                }
+                Text("Tap the microphone in a chat to record, tap again to stop, and the recording is turned into text on this phone (English). " +
+                    "Nothing is sent anywhere. The model is downloaded once from huggingface.co; Small is more accurate but slower.",
+                    color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelSmall)
+            }
         }
 
         Section("Speech input") {

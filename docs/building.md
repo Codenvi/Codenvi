@@ -6,7 +6,7 @@
 |---|---|
 | Server (`server/`) | Node.js 20.12 or newer, npm |
 | Windows app (`windows/`) and shared C# library (`shared/`) | Windows 10/11, .NET SDK 10 (`windows/global.json` pins 10.0.100, roll-forward to the latest feature band) |
-| Android (`android/`) | JDK 17, Android SDK (compileSdk 34). The Gradle wrapper downloads Gradle 8.7. |
+| Android (`android/`) | JDK 17, Android SDK (compileSdk 34), **NDK 26.3.11579264 and CMake 3.22.1** (Android Studio SDK Manager, or Gradle downloads them when the licences are accepted) and git: the offline voice transcription (whisper.cpp) is compiled from source that CMake downloads at build time, so the first build needs internet and takes a few minutes longer. The Gradle wrapper downloads Gradle 8.7. |
 | Server integration tests | PostgreSQL reachable through `CODENVI_TEST_PG` (superuser connection string) |
 
 ## Server

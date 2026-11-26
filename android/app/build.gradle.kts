@@ -35,6 +35,16 @@ android {
         versionCode = versionCodeFromCi
         versionName = versionNameFromFile
         vectorDrawables { useSupportLibrary = true }
+        // Offline speech-to-text (whisper.cpp) is built for 64-bit ARM phones only; other devices fall back to the system recognizer.
+        ndk { abiFilters += listOf("arm64-v8a") }
+    }
+
+    ndkVersion = "26.3.11579264"
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     signingConfigs {

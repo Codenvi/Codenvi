@@ -93,6 +93,8 @@ data class AppSettings(
     val unseenBaselineMs: Long = 0,
     /** Sound and pop-up notification when a reply arrives (also keeps the connection open in the background). */
     val notifyReplies: Boolean = true,
+    /** Offline Whisper model used to transcribe dictation (WhisperModel.id). */
+    val whisperModel: String = "base.en",
 )
 
 /** Non-secret preferences in DataStore. */
@@ -108,6 +110,7 @@ class SettingsStore(private val context: Context) {
         val seenSeq = stringPreferencesKey("seen_seq")
         val unseenBaselineMs = longPreferencesKey("unseen_baseline_ms")
         val notifyReplies = booleanPreferencesKey("notify_replies")
+        val whisperModel = stringPreferencesKey("whisper_model")
     }
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -122,9 +125,11 @@ class SettingsStore(private val context: Context) {
             seenSeq = parseSeen(p[Keys.seenSeq]),
             unseenBaselineMs = p[Keys.unseenBaselineMs] ?: 0L,
             notifyReplies = p[Keys.notifyReplies] ?: true,
+            whisperModel = p[Keys.whisperModel] ?: "base.en",
         )
     }
 
+    suspend fun setWhisperModel(id: String) = context.dataStore.edit { it[Keys.whisperModel] = id }
     suspend fun setNotifyReplies(v: Boolean) = context.dataStore.edit { it[Keys.notifyReplies] = v }
     suspend fun setTtsSpeed(v: Float) = context.dataStore.edit { it[Keys.ttsSpeed] = v }
     /** Stores "" for "System default" so it is not mistaken for "never chosen" (which means [DEFAULT_TTS_VOICE]). */

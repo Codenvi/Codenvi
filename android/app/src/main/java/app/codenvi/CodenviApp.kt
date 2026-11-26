@@ -12,6 +12,7 @@ import app.codenvi.notify.ListenService
 import app.codenvi.notify.Notifier
 import app.codenvi.repo.Repository
 import app.codenvi.speech.ReadAloud
+import app.codenvi.speech.WhisperManager
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +31,7 @@ class AppContainer(app: Application) {
     val repository = Repository(secure, settings, db, http)
     val readAloud by lazy { ReadAloud(app) }
     val notifier = Notifier(app)
+    val whisper = WhisperManager(app)
 }
 
 class CodenviApp : Application() {

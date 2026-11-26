@@ -104,7 +104,6 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit, onOpenChange
             }
         }
 
-        Text("Projects", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp))
         LazyVerticalGrid(
             columns = GridCells.Fixed(3), modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),

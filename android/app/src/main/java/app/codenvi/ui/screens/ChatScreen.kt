@@ -64,6 +64,8 @@ import app.codenvi.ui.components.RecordButton
 import app.codenvi.ui.components.SaveIcon
 import app.codenvi.ui.components.SoundIcon
 import app.codenvi.ui.components.rememberMicPermission
+import app.codenvi.speech.WhisperModel
+import app.codenvi.ui.components.ConfirmDialog
 import app.codenvi.ui.theme.MonoStyle
 import app.codenvi.ui.theme.Tokens
 import kotlinx.coroutines.flow.emptyFlow
@@ -264,8 +266,24 @@ fun PromptBar(
     val listening by dictation.listening.collectAsStateWithLifecycle()
     val transcribing by dictation.transcribing.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    // The first dictation needs the offline voice model (a one-time download); null = no question open.
+    var askModel by remember { mutableStateOf<WhisperModel?>(null) }
     val mic = rememberMicPermission(onDenied = { vm.warn("Microphone permission is needed for dictation.") }) {
-        dictation.toggle(value, settings.speechLanguage, { value = it }, { vm.fail(it) }, latest = { value })
+        dictation.toggle(value, settings.speechLanguage, { value = it }, { vm.fail(it) }, latest = { value },
+            model = WhisperModel.fromId(settings.whisperModel), onNeedModel = { askModel = it })
+    }
+    val appContext = LocalContext.current.applicationContext
+    val whisper = remember { (appContext as CodenviApp).container.whisper }
+    val downloading by whisper.download.collectAsStateWithLifecycle()
+    askModel?.let { m ->
+        ConfirmDialog("Download voice model",
+            "Dictation transcribes your recording offline, on this phone, with the Whisper \"${m.label}\" model. Download it once now (${m.megabytes} MB, use Wi-Fi if you can)? Afterwards tap the microphone again.",
+            "Download",
+            onConfirm = {
+                vm.ok("Downloading the voice model…")
+                vm.run(onOk = { vm.ok("Voice model ready. Tap the microphone to dictate.") }) { whisper.download(m) }
+            },
+            onDismiss = { askModel = null })
     }
 
     Column(Modifier.fillMaxWidth().background(Tokens.Surface).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -290,7 +308,7 @@ fun PromptBar(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(1f)) { ModelEffortPicker(catalog, model, effort) { m, e -> model = m; effort = e } }
             if (dictation.available) {
-                RecordButton(recording = listening, transcribing = transcribing, onClick = { if (!busy && !transcribing) mic() })
+                RecordButton(recording = listening, transcribing = transcribing || downloading != null, onClick = { if (!busy && !transcribing && downloading == null) mic() })
             }
             // While a prompt for this session is being answered the Send button spins; tapping it then stops that job.
             FilledIconButton(

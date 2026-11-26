@@ -42,6 +42,9 @@ import app.codenvi.speech.Segmenter
 import app.codenvi.speech.SegmentTranscriber
 import app.codenvi.speech.SpeechInput
 import app.codenvi.speech.SpeechRecorder
+import app.codenvi.speech.WhisperManager
+import app.codenvi.speech.WhisperModel
+import app.codenvi.CodenviApp
 import android.os.Handler
 import android.os.Looper
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -137,9 +140,15 @@ fun InputDialog(title: String, initial: String, confirm: String = "Save", single
  * running, until the next tap; then the recording is transcribed and the text is inserted at the cursor in one go. On older Android
  * (no audio-file input for the recognizer) it falls back to live, continuous dictation into the field.
  */
-class Dictation(private val speech: SpeechInput, private val recorder: SpeechRecorder, private val transcriber: SegmentTranscriber) {
+class Dictation(
+    private val speech: SpeechInput, private val recorder: SpeechRecorder, private val transcriber: SegmentTranscriber,
+    private val whisper: WhisperManager,
+) {
     private var base: TextFieldValue? = null
-    private val recordFirst = RecordedSupport.available
+    /** Record-first needs either the offline Whisper engine (any Android, 64-bit ARM) or the recognizer reading files (Android 13+). */
+    private val recordFirst = whisper.available || RecordedSupport.available
+    /** Bumped by every stop, so the result of a cancelled transcription is dropped. */
+    @Volatile private var generation = 0
     private val main = Handler(Looper.getMainLooper())
     private val _transcribing = MutableStateFlow(false)
 
@@ -152,20 +161,38 @@ class Dictation(private val speech: SpeechInput, private val recorder: SpeechRec
 
     /** [latest] returns the field's current value, so text typed while the recording is transcribed is kept (record-first mode). */
     fun toggle(current: TextFieldValue, language: String?, update: (TextFieldValue) -> Unit, onError: (String) -> Unit,
-               latest: (() -> TextFieldValue)? = null) {
-        if (recordFirst) { toggleRecorded(current, language, update, onError, latest); return }
+               latest: (() -> TextFieldValue)? = null, model: WhisperModel = WhisperModel.BASE, onNeedModel: (WhisperModel) -> Unit = {}) {
+        if (recordFirst) { toggleRecorded(current, language, update, onError, latest, model, onNeedModel); return }
         toggleLive(current, language, update, onError)
     }
 
     private fun toggleRecorded(current: TextFieldValue, language: String?, update: (TextFieldValue) -> Unit, onError: (String) -> Unit,
-                               latest: (() -> TextFieldValue)?) {
+                               latest: (() -> TextFieldValue)?, model: WhisperModel, onNeedModel: (WhisperModel) -> Unit) {
         if (_transcribing.value) return // busy turning the last recording into text
+        val useWhisper = whisper.available
         if (!recorder.recording.value) {
+            // The offline model must be on the phone before recording, or the recording would be lost.
+            if (useWhisper && !whisper.installed(model)) { onNeedModel(model); return }
             if (!recorder.start()) onError("Couldn't use the microphone.")
             return
         }
         val pcm = recorder.stop()
         _transcribing.value = true
+        val myGeneration = ++generation
+        if (useWhisper) {
+            Thread {
+                val result = runCatching { whisper.transcribe(pcm, model) }
+                main.post {
+                    if (myGeneration != generation) return@post // cancelled meanwhile
+                    _transcribing.value = false
+                    result.onSuccess { text ->
+                        if (text.isBlank()) onError("Didn't hear anything.")
+                        else update(insert(latest?.invoke() ?: current, text, moveCursor = true))
+                    }.onFailure { onError("Couldn't transcribe the recording: ${it.message ?: "unknown error"}") }
+                }
+            }.also { it.isDaemon = true; it.start() }
+            return
+        }
         Thread {
             val segments = Segmenter.split(pcm)
             main.post {
@@ -202,6 +229,7 @@ class Dictation(private val speech: SpeechInput, private val recorder: SpeechRec
 
     /** Cancels a recording, a transcription or a live dictation without inserting anything (send, clear, leaving the screen). */
     fun stop() {
+        generation++
         recorder.cancel()
         transcriber.cancel()
         _transcribing.value = false
@@ -227,7 +255,8 @@ class Dictation(private val speech: SpeechInput, private val recorder: SpeechRec
 fun rememberDictation(): Dictation {
     val context = LocalContext.current
     val speech = remember { SpeechInput(context) }
-    val dictation = remember { Dictation(speech, SpeechRecorder(context), SegmentTranscriber(context)) }
+    val whisper = remember { (context.applicationContext as CodenviApp).container.whisper }
+    val dictation = remember { Dictation(speech, SpeechRecorder(context), SegmentTranscriber(context), whisper) }
     DisposableEffect(Unit) { onDispose { dictation.stop() } }
     return dictation
 }
