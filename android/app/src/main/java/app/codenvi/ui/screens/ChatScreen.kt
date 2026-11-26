@@ -232,7 +232,11 @@ fun ChatBubble(vm: AppViewModel, item: ChatItem) {
     }
 }
 
-/** Small centred marker between messages: yellow for a commit, green for a push, blue for a pull (semi-transparent fill + solid border). */
+/**
+ * Small centred marker between messages: yellow for a commit, green for a push, blue for a pull (semi-transparent fill + solid border).
+ * The action is shown as the same icon the chat header uses for it, followed by the one-line message. Stored labels read
+ * "Committed · <message>", "Pushed · <message>" or "Pulled · <message>"; that word prefix is dropped here (also for older rows).
+ */
 @Composable
 private fun ChatEventBlock(kind: String, label: String) {
     val color = when (kind) {
@@ -240,16 +244,31 @@ private fun ChatEventBlock(kind: String, label: String) {
         "pull" -> Color(0xFF42A5F5)
         else -> Tokens.Warning
     }
+    val icon = when (kind) {
+        "publish" -> PublishIcon
+        "pull" -> PullIcon
+        else -> SaveIcon
+    }
+    val prefix = when (kind) { "publish" -> "Pushed"; "pull" -> "Pulled"; else -> "Committed" }
+    // "Nothing to commit" has no prefix: it stays as plain text without an icon.
+    val hasAction = label == prefix || label.startsWith("$prefix · ")
+    val text = if (hasAction) label.removePrefix(prefix).removePrefix(" · ") else label
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Text(
-            label, color = color, style = MaterialTheme.typography.labelMedium,
-            maxLines = 1, overflow = TextOverflow.Ellipsis,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .background(color.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
                 .border(1.dp, color, RoundedCornerShape(8.dp))
                 .padding(horizontal = 12.dp, vertical = 4.dp),
-        )
+        ) {
+            if (hasAction) Icon(icon, contentDescription = prefix, tint = color, modifier = Modifier.size(16.dp))
+            if (text.isNotEmpty()) Text(
+                text, color = color, style = MaterialTheme.typography.labelMedium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+            )
+        }
     }
 }
 

@@ -24,6 +24,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Android: dictation no longer fails with "Speech recognition error (12)" when the offline language pack is missing; it retries online and with the phone's default language, and explains the error if it still fails.
 
 ### Changed
+- Android: the in-chat commit, push and pull blocks show the action's icon (the same Commit, Publish and Pull icons as the chat header) instead of the words "Committed", "Pushed" and "Pulled", followed by the one-line message.
 - Windows: the project's Overview tab is gone; its folder, branch and git state block and buttons are now at the top of the Settings tab, and Sessions is the tab shown first.
 - Android: the up/down reorder buttons on projects are removed.
 - Android: unseen replies are also shown outside Multimode. A white number badge (count of unseen replies) sits before the 3-dot button on each device in Devices and each project in the Projects list, and a white dot on each session in the Sessions tab.
