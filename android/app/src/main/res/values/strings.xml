@@ -5,7 +5,5 @@
     <string name="license_notice">MIT License. Copyright (c) 2026 Irakli Gzirishvili.</string>
     <string name="repository_url">https://github.com/Codenvi/Codenvi</string>
     <string name="website_url">https://codenvi.github.io/Codenvi/</string>
-    <string name="third_party">AndroidX, Jetpack Compose, Room, DataStore, Navigation, Lifecycle - Apache-2.0 (Google)\nKotlin, kotlinx.coroutines - Apache-2.0 (JetBrains)\nOkHttp, Retrofit, Moshi - Apache-2.0 (Square)\nwhisper.cpp and ggml - MIT (Georgi Gerganov and contributors)\nWhisper speech models - MIT (OpenAI)
-ONNX Runtime - MIT (Microsoft)
-Kokoro-82M voice model and misaki pronunciation dictionaries - Apache-2.0 (hexgrad)</string>
+    <string name="third_party">AndroidX, Jetpack Compose, Room, DataStore, Navigation, Lifecycle - Apache-2.0 (Google)\nKotlin, kotlinx.coroutines - Apache-2.0 (JetBrains)\nOkHttp, Retrofit, Moshi - Apache-2.0 (Square)\nwhisper.cpp and ggml - MIT (Georgi Gerganov and contributors)\nWhisper speech models - MIT (OpenAI)</string>
 </resources>

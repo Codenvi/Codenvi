@@ -12,9 +12,6 @@ import app.codenvi.notify.ListenService
 import app.codenvi.notify.Notifier
 import app.codenvi.repo.Repository
 import app.codenvi.speech.ReadAloud
-import app.codenvi.tts.KokoroManager
-import app.codenvi.tts.KokoroModel
-import app.codenvi.tts.KokoroVoices
 import app.codenvi.speech.WhisperManager
 import android.content.Intent
 import androidx.core.content.ContextCompat
@@ -32,10 +29,7 @@ class AppContainer(app: Application) {
     val db = AppDatabase.create(app)
     val http = Http(secure)
     val repository = Repository(secure, settings, db, http)
-    val kokoro = KokoroManager(app)
-    /** The Kokoro model and voice chosen in Settings (kept current by [CodenviApp]). */
-    @Volatile var kokoroChoice: Pair<KokoroModel, String> = KokoroModel.STANDARD to KokoroVoices.DEFAULT
-    val readAloud by lazy { ReadAloud(app, kokoro) { kokoroChoice } }
+    val readAloud by lazy { ReadAloud(app) }
     val notifier = Notifier(app)
     val whisper = WhisperManager(app)
 }
@@ -59,9 +53,6 @@ class CodenviApp : Application() {
                 container.notifier.enabled = want
                 syncListenService()
             }
-        }
-        CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
-            container.settings.flow.collect { container.kokoroChoice = KokoroModel.fromId(it.kokoroModel) to it.kokoroVoice }
         }
         // The WebSocket runs while the app is in the foreground, and in the background too when [listenWanted] (docs/design.md §10.2).
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {

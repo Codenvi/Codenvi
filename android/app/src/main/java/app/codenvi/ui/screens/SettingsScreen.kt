@@ -49,8 +49,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.codenvi.BuildConfig
 import app.codenvi.CodenviApp
 import app.codenvi.speech.WhisperModel
-import app.codenvi.tts.KokoroModel
-import app.codenvi.tts.KokoroVoices
 import app.codenvi.R
 import app.codenvi.data.AppSettings
 import app.codenvi.net.InstallDto
@@ -126,45 +124,8 @@ fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
             Text("Speed ${"%.1f".format(settings.ttsSpeed)}×")
             Slider(value = settings.ttsSpeed, onValueChange = { v -> scope.launch { repo.settings.setTtsSpeed(v) } }, valueRange = 0.5f..2.0f,
                 colors = SliderDefaults.colors(thumbColor = Tokens.Primary, activeTrackColor = Tokens.Primary))
-            val kokoro = remember { (context.applicationContext as CodenviApp).container.kokoro }
-            val kDownload by kokoro.download.collectAsStateWithLifecycle()
-            val kChanges by kokoro.changes.collectAsStateWithLifecycle()
-            val kModel = KokoroModel.fromId(settings.kokoroModel)
-            val kVoice = KokoroVoices.byId(settings.kokoroVoice)
-            val kReady = remember(kModel, kVoice, kChanges, kDownload) { kokoro.ready(kModel, kVoice.id) }
-            if (kokoro.available) {
-                // Natural offline voices (Kokoro). Choosing a voice fetches its small file (0.5 MB) at once.
-                Picker(kVoice.id, KokoroVoices.all.map { it.id to it.label }, { v ->
-                    scope.launch { repo.settings.setKokoroVoice(v) }
-                    if (kokoro.modelInstalled(kModel)) vm.run { kokoro.downloadVoice(v) }
-                }, label = "Voice")
-                Picker(kModel.id, KokoroModel.values().map { it.id to it.label }, { v -> scope.launch { repo.settings.setKokoroModel(v) } }, label = "Quality")
-                val d = kDownload
-                when {
-                    d != null -> Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(Modifier.size(18.dp), color = Tokens.Primary, strokeWidth = 2.dp)
-                        Spacer(Modifier.width(10.dp))
-                        Text("Downloading ${d.what}: ${d.percent}%")
-                    }
-                    kReady -> Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Ready - natural voice, offline", Modifier.weight(1f), color = Tokens.Success)
-                        TextButton(onClick = { kokoro.deleteModel(kModel) }) { Text("Delete", color = Tokens.Error) }
-                    }
-                    else -> Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (kokoro.modelInstalled(kModel)) "Voice not downloaded" else "Not downloaded (${kModel.megabytes} MB)",
-                            Modifier.weight(1f), color = Tokens.Warning)
-                        OutlinedButton(onClick = {
-                            vm.run(onOk = { vm.ok("Voice ready.") }) { kokoro.downloadModel(kModel); kokoro.downloadVoice(kVoice.id) }
-                        }) { Text("Download") }
-                    }
-                }
-                Text("Replies are read with Kokoro, a natural English voice that runs on this phone (nothing is sent anywhere). " +
-                    "Until it is downloaded, the phone's own voice is used. Standard is fast; High quality is slower and uses more memory.",
-                    color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelSmall)
-            }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Phones that cannot run Kokoro (not 64-bit ARM) keep choosing among the phone's own voices.
-                if (!kokoro.available && voices.isNotEmpty()) Picker(settings.ttsVoice ?: "", listOf("" to "System default") + voices.map { it to it },
+                if (voices.isNotEmpty()) Picker(settings.ttsVoice ?: "", listOf("" to "System default") + voices.map { it to it },
                     { v -> scope.launch { repo.settings.setTtsVoice(v) } }, label = "Voice")
                 Spacer(Modifier.weight(1f))
                 // Preview: speaks a short sentence with the selected voice and speed; tap again to stop.
@@ -226,15 +187,11 @@ fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
             }
         }
 
-        // The offline Whisper models transcribe English only, so the language choice matters only on phones that cannot run them
-        // and dictate through Android's own speech recognizer.
-        if (!(context.applicationContext as CodenviApp).container.whisper.available) {
-            Section("Speech input") {
-                // The tag is passed to the phone's speech recognizer; a value saved earlier that is not in the list is still shown.
-                Picker(settings.speechLanguage ?: "", SPEECH_LANGUAGES, { v -> scope.launch { repo.settings.setSpeechLanguage(v) } }, label = "Language")
-                Text("Used when you dictate a message. Phone default follows the phone's language.", color = Tokens.OnSurfaceMuted,
-                    style = MaterialTheme.typography.labelSmall)
-            }
+        Section("Speech input") {
+            // The tag is passed to the phone's speech recognizer; a value saved earlier that is not in the list is still shown.
+            Picker(settings.speechLanguage ?: "", SPEECH_LANGUAGES, { v -> scope.launch { repo.settings.setSpeechLanguage(v) } }, label = "Language")
+            Text("Used when you dictate a message. Phone default follows the phone's language.", color = Tokens.OnSurfaceMuted,
+                style = MaterialTheme.typography.labelSmall)
         }
 
         Section("This phone") {

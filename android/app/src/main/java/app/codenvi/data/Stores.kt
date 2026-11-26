@@ -95,9 +95,6 @@ data class AppSettings(
     val notifyReplies: Boolean = true,
     /** Offline Whisper model used to transcribe dictation (WhisperModel.id). */
     val whisperModel: String = "base.en",
-    /** Offline Kokoro voice engine used to read replies aloud (KokoroModel.id) and its voice (KokoroVoice.id). */
-    val kokoroModel: String = "standard",
-    val kokoroVoice: String = "af_heart",
 )
 
 /** Non-secret preferences in DataStore. */
@@ -114,8 +111,6 @@ class SettingsStore(private val context: Context) {
         val unseenBaselineMs = longPreferencesKey("unseen_baseline_ms")
         val notifyReplies = booleanPreferencesKey("notify_replies")
         val whisperModel = stringPreferencesKey("whisper_model")
-        val kokoroModel = stringPreferencesKey("kokoro_model")
-        val kokoroVoice = stringPreferencesKey("kokoro_voice")
     }
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -131,13 +126,9 @@ class SettingsStore(private val context: Context) {
             unseenBaselineMs = p[Keys.unseenBaselineMs] ?: 0L,
             notifyReplies = p[Keys.notifyReplies] ?: true,
             whisperModel = p[Keys.whisperModel] ?: "base.en",
-            kokoroModel = p[Keys.kokoroModel] ?: "standard",
-            kokoroVoice = p[Keys.kokoroVoice] ?: "af_heart",
         )
     }
 
-    suspend fun setKokoroModel(id: String) = context.dataStore.edit { it[Keys.kokoroModel] = id }
-    suspend fun setKokoroVoice(id: String) = context.dataStore.edit { it[Keys.kokoroVoice] = id }
     suspend fun setWhisperModel(id: String) = context.dataStore.edit { it[Keys.whisperModel] = id }
     suspend fun setNotifyReplies(v: Boolean) = context.dataStore.edit { it[Keys.notifyReplies] = v }
     suspend fun setTtsSpeed(v: Float) = context.dataStore.edit { it[Keys.ttsSpeed] = v }

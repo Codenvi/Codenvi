@@ -10,10 +10,6 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import app.codenvi.tts.KokoroManager
-import app.codenvi.tts.KokoroModel
-import app.codenvi.tts.KokoroSpeaker
-import app.codenvi.tts.KokoroVoices
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
@@ -196,13 +192,7 @@ class SpeechInput(private val context: Context) {
  * Read aloud with the system TextToSpeech engine (docs/design.md §10.5). Markdown is stripped and code blocks
  * replaced; long text is chunked under getMaxSpeechInputLength(). Only one message plays at a time.
  */
-class ReadAloud(
-    context: Context,
-    private val kokoro: KokoroManager? = null,
-    /** The chosen Kokoro model and voice (from Settings), read at every start. */
-    private val kokoroChoice: () -> Pair<KokoroModel, String> = { KokoroModel.STANDARD to KokoroVoices.DEFAULT },
-) {
-    private val speaker = kokoro?.let { KokoroSpeaker(it) }
+class ReadAloud(context: Context) {
     private var ready = false
     private val _playing = MutableStateFlow<String?>(null)
     val playing: StateFlow<String?> = _playing
@@ -233,25 +223,6 @@ class ReadAloud(
     }
 
     fun speak(messageId: String, markdown: String) {
-        // The natural offline voice (Kokoro) when it is downloaded; otherwise, or if it fails, the phone's own voice.
-        val k = kokoro
-        val sp = speaker
-        if (k != null && sp != null) {
-            val (model, voice) = kokoroChoice()
-            if (k.ready(model, voice)) {
-                if (ready) tts.stop()
-                _playing.value = messageId
-                sp.speak(stripMarkdown(markdown), model, voice, speed.coerceIn(0.5f, 2f),
-                    onStarted = {},
-                    onFinished = { if (_playing.value == messageId) _playing.value = null },
-                    onFailed = { if (_playing.value == messageId) { _playing.value = null; speakWithSystemVoice(messageId, markdown) } })
-                return
-            }
-        }
-        speakWithSystemVoice(messageId, markdown)
-    }
-
-    private fun speakWithSystemVoice(messageId: String, markdown: String) {
         if (!ready) return
         tts.stop()
         tts.setSpeechRate(speed)
@@ -265,7 +236,6 @@ class ReadAloud(
     }
 
     fun stop() {
-        speaker?.stop()
         tts.stop()
         _playing.value = null
     }
