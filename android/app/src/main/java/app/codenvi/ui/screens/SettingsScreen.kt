@@ -17,6 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -132,6 +134,21 @@ fun SettingsScreen(vm: AppViewModel, onDisconnected: () -> Unit) {
                     else Icon(Icons.Filled.PlayArrow, "Preview voice", tint = Tokens.Primary)
                 }
             }
+        }
+
+        Section("Reply sound and notifications") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Announce new replies", Modifier.weight(1f))
+                Switch(checked = settings.notifyReplies, onCheckedChange = { on -> scope.launch { repo.settings.setNotifyReplies(on) } },
+                    colors = SwitchDefaults.colors(checkedTrackColor = Tokens.Primary))
+            }
+            Text("Plays a short chime when a reply arrives, on any page. When Codenvi is in the background it shows a pop-up with the " +
+                "project name, session name and a preview of the reply (tap it to open the chat). To make that work Codenvi keeps its " +
+                "connection open with a small quiet notification.", color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelSmall)
+            TextButton(onClick = {
+                context.startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
+            }) { Text("Android notification settings", color = Tokens.Primary) }
         }
 
         Section("Speech input") {

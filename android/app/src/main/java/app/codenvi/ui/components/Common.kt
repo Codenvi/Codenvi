@@ -37,7 +37,15 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import app.codenvi.net.ModelCatalogEntry
 import app.codenvi.repo.ProjectState
+import app.codenvi.speech.RecordedSupport
+import app.codenvi.speech.Segmenter
+import app.codenvi.speech.SegmentTranscriber
 import app.codenvi.speech.SpeechInput
+import app.codenvi.speech.SpeechRecorder
+import android.os.Handler
+import android.os.Looper
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import app.codenvi.ui.theme.Tokens
 
 @Composable
@@ -123,18 +131,57 @@ fun InputDialog(title: String, initial: String, confirm: String = "Save", single
 }
 
 /**
- * Voice dictation bound to a TextFieldValue (docs/design.md §10.4): partial results show live in the field,
- * the final text is inserted at the cursor, and nothing is ever sent automatically.
+ * Voice dictation bound to a TextFieldValue (docs/design.md §10.4); nothing is ever sent automatically.
+ *
+ * On Android 13+ it is "record first, transcribe after": the first tap records the microphone, with nothing typed and no recognizer
+ * running, until the next tap; then the recording is transcribed and the text is inserted at the cursor in one go. On older Android
+ * (no audio-file input for the recognizer) it falls back to live, continuous dictation into the field.
  */
-class Dictation(private val speech: SpeechInput) {
+class Dictation(private val speech: SpeechInput, private val recorder: SpeechRecorder, private val transcriber: SegmentTranscriber) {
     private var base: TextFieldValue? = null
+    private val recordFirst = RecordedSupport.available
+    private val main = Handler(Looper.getMainLooper())
+    private val _transcribing = MutableStateFlow(false)
 
-    /** True from the first tap until the user stops it (or it gives up), including the gaps between sentences. */
-    val listening get() = speech.recording
-    val isActive get() = speech.active
+    /** True while the microphone is being recorded (record-first mode) or listened to (live mode). */
+    val listening: StateFlow<Boolean> get() = if (recordFirst) recorder.recording else speech.recording
+    /** True after the stop tap, while the recording is being turned into text. */
+    val transcribing: StateFlow<Boolean> = _transcribing
+    val isActive get() = if (recordFirst) recorder.recording.value || _transcribing.value else speech.active
     val available get() = speech.isAvailable
 
-    fun toggle(current: TextFieldValue, language: String?, update: (TextFieldValue) -> Unit, onError: (String) -> Unit) {
+    /** [latest] returns the field's current value, so text typed while the recording is transcribed is kept (record-first mode). */
+    fun toggle(current: TextFieldValue, language: String?, update: (TextFieldValue) -> Unit, onError: (String) -> Unit,
+               latest: (() -> TextFieldValue)? = null) {
+        if (recordFirst) { toggleRecorded(current, language, update, onError, latest); return }
+        toggleLive(current, language, update, onError)
+    }
+
+    private fun toggleRecorded(current: TextFieldValue, language: String?, update: (TextFieldValue) -> Unit, onError: (String) -> Unit,
+                               latest: (() -> TextFieldValue)?) {
+        if (_transcribing.value) return // busy turning the last recording into text
+        if (!recorder.recording.value) {
+            if (!recorder.start()) onError("Couldn't use the microphone.")
+            return
+        }
+        val pcm = recorder.stop()
+        _transcribing.value = true
+        Thread {
+            val segments = Segmenter.split(pcm)
+            main.post {
+                if (!_transcribing.value) return@post // cancelled meanwhile
+                if (segments.isEmpty()) { _transcribing.value = false; onError("Didn't hear anything."); return@post }
+                transcriber.run(pcm, segments, language,
+                    onDone = { text ->
+                        _transcribing.value = false
+                        update(insert(latest?.invoke() ?: current, text, moveCursor = true))
+                    },
+                    onFailed = { msg -> _transcribing.value = false; onError(msg) })
+            }
+        }.also { it.isDaemon = true; it.start() }
+    }
+
+    private fun toggleLive(current: TextFieldValue, language: String?, update: (TextFieldValue) -> Unit, onError: (String) -> Unit) {
         // active (not listening) so a tap while the recognizer is still starting or restarting stops it instead of starting another.
         if (speech.active) { speech.stop(); return }
         base = current
@@ -153,7 +200,13 @@ class Dictation(private val speech: SpeechInput) {
         )
     }
 
-    fun stop() = speech.stop()
+    /** Cancels a recording, a transcription or a live dictation without inserting anything (send, clear, leaving the screen). */
+    fun stop() {
+        recorder.cancel()
+        transcriber.cancel()
+        _transcribing.value = false
+        speech.stop()
+    }
 
     companion object {
         fun insert(value: TextFieldValue, text: String, moveCursor: Boolean): TextFieldValue {
@@ -174,8 +227,9 @@ class Dictation(private val speech: SpeechInput) {
 fun rememberDictation(): Dictation {
     val context = LocalContext.current
     val speech = remember { SpeechInput(context) }
-    DisposableEffect(Unit) { onDispose { speech.stop() } }
-    return remember { Dictation(speech) }
+    val dictation = remember { Dictation(speech, SpeechRecorder(context), SegmentTranscriber(context)) }
+    DisposableEffect(Unit) { onDispose { dictation.stop() } }
+    return dictation
 }
 
 /** Requests RECORD_AUDIO on the first mic tap, then runs [action]. */

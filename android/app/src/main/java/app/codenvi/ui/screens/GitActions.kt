@@ -84,7 +84,8 @@ class GitActionsState(private val vm: AppViewModel, private val sessionId: Strin
 }
 
 @Composable
-fun rememberGitActions(vm: AppViewModel, sessionId: String): GitActionsState = remember(sessionId) { GitActionsState(vm, sessionId) }
+fun rememberGitActions(vm: AppViewModel, sessionId: String, projectId: String? = null): GitActionsState =
+    remember(sessionId, projectId) { GitActionsState(vm, sessionId) } // a new state (no stale status) when another project is picked
 
 /**
  * Commit/Publish only show up once we know the PC's git state, and only while that PC is online.

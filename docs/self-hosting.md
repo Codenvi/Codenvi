@@ -110,6 +110,7 @@ codenvi-admin revoke <install-id>         # cut one app off
 codenvi-admin revoke --all                # emergency: cut everything off
 codenvi-admin pairing off|on              # block / allow new pairings (auto-off after 20 failures/hour)
 codenvi-admin purge                       # run the nightly cleanup now
+codenvi-admin password                    # the server's password to type in the apps (section 4a)
 pm2 logs codenvi                          # server logs (also /var/www/codenvi/logs/)
 ```
 
@@ -176,7 +177,7 @@ and add `CODENVI_PIN=<pin>` to `ENV_VARS`. Connection strings then carry `&pin=â
 | Server stops with `CODENVI_ACCESS_KEY must be at least 16 characters` | Choose a longer password (section 4a). |
 | App says the host name or password is wrong | The host name must be exactly `CODENVI_HOST`; the password must equal `CODENVI_ACCESS_KEY` (case-sensitive). Or linking was locked after repeated failures: `codenvi-admin pairing on`. |
 | `sudo: a password is required` | `VPS_USER` needs password-less sudo, or use `root`. |
-| Health check fails | `pm2 logs codenvi`; the deploy has already switched back to the previous release. |
+| Health check fails | `pm2 logs codenvi`. There is no automatic rollback: fix the cause (or `git revert`) and deploy again. |
 | Certificate warning | The DNS A record does not point at the VPS yet. Fix it and push again. |
 | Phone says "Queued - device offline" | The PC app is not connected; `curl https://<domain>/health` must answer. |
 

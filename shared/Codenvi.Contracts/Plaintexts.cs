@@ -34,6 +34,8 @@ public static class ControlCommands
     public const string Status = "project.status";
     /// <summary>Lists the uncommitted files (paths only) as text lines "N|U|D, tab, path" for the phone's Code changes page.</summary>
     public const string Changes = "project.changes";
+    /// <summary>The unified diff of one uncommitted file against HEAD; the path (as listed by project.changes) is in Text.</summary>
+    public const string Diff = "project.diff";
     /// <summary>Runs the PC-local shell script of the project in the background. Carries no script text.</summary>
     public const string RunScript = "project.script.run";
     /// <summary>Stops the script the PC started for this project (kills its process tree).</summary>

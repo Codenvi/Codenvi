@@ -93,6 +93,32 @@ function statusOf(s) {
     runningJobId: null, branchOk: true, aheadOfMain: s.ahead, behindOrigin: s.behind };
 }
 
+/** A believable diff for a demo file: all added (new), all removed (deleted) or two hunks of edits (updated). */
+function fakeDiff(file, kind) {
+  const name = file.split("/").pop();
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  const body = {
+    ts: ["import { env } from '../config/env';", "", "export function limit(userId: string, route: string): boolean {", "  const bucket = buckets.get(userId) ?? newBucket(env.RATE_LIMIT_PER_MIN);", "  if (bucket.tokens < 1) {", "    log.warn(`throttled ${userId} on ${route}`);", "    return false;", "  }", "  bucket.tokens -= 1;", "  return true;", "}"],
+    kt: ["package app.codenvi.data", "", "class Outbox(private val dao: OutboxDao) {", "    suspend fun add(message: Message) = dao.insert(message.copy(queued = true))", "", "    suspend fun pending(): List<Message> = dao.pending()", "", "    suspend fun markSent(id: String) = dao.delete(id)", "}"],
+    tsx: ["export function ThemeProvider({ children }: { children: ReactNode }) {", "  const [mode, setMode] = useState<Mode>(loadMode());", "  useEffect(() => {", "    document.documentElement.dataset.theme = resolve(mode);", "    localStorage.setItem('theme', mode);", "  }, [mode]);", "  return <ThemeContext.Provider value={{ mode, setMode }}>{children}</ThemeContext.Provider>;", "}"],
+    sql: ["CREATE INDEX CONCURRENTLY orders_paid_idx", "  ON orders (created_at)", "  WHERE status = 'paid';", "", "-- down", "DROP INDEX CONCURRENTLY orders_paid_idx;"],
+    md: ["# Rate limits", "", "Every user gets a token bucket per route group.", "", "| Route | Limit |", "|---|---|", "| `/v1/*` | 120 per minute |", "| `/v1/export/*` | 10 per minute |"],
+    json: ["{", "  \"checkout\": {", "    \"payNow\": \"Pay now\",", "    \"paymentFailed\": \"Your payment failed. We will try again tomorrow.\"", "  }", "}"],
+    yml: ["name: ci", "on: [push]", "jobs:", "  build:", "    runs-on: ubuntu-latest", "    steps:", "      - uses: actions/checkout@v4", "      - uses: actions/cache@v4", "        with:", "          path: ~/.npm", "          key: npm-${{ hashFiles('package-lock.json') }}"],
+  }[ext] || ["line one", "line two", "line three", "line four", "line five", "line six"];
+  if (kind === "N") return `@@ -0,0 +1,${body.length} @@\n` + body.map((l) => "+" + l).join("\n") + "\n";
+  if (kind === "D") return `@@ -1,${body.length} +0,0 @@\n` + body.map((l) => "-" + l).join("\n") + "\n";
+  const ctxA = body.slice(0, 2), mid = body.slice(2, 5), ctxB = body.slice(5, 7), tailA = body.slice(7, 9);
+  const edited = mid.map((l) => l.replace(/\b(\w+)$/, "$1 // updated").replace(/;$/, ";") );
+  let at = 12;
+  return [
+    `@@ -${at},${ctxA.length + mid.length + ctxB.length} +${at},${ctxA.length + edited.length + 1 + ctxB.length} @@ ${name}`,
+    ...ctxA.map((l) => " " + l), ...mid.map((l) => "-" + l), ...edited.map((l) => "+" + l), `+  // demo: added after the edit`, ...ctxB.map((l) => " " + l),
+    `@@ -${at + 30},4 +${at + 31},5 @@`,
+    ...(tailA.length ? tailA : ["", "}"]).map((l) => " " + l), "-  return old();", "+  return updated();", "+  // and a new line", " }",
+  ].join("\n") + "\n";
+}
+
 const DIRTY = "The working tree has uncommitted changes - commit or discard them first.";
 
 /** Answers one control command like the real PC would, changing the demo state where the real PC would change git. */
@@ -100,6 +126,11 @@ function handle(cmd, s) {
   switch (cmd.command) {
     case "project.status": return { ok: true, status: statusOf(s) };
     case "project.changes": return { ok: true, text: changesText(s) };
+    case "project.diff": {
+      const c = s.changes.find((x) => x.path === cmd.text);
+      if (!c) return { ok: false, error: "That file has no uncommitted changes." };
+      return { ok: true, text: fakeDiff(c.path, c.kind) };
+    }
     case "project.memory.get": return { ok: true, text: s.memory };
     case "project.memory.set": s.memory = cmd.text ?? ""; return { ok: true };
     case "session.create": case "session.clearMemory": case "project.rollback": return { ok: true, text: sha1(`demo-${Date.now()}`) };

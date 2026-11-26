@@ -92,6 +92,9 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
                 return new ControlResultPlain(true, Status: await projects.StatusAsync(project.Id));
             case ControlCommands.Changes:
                 return new ControlResultPlain(true, Text: await projects.ChangesAsync(project.Id));
+            case ControlCommands.Diff:
+                if (string.IsNullOrWhiteSpace(cmd.Text)) return new ControlResultPlain(false, "Missing file path.");
+                return new ControlResultPlain(true, Text: await projects.DiffAsync(project.Id, cmd.Text));
             case ControlCommands.Commit:
             {
                 if (string.IsNullOrWhiteSpace(cmd.Text)) return new ControlResultPlain(false, "Enter a commit message.");

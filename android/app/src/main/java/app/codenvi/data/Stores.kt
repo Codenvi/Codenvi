@@ -1,6 +1,7 @@
 package app.codenvi.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -90,6 +91,8 @@ data class AppSettings(
     val seenSeq: Map<String, Long> = emptyMap(),
     /** Phone time when "unseen reply" tracking started; older replies are never counted as unseen. */
     val unseenBaselineMs: Long = 0,
+    /** Sound and pop-up notification when a reply arrives (also keeps the connection open in the background). */
+    val notifyReplies: Boolean = true,
 )
 
 /** Non-secret preferences in DataStore. */
@@ -104,6 +107,7 @@ class SettingsStore(private val context: Context) {
         val multimodeSession = stringPreferencesKey("multimode_session")
         val seenSeq = stringPreferencesKey("seen_seq")
         val unseenBaselineMs = longPreferencesKey("unseen_baseline_ms")
+        val notifyReplies = booleanPreferencesKey("notify_replies")
     }
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -117,9 +121,11 @@ class SettingsStore(private val context: Context) {
             multimodeSession = p[Keys.multimodeSession],
             seenSeq = parseSeen(p[Keys.seenSeq]),
             unseenBaselineMs = p[Keys.unseenBaselineMs] ?: 0L,
+            notifyReplies = p[Keys.notifyReplies] ?: true,
         )
     }
 
+    suspend fun setNotifyReplies(v: Boolean) = context.dataStore.edit { it[Keys.notifyReplies] = v }
     suspend fun setTtsSpeed(v: Float) = context.dataStore.edit { it[Keys.ttsSpeed] = v }
     /** Stores "" for "System default" so it is not mistaken for "never chosen" (which means [DEFAULT_TTS_VOICE]). */
     suspend fun setTtsVoice(v: String) = context.dataStore.edit { it[Keys.ttsVoice] = v }

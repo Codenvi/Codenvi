@@ -49,6 +49,7 @@ import app.codenvi.data.AppSettings
 import app.codenvi.repo.ProjectState
 import app.codenvi.repo.UserException
 import app.codenvi.ui.AppViewModel
+import app.codenvi.ui.components.ChangesIcon
 import app.codenvi.ui.components.ChatIcon
 import app.codenvi.ui.theme.Tokens
 import kotlinx.coroutines.flow.emptyFlow
@@ -56,10 +57,11 @@ import kotlinx.coroutines.launch
 
 /**
  * Multimode (docs/design.md §10.3 screen 6): pick a project in the grid, pick one of its sessions above the input,
- * and send. The chat icon in the title bar opens that session's chat (and the chat page has an icon back to here).
+ * and send. The title bar has a Code changes icon (the project's uncommitted files) and a chat icon that opens that session's
+ * chat (and the chat page has an icon back to here).
  */
 @Composable
-fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
+fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit, onOpenChanges: (String) -> Unit = {}) {
     val repo = vm.repo
     val projects by repo.allProjects.collectAsStateWithLifecycle(emptyList())
     val settings by repo.settings.flow.collectAsStateWithLifecycle(AppSettings())
@@ -77,11 +79,23 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
     val unseen by repo.unseenProjects.collectAsStateWithLifecycle(emptySet())
     val unseenSessions by repo.unseenSessions.collectAsStateWithLifecycle(emptySet())
 
+    // Commit / Pull / Publish for the selected project, exactly as in the chat header (they leave their markers in the chat of
+    // the selected session). The state is rebuilt when another project or session is picked, so no old status lingers.
+    val git = rememberGitActions(vm, sessionId ?: "", selected?.id)
+    val gitProject = if (sessionId != null) selected else null
+    // Re-check the PC's git state when a project is picked, when it comes online, and when a job finishes (it leaves changes behind).
+    LaunchedEffect(gitProject?.id, gitProject?.deviceOnline, activeJobs.isEmpty()) {
+        gitProject?.let { if (it.deviceOnline) git.refresh(it.id) }
+    }
+
     LaunchedEffect(Unit) { vm.run { repo.refreshDevices() } }
     LaunchedEffect(selectedId) { selectedId?.let { id -> runCatching { repo.refreshSessions(id) } } }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         CodenviTopBar("Multimode") {
+            GitHeaderButtons(git, gitProject)
+            // Code changes of the selected project (opened through the selected session, like the chat page does).
+            IconButton(enabled = sessionId != null, onClick = { sessionId?.let(onOpenChanges) }) { Icon(ChangesIcon, "Code changes") }
             IconButton(enabled = sessionId != null, onClick = { sessionId?.let(onOpenChat) }) {
                 // White dot on the chat icon when the active project has an unseen reply.
                 BadgedBox(badge = { if (selected != null && selected.id in unseen) Badge(containerColor = Color.White) }) {
@@ -90,7 +104,47 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
             }
         }
 
-        // Input with the session row above it, so one tap chooses which session of the project receives the prompt.
+        Text("Projects", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp))
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3), modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(projects, key = { it.id }) { p ->
+                val active = p.id == selectedId
+                val shape = RoundedCornerShape(12.dp)
+                Box(
+                    Modifier.fillMaxWidth().clip(shape)
+                        .background(if (active) Tokens.Primary else Tokens.Surface, shape)
+                        .border(1.dp, if (active) Tokens.Primary else Tokens.Outline, shape)
+                        .selectable(selected = active, enabled = !p.locked, role = Role.RadioButton,
+                            onClick = { scope.launch { repo.settings.setMultimodeProject(p.id) } })
+                ) {
+                    Box(Modifier.fillMaxWidth().heightIn(min = 76.dp).padding(10.dp)) {
+                        Column(Modifier.align(Alignment.CenterStart).padding(end = 10.dp)) {
+                            Text(p.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold,
+                                color = if (active) Color.White else if (p.locked) Tokens.OnSurfaceMuted else Tokens.OnSurface)
+                            Text(p.deviceName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall,
+                                color = if (active) Color.White.copy(alpha = 0.85f) else Tokens.OnSurfaceMuted)
+                        }
+                        // White dot (top right): a reply in one of this project's sessions that was not seen in the chat yet.
+                        if (p.id in unseen) Box(
+                            Modifier.align(Alignment.TopEnd).size(11.dp).background(Color.White, CircleShape)
+                                .border(1.5.dp, if (active) Tokens.Primary else Tokens.Surface, CircleShape),
+                        )
+                    }
+                    // Loading bar along the bottom edge while the project is working on a prompt.
+                    if (p.state != ProjectState.IDLE) LinearProgressIndicator(
+                        Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp),
+                        color = if (active) Color.White else Tokens.Primary,
+                        trackColor = if (active) Color.White.copy(alpha = 0.3f) else Tokens.SurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        // At the bottom, like on the chat page: the input with the session row above it, so one tap chooses which session of the
+        // project receives the prompt.
         PromptBar(
             vm,
             enabled = selected != null && !selected.locked && sessionId != null,
@@ -135,44 +189,6 @@ fun MultimodeScreen(vm: AppViewModel, onOpenChat: (String) -> Unit) {
             val target = sessionId ?: throw UserException("Pick a project and a session.")
             repo.sendPrompt(target, text, model, effort)
         }
-
-        Text("Projects", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp))
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3), modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(projects, key = { it.id }) { p ->
-                val active = p.id == selectedId
-                val shape = RoundedCornerShape(12.dp)
-                Box(
-                    Modifier.fillMaxWidth().clip(shape)
-                        .background(if (active) Tokens.Primary else Tokens.Surface, shape)
-                        .border(1.dp, if (active) Tokens.Primary else Tokens.Outline, shape)
-                        .selectable(selected = active, enabled = !p.locked, role = Role.RadioButton,
-                            onClick = { scope.launch { repo.settings.setMultimodeProject(p.id) } })
-                ) {
-                    Box(Modifier.fillMaxWidth().heightIn(min = 76.dp).padding(10.dp)) {
-                        Column(Modifier.align(Alignment.CenterStart).padding(end = 10.dp)) {
-                            Text(p.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold,
-                                color = if (active) Color.White else if (p.locked) Tokens.OnSurfaceMuted else Tokens.OnSurface)
-                            Text(p.deviceName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall,
-                                color = if (active) Color.White.copy(alpha = 0.85f) else Tokens.OnSurfaceMuted)
-                        }
-                        // White dot (top right): a reply in one of this project's sessions that was not seen in the chat yet.
-                        if (p.id in unseen) Box(
-                            Modifier.align(Alignment.TopEnd).size(11.dp).background(Color.White, CircleShape)
-                                .border(1.5.dp, if (active) Tokens.Primary else Tokens.Surface, CircleShape),
-                        )
-                    }
-                    // Loading bar along the bottom edge while the project is working on a prompt.
-                    if (p.state != ProjectState.IDLE) LinearProgressIndicator(
-                        Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp),
-                        color = if (active) Color.White else Tokens.Primary,
-                        trackColor = if (active) Color.White.copy(alpha = 0.3f) else Tokens.SurfaceVariant,
-                    )
-                }
-            }
-        }
     }
+    GitActionDialogs(git, gitProject)
 }

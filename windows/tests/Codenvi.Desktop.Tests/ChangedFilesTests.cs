@@ -48,3 +48,34 @@ public class ChangedFilesTests
     [Fact]
     public void Command_name_is_stable() => Assert.Equal("project.changes", ControlCommands.Changes);
 }
+
+public class DiffTests
+{
+    [Fact]
+    public void New_file_is_one_hunk_of_added_lines()
+    {
+        var d = GitService.NewFileDiff(System.Text.Encoding.UTF8.GetBytes("a\r\nb\nc\n"));
+        Assert.Equal("@@ -0,0 +1,3 @@\n+a\n+b\n+c\n", d);
+    }
+
+    [Fact]
+    public void New_empty_and_binary_files_get_a_note()
+    {
+        Assert.Equal("New empty file.", GitService.NewFileDiff([]));
+        Assert.StartsWith("New binary file", GitService.NewFileDiff([1, 2, 0, 3]));
+    }
+
+    [Fact]
+    public void Long_diff_is_cut_at_a_line_end_with_a_note()
+    {
+        var line = new string('x', 99) + "\n";
+        var big = string.Concat(Enumerable.Repeat(line, GitService.MaxDiffChars / 100 + 50));
+        var cut = GitService.CapDiff(big);
+        Assert.True(cut.Length < big.Length);
+        Assert.Contains("diff truncated", cut);
+        Assert.Equal("project.diff", ControlCommands.Diff);
+    }
+
+    [Fact]
+    public void Short_diff_is_unchanged() => Assert.Equal("@@ x @@\n+a\n", GitService.CapDiff("@@ x @@\n+a\n"));
+}

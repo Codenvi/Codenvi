@@ -4,7 +4,7 @@ Codenvi lets one person drive Claude Code on several Windows PCs from an Android
 
 Codenvi is a free, open-source (MIT) project for **personal use**. Anyone can run it for themselves: host the server on their own VPS, install the Windows and Android apps from the repository, and connect them with a connection string and encryption key.
 
-Status: plan v2 · Date: 2026-11-24
+Status: plan v2 (kept in sync with the implementation) · Date: 2026-11-26
 
 > **Disclaimer:** Codenvi is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by Anthropic, PBC. "Claude" and "Claude Code" are trademarks of Anthropic, PBC. See §0.3.
 
@@ -157,7 +157,9 @@ Rules:
     crypto.md                     ← crypto spec and test vectors for §5
     building.md                   ← build from source, Android signing
     self-hosting.md               ← VPS setup and operations
-    assets/codenvi-icon.png
+    deployment.md                 ← deploy tags, defaults chosen for §15
+    index.html, 404.html, assets/ ← the project website (GitHub Pages serves /docs)
+/CHANGELOG.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md ← community files
 /shared/
     Codenvi.Contracts/            ← net10.0 class library: DTOs, envelope types, crypto helpers
     Directory.Build.props         ← common .NET settings (imported by windows/)
@@ -180,11 +182,14 @@ Rules:
     drizzle/                      ← generated SQL migrations (0000_init.sql, 0001_seed.sql, ...)
     tests/                        ← vitest: unit tests + REST/WebSocket integration tests against Postgres
     deploy/deploy.sh              ← runs on the VPS during a [server] deploy (§7.7)
+    demo/                         ← optional demo data for screenshots: demo-seed.js, demo-pc.js (brings demo PCs online), demo-cleanup.js
 /.github/                         ← required at the root by GitHub
     workflows/publish.yml         ← [server] then [windows] and [android]: deploy the server, build and commit the apps
-    workflows/tests.yml           ← all three test suites on pull requests
+    workflows/tests.yml           ← all three test suites on pull requests and pushes to main
     workflows/secret-scan.yml     ← gitleaks on every push and PR
-    gitleaks.toml
+    workflows/static.yml          ← publishes the project website (the static files in /docs) to GitHub Pages
+    scripts/read-server-settings.js ← validates the three server settings in ENV_VARS
+    gitleaks.toml, ISSUE_TEMPLATE/, pull_request_template.md
 ```
 
 `Codenvi.Contracts` is used by the Windows app. The server re-implements the wire types in TypeScript (`server/src/routes`, `server/src/lib/envelope.ts`) and Android in Kotlin; the test vectors in `docs/crypto.md` keep the crypto implementations byte-compatible.
@@ -249,7 +254,7 @@ Installing and signing in to Claude Code is the user's job (§0.5). Codenvi only
 - The key is shown as **Crockford Base32** in groups of 4, plus a 4-character checksum. That is about 56 characters, easy to type and resistant to typos: `7Q2M-K9TR-…-XC4F`.
 - The **Show encryption key** button re-displays the key behind a Windows Hello / Windows password check. It also offers **Copy**.
 - The phone usually receives the key inside the **Connect a phone** string (§4.2), so you rarely type it.
-- (Later) Show a QR code with `QRCoder` and scan it on Android. Scanning needs a camera/barcode library that isn't in the stack.
+- **Connect a phone** and **Show encryption key** also show the string as a QR code (`QRCoder` on Windows). The phone scans it with Google's code scanner (`play-services-code-scanner`, which needs no camera permission) on the Connect screen and in the "Paste a key string" dialog. Pasting the string still works.
 - Storage:
   - Desktop: in a local file, protected with **DPAPI** (`ProtectedData`, CurrentUser scope).
   - Android: AES-wrapped with a non-exportable **Android Keystore** key and saved in the app's private storage. One key per device.
@@ -389,13 +394,14 @@ CREATE TABLE messages (
   created_at       timestamptz NOT NULL DEFAULT now(),
   UNIQUE (session_id, seq)
 );
+CREATE INDEX messages_session_role ON messages (session_id, role, seq);
 
 CREATE TABLE jobs (
   id               uuid PRIMARY KEY,
   device_id        uuid NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
   project_id       uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   session_id       uuid NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  prompt_message_id uuid NOT NULL REFERENCES messages(id),
+  prompt_message_id uuid NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
   sent_by_install  uuid REFERENCES installs(id),
   kind             text NOT NULL DEFAULT 'prompt'
                    CHECK (kind IN ('prompt','control')),
@@ -407,10 +413,12 @@ CREATE TABLE jobs (
   error_code       text,
   enc_error        bytea,
   queued_at        timestamptz NOT NULL DEFAULT now(),
+  delivered_at     timestamptz,
   started_at       timestamptz,
   finished_at      timestamptz
 );
 CREATE INDEX jobs_device_pending ON jobs (device_id) WHERE status IN ('queued','delivered');
+CREATE INDEX jobs_session ON jobs (session_id);
 
 CREATE TABLE commits (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -445,10 +453,10 @@ CREATE TABLE audit_log (
   ip               inet,
   created_at       timestamptz NOT NULL DEFAULT now()
 );
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO codenvi_app;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO codenvi_app;
+CREATE INDEX audit_log_action_time ON audit_log (action, created_at);
 ```
+
+The SQL above is a readable summary; `src/db/schema.ts` and `drizzle/` are authoritative (they also hold a few more indexes, such as `refresh_tokens_install`, `devices_install`, `projects_device` and `sessions_project`). There are no `GRANT` statements: the one database role the deploy creates owns the database (§6.1).
 
 `waiting_login` means the PC's Claude Code CLI isn't signed in (§4.4).
 
@@ -457,7 +465,7 @@ Soft deletes (`deleted_at`) are purged by a nightly server job after 30 days. "D
 ### 6.3 Schema as code (Drizzle)
 
 - `server/src/db/schema.ts` is the source of truth. `npm run db:generate` writes a new numbered SQL file to `drizzle/` (and its snapshot in `drizzle/meta/`). Commit both. Generated files are forward-only and never edited after merge.
-- Seed data (`model_catalog`, `app_min_versions`, `server_settings`) lives in `drizzle/0001_seed.sql` as `INSERT ... ON CONFLICT`. Later changes go in new migration files (`drizzle-kit generate --custom`).
+- Seed data (`model_catalog`, `app_min_versions`, `server_settings`) lives in `drizzle/0001_seed.sql` as `INSERT ... ON CONFLICT`. Later changes go in new migration files (`drizzle-kit generate --custom`). So far: `0002_refresh_retry` (`refresh_tokens.replaced_by`, §4.3) and `0003_model_labels` (model names with their versions and "Default (PC setting)" in `model_catalog.label`, shown in the phone's dropdowns; the aliases are unchanged).
 - On every deploy `dist/migrate.js` (the `drizzle-orm` migrator) applies the files not yet recorded in `drizzle.__drizzle_migrations`, **before** the new release goes live. A failed migration stops the deploy and the running server stays as it was. The test suite applies every file to an empty database.
 - `drizzle-orm` and `pg` stay in `dependencies` (the release bundle contains production dependencies only).
 - Before migrating a database that already has data, the deploy writes a `pg_dump` to `/var/www/<name>/backups/` (last 10 kept). Nightly backups are a cron job (see `docs/self-hosting.md`).
@@ -483,6 +491,8 @@ A middleware updates the `installs` row and appends to `install_version_history`
 
 ### 7.3 REST API (all JSON, all under `/api/v1`)
 
+This is the overview; the normative list with bodies, limits and error codes is `docs/protocol.md`.
+
 | Method & path | Who | Purpose |
 |---|---|---|
 | `POST /pair` | both | Redeem a one-time pairing code → install created, tokens returned (no auth, rate-limited) |
@@ -505,7 +515,8 @@ A middleware updates the `installs` row and appends to `install_version_history`
 | `POST /sessions/{id}/messages` | android | Send prompt → creates message + job, returns `{messageId, jobId, seq}` |
 | `DELETE /sessions/{id}/messages` | both | Clear chat history |
 | `POST /jobs/{id}/cancel` | android | Request cancel |
-| `GET /projects/{id}/commits` | android | Commit list |
+| `GET /projects/{id}/commits` · `PUT /projects/{id}/commits/{commitId}` | both · desktop | Commit list · record a commit |
+| `GET /devices/{id}/jobs/active` · `GET /sessions/{id}/jobs` | both | Jobs still in flight on a PC · jobs of a session |
 | `POST /projects/{id}/control` | android | Encrypted control command to desktop (§7.5) |
 | `GET /catalog/models` | android | Model/effort dropdown contents |
 | `GET /health` | ops | DB reachable, version |
@@ -548,9 +559,14 @@ These change state that lives on the PC, so they travel encrypted and the deskto
 | `project.memory.get` / `project.memory.set {text}` | Read/write the project's `CLAUDE.md` |
 | `project.rollback {commitHash}` | §9.3 |
 | `project.status` | Branch, dirty state, last commit, running job |
-| `project.changes` | The uncommitted files (path + new/updated/deleted) for the phone's Code changes page |
+| `project.changes` | The uncommitted files (path + new/updated/deleted) for the phone's Code changes page; paths only, never contents |
+| `project.diff` | The diff of one of those files (against HEAD) for the phone's file diff page; any other path is refused |
+| `project.script.run` / `project.script.stop` | Start / stop the project's PC-local shell script (§8.4). The command carries no script text; the PC runs only what the user saved on the PC |
+| `project.commit {text}` | Commit what is uncommitted in the dev branch, with `text` as the whole message (§9.2) |
+| `project.pull` | Merge `origin/<main>` into the dev branch (§9.5) |
+| `project.publish` | Merge the dev branch into `main` and push (§9.4) |
 
-The response is a `control.response` with encrypted JSON. Control requests also get the replay check (§5.4).
+The exact payloads and answers are in `docs/protocol.md`. The response is a `control.response` with encrypted JSON. Control requests also get the replay check (§5.4).
 
 ### 7.6 Limits and hardening
 
@@ -581,14 +597,14 @@ No e-mail address is used: certbot registers without one, and certificates still
 | Process | PM2 process `<name>` (fork mode), listening on `127.0.0.1:<port>`; logs in `/var/www/<name>/logs/` |
 | Database | database `<database>` owned by role `<database>`, generated password; created if it does not exist |
 | Web | nginx site `/etc/nginx/sites-available/<name>` for `<domain>` (WebSocket upgrade, 1-hour read timeout), Let's Encrypt certificate for `<domain>` |
-| Admin | `/usr/local/bin/<name>-admin` (`codenvi-admin`): `pair`, `installs`, `revoke`, `pairing on|off`, `purge` |
+| Admin | `/usr/local/bin/<name>-admin` (`codenvi-admin`): `pair`, `installs`, `revoke`, `pairing on|off`, `purge`, and `password` (prints the server's password; handled by the wrapper script, not by `admin.js`) |
 
 `server/deploy/deploy.sh` enforces the isolation:
 
 - **All collision checks run before anything changes.** On the first deploy the folder, PM2 process, nginx site, database and role must not exist yet; on later deploys they must carry this app's marker or be owned by its role. The port must be free or held by this app's own process. No other nginx site may serve `<domain>`.
 - Installs nginx, certbot, PostgreSQL, Node.js 20 or PM2 **only if missing**; never upgrades anything, never changes the firewall or the nginx/PostgreSQL configuration, never touches other sites, processes, databases or roles. If Node.js is older than 20 it stops instead of upgrading it.
 - nginx is reloaded only after `nginx -t` passes; a rejected site file is removed again.
-- Migrations run before the switch; a failed `/health` check after the switch puts the previous release back.
+- Migrations run before the code is replaced. If `/health` does not answer within 30 s afterwards, the deploy fails; there is no automatic rollback (the VPS keeps no older copy of the code), so fix the problem or `git revert` and deploy again.
 
 **Keys:** the first deploy generates `JWT_SECRET`, the database password and the server's password (`CODENVI_ACCESS_KEY`) on the VPS and stores them in `/var/www/<name>/shared/generated.env` (mode 600). Later deploys reuse them. They are never printed to the deploy log (it may be public); the server's password is read with `<name>-admin password`. A `JWT_SECRET` or `CODENVI_ACCESS_KEY` line in `ENV_VARS` overrides the generated one. To invalidate every access token, put a new `JWT_SECRET` in `ENV_VARS` and deploy again (paired apps refresh automatically).
 
@@ -617,7 +633,7 @@ No e-mail address is used: certbot registers without one, and certificates still
 </Project>
 ```
 
-Packages: `CommunityToolkit.Mvvm`, `Microsoft.Extensions.Hosting` (DI plus background services), `Microsoft.Data.Sqlite` + `Dapper`, `QRCoder` (later), `Serilog.Sinks.File`. Uses `System.Security.Cryptography.ProtectedData` for DPAPI. References `Codenvi.Contracts`.
+Packages: `CommunityToolkit.Mvvm`, `Microsoft.Extensions.Hosting` (DI plus background services), `Microsoft.Data.Sqlite` + `Dapper`, `QRCoder`, `Serilog.Sinks.File`. Uses `System.Security.Cryptography.ProtectedData` for DPAPI. References `Codenvi.Contracts`.
 
 ### 8.2 Where WinForms and P/Invoke are used
 
@@ -701,7 +717,7 @@ A `JobScheduler` hosted service:
   - Capture the final `result` event's `result` text, `session_id`, cost and usage.
 - **Cancel:** `Process.Kill(entireProcessTree: true)`, then status `cancelled`. Changes the agent already made stay uncommitted until the user decides (a Commit / Discard prompt in Activity). Discard runs `git restore` / `git clean` only on the user's confirmation.
 - **Timeout:** 60 minutes by default (per-project setting), handled like cancel.
-- **After success:** run the commit step (§9.2), then send `job.result` with the encrypted `{text, costUsd, durationMs, commitHash, filesChanged}`.
+- **After success:** record any commits Claude made itself during the job (§9.2); Codenvi does not commit on its own. Then send `job.result` with the encrypted `{text, costUsd, durationMs, commitHash, filesChanged}` (`commitHash` is empty when nothing was committed). Changes left in the working tree are flagged as uncommitted until the user commits them from the phone's Commit button or the Activity tab.
 - **After failure:** send the encrypted error summary (last 30 lines of stderr). The working-tree changes stay uncommitted and are flagged in the UI.
 - **Post-rollback note:** if a rollback happened since the session's last prompt, Codenvi prefixes the next prompt with a short system note, e.g. "Note: the code was rolled back to commit abc123; earlier changes discussed above have been reverted." This matters because `/rewind` is not available in `-p` mode, so the Claude conversation still "remembers" the reverted work.
 
@@ -811,7 +827,7 @@ okhttp = "4.12.0"
   - An auth interceptor adds the bearer token and the `X-Codenvi-*` headers.
   - An `Authenticator` refreshes tokens on 401.
   - `HttpLoggingInterceptor` runs only in debug.
-- The WebSocket uses the same client, with exponential reconnect backoff (1 s up to 30 s), runs while the app is in the foreground, and resyncs history (`afterSeq`) on reconnect.
+- The WebSocket uses the same client, with exponential reconnect backoff (1 s up to 30 s), runs while the app is in the foreground (and in the background too when reply notifications are on, §10.7), and resyncs history (`afterSeq`) on reconnect.
 - Local cache (Room) keeps decrypted-on-demand ciphertext of messages, plus projects and sessions, so lists open instantly and work offline for reading.
 
 ### 10.3 Screens (navigation-compose)
@@ -834,11 +850,11 @@ okhttp = "4.12.0"
    - A **🔊 Read aloud** icon on every assistant message.
    - Status per prompt: queued / delivered / running / done / failed (with error text). "Waiting for Claude sign-in" tells the user to sign in to Claude Code on that PC.
    - While the PC is online, a **Commit** icon (next to Multimode) shows up when `project.status` reports the dev branch dirty, a **Pull** icon (down arrow, before Publish) when it reports `behindOrigin` above 0, and a **Publish** icon when it reports commits ahead of `main`. Each asks for confirmation (Commit also asks for the commit message), then runs `project.commit` / `project.pull` / `project.publish` (§9.2, §9.4, §9.5) and refreshes the status. While one runs, its icon is replaced by a spinner until the PC answers.
-   - A **Code changes** icon (always shown, just before Multimode) opens the Code changes page: the project's uncommitted files from `project.changes` grouped by folder (the full folder path once as a header, e.g. `android/app/src/main/java/app/codenvi/speech`, with its changed files indented below it, not a nested tree; paths only, no diffs, expanded by default). The list scrolls vertically and, for long paths, horizontally, with no visible scrollbar. Each file name and the dot at the left edge of its row (the dot stays fixed there while the list is scrolled sideways) are green = new, blue = updated, red = deleted (folder headers have no dot). Rows alternate with a slightly darker background (every second row) like a table, and the header shows the session name with the project name below it, as in the chat. Its header has the same Commit / Pull / Publish buttons as the chat (they leave the same markers in the chat and reload the list) and a chat icon on the right that returns to the chat.
+   - A **Code changes** icon (always shown, just before Multimode) opens the Code changes page: the project's uncommitted files from `project.changes` as an indented folder tree like the VS Code explorer: a chain of folders that each hold only one folder is one row (`android\app\src\main`), folders come first (alphabetical) and each child is indented 16 dp under its parent; folders can be collapsed (expanded by default); no file-type icons; paths only. The list scrolls vertically and, for long paths, horizontally, with no visible scrollbar. Each file name and the dot at the left edge of its row (the dot stays fixed there while the list is scrolled sideways) are green = new, blue = updated, red = deleted (folder headers have no dot). Rows alternate with a slightly darker background (every second row) like a table, and the header shows the session name with the project name below it, as in the chat. Its header has the same Commit / Pull / Publish buttons as the chat (they leave the same markers in the chat and reload the list) and a chat icon on the right that returns to the chat. **Tapping a file** opens the file's diff page (`project.diff`): a unified diff against the last commit with `+N −M` totals, line numbers, added lines green, removed lines red and hunk headers blue, scrolling both ways; its back arrow and its Code changes icon both return to the Code changes page. The Multimode header has the same Commit / Pull / Publish buttons (for the selected project, same rules, markers go to the selected session's chat) and the same Code changes icon, just before its chat icon, opening the page for the selected project (through its selected session); the page's back and chat icons then return to Multimode.
    - Each finished action leaves a small centred marker in the chat, on one line and cut with "…" if long: yellow commit icon + `<commit message>`, green publish icon + `<message of the dev branch's newest commit>`, blue pull icon + `<message of the newest pulled commit>`. The icons are the ones the chat header uses for Commit, Publish and Pull; there is no "Committed"/"Pushed"/"Pulled" word. No commit id is shown. The markers are stored on the phone only.
 6. **Multimode:**
-   - **Top:** a row of the selected project's sessions (tap one to choose it), then the multi-line `OutlinedTextField`, the model and effort dropdowns beneath it, then the mic and **Send** buttons.
-   - **Below:** a 3-column grid of **every project from every connected device** (project name over device name, status dot). Selection is single, orange when active, and stays selected after sending.
+   - **Top:** a 3-column grid of **every project from every connected device** (project name over device name, status dot). Selection is single, orange when active, and stays selected after sending.
+   - **Bottom** (like the chat page): a row of the selected project's sessions (tap one to choose it), then the multi-line `OutlinedTextField`, the model and effort dropdowns beneath it, then the mic and **Send** buttons.
    - Send posts the message to the **selected session**. Until one is chosen it is the project's `default_session_id`, or else its first session.
    - After a send, the message block is locked and its **Send** button spins (tap it to stop the job) until that session's reply arrives; locking is per session. A project block shows a loading bar while it is working and a **white dot** (top right) for a reply not yet seen in a chat. The dot also appears before the name of the session pill the reply belongs to, and on the title-bar chat icon while the active project has one. It clears when that session's chat is opened, its reply is read aloud with the message-block speaker, or another message is sent in it.
    - A **chat icon** at the right end of the title bar opens the selected session's chat. Every chat page has a **Multimode icon** in the same slot: it presets Multimode to that chat's project and session and opens it, however the chat was reached.
@@ -850,7 +866,9 @@ okhttp = "4.12.0"
 - The `RECORD_AUDIO` runtime permission is requested on first mic tap.
 - The manifest needs a `<queries>` entry for `android.speech.RecognitionService` (Android 11+ package visibility).
 - Partial results appear live in the message field. The final text is **inserted at the cursor** of the field, and **the app never auto-sends** - you review and edit, then press Send.
-- Dictation is **continuous**: Android's recognizer always ends a session after a pause, so the same recognizer is told to listen again at once after every result or silence timeout, and each finished sentence is added to the field. It keeps going until you tap the mic button again (or send, or clear the field); after about 60 silent restarts in a row it stops by itself. The button keeps pulsing red between sentences. To make the restarts inaudible, the music, notification and system volume streams are muted while dictating and restored when it ends (so other audio is silent meanwhile); a few speech engines ignore the "wait longer" silence hints.
+- **Record first, transcribe after (Android 13+):** the first tap on the mic button records the microphone (16 kHz mono, nothing is typed and no recognizer runs, so there are no restarts, pauses or sounds) until you tap it again; the button pulses red meanwhile. After the second tap a spinner shows while the recording is cut at its pauses (about 1.2 s of quiet) into utterances of at most 45 s, each is handed to the system recognizer as an audio file (`RecognizerIntent.EXTRA_AUDIO_SOURCE`), and the joined text is inserted **once at the cursor** (text typed meanwhile is kept). Nothing is inserted for a recording with no speech ("Didn't hear anything."). A recording is limited to 30 minutes. If the speech engine does not accept audio files, an error says so and the recording is lost.
+- **Older Android (before 13):** the recognizer cannot read recordings, so dictation stays **live and continuous**: text appears in the field as you speak, the recognizer is restarted at every pause (muting the music, notification and system streams meanwhile so the restarts are silent) until you tap the button again; after about 60 silent restarts in a row it stops by itself.
+- Send, the clear (X) button and leaving the screen cancel a recording or transcription without inserting anything.
 - If `SpeechRecognizer.isRecognitionAvailable()` is false, the mic button is hidden and a hint explains that Google speech services or an offline language pack is needed.
 
 ### 10.5 Read aloud
@@ -866,6 +884,15 @@ okhttp = "4.12.0"
 - `android:allowBackup="false"`.
 - `FLAG_SECURE` is set on the key-entry screen.
 - A network security config allows cleartext only in debug builds (for a local dev server).
+
+### 10.7 Reply sound and notifications
+
+- When a final `job.result` arrives over the WebSocket, the app decrypts the project name, the session name and a plain-text preview of the reply (first 160 characters, Markdown stripped) with the PC's key. If the key is missing nothing is announced.
+- **App on screen (any page, including the chat of that session):** the built-in Codenvi chime plays (`res/raw/reply_chime.wav`, notification volume; silent when the phone is silent or vibrating). No pop-up.
+- **App in the background:** a heads-up notification on the `replies_v1` channel (same chime, vibration): title = project name, text = `<session name>: <preview>` (expandable). Tapping it opens that session's chat. On a locked screen only "Codenvi - New reply" shows. A newer reply in the same session replaces the previous notification; a resent result is announced once.
+- **Keeping the connection open:** the WebSocket is otherwise closed when the app leaves the screen, so a small foreground service (`ListenService`, type `specialUse`) keeps it open while the phone is paired and **Settings → Reply sound and notifications** is on (default on). It shows one silent, minimal "Codenvi is waiting for replies" notification (channel `listen_v1`, importance min). Turning the setting off stops the service and the announcements, and the connection closes again in the background.
+- The Android 13+ `POST_NOTIFICATIONS` permission is asked once after pairing (Settings has a button to Android's notification settings, where the sound can also be changed). Without it the chime still plays in the app but no pop-up appears.
+- Limits: replies that finish while the phone has no network or the service was killed (aggressive battery savers) are not announced when they finish; they appear as unseen replies when the app is opened. Exempting Codenvi from battery optimisation makes the background connection more reliable.
 
 ---
 
@@ -958,7 +985,7 @@ jobs:
 4. Copies the bundle, `server/deploy/deploy.sh` and `ENV_VARS` over SSH to a private temp folder on the VPS and runs `deploy.sh` as root (`sudo` when `VPS_USER` is not root). The script deletes the upload when it ends. The VPS host key is taken with `ssh-keyscan` on each run.
 5. Checks `https://<domain>/health`.
 
-Rollback is a `git revert` and a new `[server]`. Migrations are forward-only, so keep them backward-compatible with the previous release (expand/contract), because a failed health check switches the code back but not the database.
+Rollback is a `git revert` and a new `[server]`. Migrations are forward-only, so keep them backward-compatible with the previous release (expand/contract), because a rollback is a new deploy of older code against a database that has already been migrated.
 
 ### 11.5 Required secrets and variables
 
@@ -984,7 +1011,8 @@ These are needed for the required features. Each is small, well-maintained and h
 | Android | `androidx.room` 2.6.1 (runtime, ktx, compiler via KSP) | Offline cache of chats/projects |
 | Android | `com.squareup.moshi:moshi-kotlin-codegen` 1.15.1 (KSP) | Moshi adapters without reflection |
 | Android | `androidx.datastore:datastore-preferences` | Settings |
-| Desktop | `CommunityToolkit.Mvvm`, `Microsoft.Extensions.Hosting`, `Microsoft.Data.Sqlite`, `Dapper`, `Serilog.Sinks.File`, `QRCoder` (later) | MVVM, background services, local DB, logs |
+| Desktop | `CommunityToolkit.Mvvm`, `Microsoft.Extensions.Hosting`, `Microsoft.Data.Sqlite`, `Dapper`, `Serilog.Sinks.File`, `QRCoder` | MVVM, background services, local DB, logs, QR codes |
+| Android | `com.google.android.gms:play-services-code-scanner` | Scan the pairing / key QR code without a camera permission |
 | Server | `express`, `ws`, `pg`, `drizzle-orm`, `jsonwebtoken`, `zod`, `express-rate-limit`, `dotenv` | HTTP, WebSockets, DB, tokens, validation, rate limits |
 | CI | `gitleaks` CLI (pinned, checksum-verified) | Secret scanning on the public repo |
 

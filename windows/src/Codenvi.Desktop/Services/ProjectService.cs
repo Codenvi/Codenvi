@@ -368,6 +368,13 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
     /// <summary>Most files listed in one answer, so it stays far below the 1 MB ciphertext limit.</summary>
     public const int MaxChangedFiles = 3000;
 
+    /// <summary>The diff of one uncommitted file (<paramref name="path"/> as listed by the Code changes answer).</summary>
+    public async Task<string> DiffAsync(Guid projectId, string path)
+    {
+        var p = db.Project(projectId) ?? throw new ProjectException("Unknown project.");
+        return await git.FileDiffAsync(p.FolderPath, path);
+    }
+
     /// <summary>The Code changes answer: one "N|U|D, tab, path" line per file, then "+", tab and a count when it was cut.</summary>
     public async Task<string> ChangesAsync(Guid projectId)
     {

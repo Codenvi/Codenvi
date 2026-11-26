@@ -43,7 +43,7 @@ npm run db:generate                          # writes drizzle/NNNN_<name>.sql an
 npx drizzle-kit generate --custom --name=x   # an empty file for hand-written SQL (data changes)
 ```
 
-Commit the SQL and `drizzle/meta/`. Never edit a merged migration. Every migration must apply to an empty database (the test suite runs them all from zero), and should stay backward-compatible with the previous server release (expand/contract), because a failed health check switches the code back but not the database.
+Commit the SQL and `drizzle/meta/`. Never edit a merged migration. Every migration must apply to an empty database (the test suite runs them all from zero), and should stay backward-compatible with the previous server release (expand/contract), because a rollback is a new deploy of older code against a database that has already been migrated (a failed health check does not roll anything back).
 
 ## Windows app
 

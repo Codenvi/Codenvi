@@ -62,12 +62,12 @@ private fun ChangeKind.color(): Color = when (this) {
 }
 
 /**
- * Code changes: the uncommitted files of the chat's project on the PC as a folder tree (paths only, no diffs), with a dot on
- * the right of each file: green = new, blue = updated, red = deleted. The header has the same Commit / Pull / Publish buttons
- * as the chat, and the chat icon on the right goes back to it.
+ * Code changes: the uncommitted files of the chat's project on the PC as an indented folder tree, with a dot at the left of each
+ * file: green = new, blue = updated, red = deleted. Tap a file to see what changed in it. The header has the same Commit / Pull /
+ * Publish buttons as the chat, and the chat icon on the right goes back to it.
  */
 @Composable
-fun ChangesScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
+fun ChangesScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onOpenFile: (String) -> Unit = {}) {
     val repo = vm.repo
     val session by remember(sessionId) { repo.session(sessionId) }.collectAsStateWithLifecycle(null)
     val project by remember(session?.projectId) { session?.projectId?.let { repo.project(it) } ?: emptyFlow() }.collectAsStateWithLifecycle(null)
@@ -113,7 +113,7 @@ fun ChangesScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
                 }
                 r == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Tokens.Primary) }
                 r.files.isEmpty() -> Message(if (loading) "Loading…" else "No uncommitted changes.")
-                else -> ChangesList(r)
+                else -> ChangesList(r, onOpenFile)
             }
         }
     }
@@ -123,60 +123,56 @@ fun ChangesScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit) {
 @Composable
 private fun Message(text: String) = Text(text, color = Tokens.OnSurfaceMuted, modifier = Modifier.padding(16.dp))
 
-/** One row of the list: a folder path header or a changed file. */
-private sealed interface ListRow {
-    data class Dir(val dir: String, val collapsed: Boolean) : ListRow
-    data class File(val dir: String, val name: String, val kind: ChangeKind) : ListRow
-}
-
 /**
- * The files grouped by their full folder path: the path once as a header, the files indented below it (no nested tree).
- * Scrolls vertically and, for long paths, horizontally; there is no visible scrollbar. File names take the colour of their dot.
+ * The changed files as an indented folder tree, like the VS Code explorer: a chain of folders that hold only one folder is one
+ * row ("android\app\src\main"), folders come first, and children are indented under their parent. Tap a folder to collapse it, tap
+ * a file to see what changed in it. Scrolls vertically and, for long paths, horizontally (no visible scrollbar). File names take the
+ * colour of their dot, and the dot sits at the left edge and stays there while the list is scrolled sideways.
  */
 @Composable
-private fun ChangesList(r: ChangesResult) {
+private fun ChangesList(r: ChangesResult, onOpenFile: (String) -> Unit) {
     var collapsed by remember { mutableStateOf(setOf<String>()) } // folder paths; everything starts expanded
-    val groups = remember(r) { Changes.groups(r.files) }
-    val rows = remember(groups, collapsed) {
-        buildList {
-            for (g in groups) {
-                add(ListRow.Dir(g.dir, g.dir in collapsed))
-                if (g.dir !in collapsed) g.files.forEach { add(ListRow.File(g.dir, it.name, it.kind)) }
-            }
-        }
-    }
-    // Every row gets the same width: the widest of the longest paths/names (measured), or the screen width if that is wider,
-    // so a long path can be scrolled sideways. The dots sit at the left edge and stay put while the list scrolls sideways.
+    val tree = remember(r) { Changes.tree(r.files) }
+    val rows = remember(tree, collapsed) { Changes.flatten(tree, collapsed) }
+    // Every row gets the same width: the widest row (text measured, plus its indent), or the screen width if that is wider,
+    // so a long path can be scrolled sideways.
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val style = MaterialTheme.typography.bodyMedium
-    val textWidth = remember(groups) {
-        val candidates = (groups.map { it.dir } + groups.flatMap { g -> g.files.map { it.name } }).sortedByDescending { it.length }.take(12)
-        candidates.maxOfOrNull { with(density) { measurer.measure(it, style, softWrap = false).size.width.toDp() } } ?: 0.dp
+    val contentWidth = remember(tree) {
+        val all = Changes.flatten(tree, emptySet())
+        val candidates = all.sortedByDescending { (n, depth) -> n.name.length + depth * 3 }.take(12)
+        candidates.maxOfOrNull { (n, depth) ->
+            with(density) { measurer.measure(n.name, style, softWrap = false).size.width.toDp() } + (depth * INDENT_DP).dp
+        } ?: 0.dp
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val rowWidth = maxOf(maxWidth, textWidth + 56.dp)
+        val rowWidth = maxOf(maxWidth, contentWidth + 72.dp)
         val hScroll = rememberScrollState()
         Box(Modifier.fillMaxSize().horizontalScroll(hScroll)) {
             LazyColumn(Modifier.width(rowWidth).fillMaxHeight(), contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp)) {
-                itemsIndexed(rows, key = { _, row -> when (row) { is ListRow.Dir -> "d:" + row.dir; is ListRow.File -> "f:" + row.dir + "/" + row.name } }) { index, row ->
+                itemsIndexed(rows, key = { _, (n, _) -> (if (n.isFolder) "d:" else "f:") + n.path }) { index, (node, depth) ->
                     // Table-like stripes: every second row (the 2nd, 4th, …) has a slightly darker background.
                     // Opaque (not translucent) so the fixed dot can hide the name that slides under it.
                     val rowBg = if (index % 2 == 1) Color.Black.copy(alpha = 0.22f).compositeOver(Tokens.Background) else Tokens.Background
-                    val stripe = Modifier.background(rowBg)
-                    when (row) {
-                        is ListRow.Dir -> Row(
-                            Modifier.fillMaxWidth().then(stripe).clickable {
-                                collapsed = if (row.dir in collapsed) collapsed - row.dir else collapsed + row.dir
-                            }.padding(start = 12.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
+                    val indent = (depth * INDENT_DP).dp
+                    if (node.isFolder) {
+                        val isCollapsed = node.path in collapsed
+                        Row(
+                            Modifier.fillMaxWidth().background(rowBg).clickable {
+                                collapsed = if (isCollapsed) collapsed - node.path else collapsed + node.path
+                            }.padding(start = 12.dp + indent, end = 16.dp, top = 9.dp, bottom = 9.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(if (row.collapsed) "▸" else "▾", color = Tokens.OnSurfaceMuted, modifier = Modifier.width(20.dp))
-                            Text(row.dir.ifEmpty { "/" }, style = style, color = Tokens.OnSurfaceMuted, softWrap = false, maxLines = 1)
+                            Text(if (isCollapsed) "▸" else "▾", color = Tokens.OnSurfaceMuted, modifier = Modifier.width(20.dp))
+                            Text(node.name, style = style, color = Tokens.OnSurface, softWrap = false, maxLines = 1)
                         }
-                        is ListRow.File -> Box(Modifier.fillMaxWidth().then(stripe)) {
-                            Text(row.name, style = style, color = row.kind.color(), softWrap = false, maxLines = 1,
-                                modifier = Modifier.padding(start = 32.dp, end = 16.dp, top = 6.dp, bottom = 6.dp))
+                    } else {
+                        val kind = node.kind!!
+                        Box(Modifier.fillMaxWidth().background(rowBg).clickable { onOpenFile(node.path) }) {
+                            // The name is indented under its folder (past the dot column and the folder's arrow).
+                            Text(node.name, style = style, color = kind.color(), softWrap = false, maxLines = 1,
+                                modifier = Modifier.padding(start = 40.dp + indent, end = 16.dp, top = 9.dp, bottom = 9.dp))
                             // The dot at the left edge. It is shifted by the sideways scroll, so it stays at the left of the
                             // screen while a long name scrolls under it.
                             Box(
@@ -184,7 +180,7 @@ private fun ChangesList(r: ChangesResult) {
                                     .offset { IntOffset(hScroll.value, 0) }
                                     .background(rowBg).padding(start = 12.dp, end = 8.dp),
                                 contentAlignment = Alignment.Center,
-                            ) { StatusDot(row.kind.color(), Modifier.size(9.dp)) }
+                            ) { StatusDot(kind.color(), Modifier.size(9.dp)) }
                         }
                     }
                 }
@@ -193,3 +189,6 @@ private fun ChangesList(r: ChangesResult) {
         }
     }
 }
+
+/** How far each level of the tree is indented. */
+private const val INDENT_DP = 16

@@ -239,6 +239,45 @@ public sealed class GitService
         return result;
     }
 
+    /// <summary>Most characters of a diff sent to the phone (the ciphertext limit is 1 MB).</summary>
+    public const int MaxDiffChars = 400_000;
+
+    /// <summary>
+    /// What changed in one uncommitted file, as a unified diff against HEAD (paths only from <see cref="ChangedFilesAsync"/> are accepted,
+    /// so the phone can never ask for another file). A new untracked file is shown as all added lines.
+    /// </summary>
+    public async Task<string> FileDiffAsync(string folder, string relPath)
+    {
+        if (!(await ChangedFilesAsync(folder)).Any(f => f.Path == relPath)) throw new GitException("That file has no uncommitted changes.");
+        var root = Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var full = Path.GetFullPath(Path.Combine(folder, relPath));
+        if (!full.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new GitException("That path is outside the project.");
+        var r = await Git(folder, ["diff", "HEAD", "--no-color", "--no-ext-diff", "-U3", "--", relPath], check: false);
+        var text = r.ExitCode == 0 ? r.StdOut : "";
+        if (string.IsNullOrWhiteSpace(text) && File.Exists(full)) text = NewFileDiff(File.ReadAllBytes(full));
+        if (string.IsNullOrWhiteSpace(text)) text = "No textual changes.";
+        return CapDiff(text);
+    }
+
+    /// <summary>A file git does not know yet, shown like git would show a new file: one hunk of added lines.</summary>
+    public static string NewFileDiff(byte[] content)
+    {
+        if (content.Length == 0) return "New empty file.";
+        if (Array.IndexOf(content, (byte)0, 0, Math.Min(content.Length, 8000)) >= 0) return $"New binary file ({content.Length} bytes).";
+        var lines = Encoding.UTF8.GetString(content).Replace("\r\n", "\n").Split('\n').ToList();
+        if (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
+        return $"@@ -0,0 +1,{lines.Count} @@\n" + string.Join('\n', lines.Select(l => "+" + l)) + "\n";
+    }
+
+    /// <summary>Cuts a diff at a line end once it passes <see cref="MaxDiffChars"/> and says how much was left out.</summary>
+    public static string CapDiff(string text)
+    {
+        if (text.Length <= MaxDiffChars) return text;
+        var cut = text.LastIndexOf('\n', MaxDiffChars);
+        if (cut < MaxDiffChars / 2) cut = MaxDiffChars;
+        return text[..cut] + $"\n... diff truncated ({text.Length - cut} more characters)\n";
+    }
+
     public async Task<string> StatusShortAsync(string folder) => (await Git(folder, ["status", "--short", "--branch"])).StdOut.Trim();
 
     /// <summary>

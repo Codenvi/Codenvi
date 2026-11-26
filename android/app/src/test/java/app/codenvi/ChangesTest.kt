@@ -22,15 +22,28 @@ class ChangesTest {
         assertTrue(Changes.parse("").files.isEmpty())
     }
 
-    @Test fun groupsByFullFolderPath() {
-        val g = Changes.groups(listOf(
-            FileChange("android/app/src/codenvi/speech/Speech.kt", ChangeKind.UPDATED),
-            FileChange("android/app/src/codenvi/CodenviApp.kt", ChangeKind.NEW),
-            FileChange("z.txt", ChangeKind.DELETED), FileChange("android/app/src/codenvi/B.kt", ChangeKind.NEW),
+    @Test fun treeNestsAndMergesSingleFolderChains() {
+        val t = Changes.tree(listOf(
+            FileChange("android/app/src/main/java/app/codenvi/CodenviApp.kt", ChangeKind.UPDATED),
+            FileChange("android/app/src/main/java/app/codenvi/notify/Notifier.kt", ChangeKind.NEW),
+            FileChange("android/app/src/main/java/app/codenvi/data/Stores.kt", ChangeKind.UPDATED),
+            FileChange("android/app/src/main/res/raw/reply_chime.wav", ChangeKind.NEW),
+            FileChange("docs/design.md", ChangeKind.UPDATED), FileChange("CHANGELOG.md", ChangeKind.UPDATED),
         ))
-        assertEquals(listOf("", "android/app/src/codenvi", "android/app/src/codenvi/speech"), g.map { it.dir })
-        assertEquals(listOf("z.txt"), g[0].files.map { it.name })
-        assertEquals(listOf("B.kt", "CodenviApp.kt"), g[1].files.map { it.name })
-        assertEquals(ChangeKind.UPDATED, g[2].files.single().kind)
+        assertEquals(listOf("android\\app\\src\\main", "docs", "CHANGELOG.md"), t.map { it.name })
+        val main = t[0]
+        assertEquals("android/app/src/main", main.path)
+        assertEquals(listOf("java\\app\\codenvi", "res\\raw"), main.children.map { it.name })
+        val codenvi = main.children[0]
+        assertEquals(listOf("data", "notify", "CodenviApp.kt"), codenvi.children.map { it.name })
+        assertEquals("android/app/src/main/java/app/codenvi/notify/Notifier.kt", codenvi.children[1].children.single().path)
+        assertEquals(ChangeKind.NEW, codenvi.children[1].children.single().kind)
+    }
+
+    @Test fun flattenHonoursCollapsedFolders() {
+        val tree = Changes.tree(listOf(FileChange("src/a/x.kt", ChangeKind.NEW), FileChange("src/b.kt", ChangeKind.NEW), FileChange("c.kt", ChangeKind.NEW)))
+        assertEquals(listOf("src" to 0, "a" to 1, "x.kt" to 2, "b.kt" to 1, "c.kt" to 0),
+            Changes.flatten(tree, emptySet()).map { it.first.name to it.second })
+        assertEquals(listOf("src" to 0, "c.kt" to 0), Changes.flatten(tree, setOf("src")).map { it.first.name to it.second })
     }
 }

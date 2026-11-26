@@ -262,9 +262,10 @@ fun PromptBar(
     var sending by remember { mutableStateOf(false) }
     val dictation = rememberDictation()
     val listening by dictation.listening.collectAsStateWithLifecycle()
+    val transcribing by dictation.transcribing.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val mic = rememberMicPermission(onDenied = { vm.warn("Microphone permission is needed for dictation.") }) {
-        dictation.toggle(value, settings.speechLanguage, { value = it }, { vm.fail(it) })
+        dictation.toggle(value, settings.speechLanguage, { value = it }, { vm.fail(it) }, latest = { value })
     }
 
     Column(Modifier.fillMaxWidth().background(Tokens.Surface).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -289,7 +290,7 @@ fun PromptBar(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(1f)) { ModelEffortPicker(catalog, model, effort) { m, e -> model = m; effort = e } }
             if (dictation.available) {
-                RecordButton(recording = listening, onClick = { if (!busy) mic() })
+                RecordButton(recording = listening, transcribing = transcribing, onClick = { if (!busy && !transcribing) mic() })
             }
             // While a prompt for this session is being answered the Send button spins; tapping it then stops that job.
             FilledIconButton(

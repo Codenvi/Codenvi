@@ -4,6 +4,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Reply sound and pop-up notifications, and the small "waiting for replies" service that keeps them working in the background. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <!-- Android 11+ package visibility (docs/design.md §10.4, §10.5) -->
     <queries>
@@ -45,5 +49,15 @@
                 <data android:scheme="codenvi" />
             </intent-filter>
         </activity>
+
+        <!-- Keeps the connection to your server open while the app is in the background, so replies are announced. -->
+        <service
+            android:name=".notify.ListenService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps a WebSocket to the user's own Codenvi server open to announce finished replies" />
+        </service>
     </application>
 </manifest>

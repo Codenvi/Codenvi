@@ -1,6 +1,13 @@
 package app.codenvi
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import app.codenvi.data.AppSettings
+import app.codenvi.notify.EXTRA_SESSION_ID
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -45,6 +52,7 @@ import app.codenvi.ui.screens.ChangesScreen
 import app.codenvi.ui.screens.ChatScreen
 import app.codenvi.ui.screens.ConnectScreen
 import app.codenvi.ui.screens.DevicesScreen
+import app.codenvi.ui.screens.DiffScreen
 import app.codenvi.ui.screens.MultimodeScreen
 import app.codenvi.ui.screens.ProjectScreen
 import app.codenvi.ui.screens.ProjectsScreen
@@ -54,6 +62,8 @@ import app.codenvi.ui.theme.Tokens
 
 class MainActivity : ComponentActivity() {
     private var pendingLink by mutableStateOf<String?>(null)
+    /** Session of a tapped reply notification, to be opened as a chat once the app is up. */
+    private var pendingChat by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Dark status and navigation bars (docs/design.md §0.7).
@@ -63,12 +73,14 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         pendingLink = intent?.dataString
+        pendingChat = intent?.getStringExtra(EXTRA_SESSION_ID)
         setContent { CodenviTheme { Root(this) } }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         pendingLink = intent.dataString
+        intent.getStringExtra(EXTRA_SESSION_ID)?.let { pendingChat = it }
     }
 
     /** FLAG_SECURE on screens that show or accept keys (docs/design.md §10.6). */
@@ -77,8 +89,16 @@ class MainActivity : ComponentActivity() {
     }
 
     fun consumeLink(): String? = pendingLink.also { pendingLink = null }
+    val chatToOpen: String? get() = pendingChat
+    fun consumeChat() { pendingChat = null }
     val link: String? get() = pendingLink
 }
+
+private fun encodePath(path: String): String =
+    android.util.Base64.encodeToString(path.toByteArray(), android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING)
+
+private fun decodePath(arg: String): String =
+    String(android.util.Base64.decode(arg, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING))
 
 private data class Tab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -109,6 +129,25 @@ private fun Root(activity: MainActivity) {
         if (link != null && secure.refreshToken != null && link.startsWith("codenvi://key", ignoreCase = true)) {
             vm.run { vm.repo.addKeyString(link) }
             activity.consumeLink()
+        }
+    }
+
+    // A tapped reply notification opens that session's chat.
+    val chatToOpen = activity.chatToOpen
+    LaunchedEffect(chatToOpen, secure.refreshToken, secure.disclaimerAccepted) {
+        if (chatToOpen != null && secure.refreshToken != null && secure.disclaimerAccepted) {
+            nav.navigate("chat/$chatToOpen") { launchSingleTop = true }
+            activity.consumeChat()
+        }
+    }
+
+    // Android 13+: ask once the phone is paired for the permission to show reply notifications.
+    val notifySetting by vm.repo.settings.flow.collectAsStateWithLifecycle(AppSettings())
+    val notifyLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(secure.refreshToken, secure.disclaimerAccepted, notifySetting.notifyReplies) {
+        if (Build.VERSION.SDK_INT >= 33 && secure.refreshToken != null && secure.disclaimerAccepted && notifySetting.notifyReplies &&
+            ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            notifyLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
@@ -158,9 +197,15 @@ private fun Root(activity: MainActivity) {
                 )
             }
             composable("changes/{sessionId}", listOf(navArgument("sessionId") { type = NavType.StringType })) { e ->
-                ChangesScreen(vm, e.arguments!!.getString("sessionId")!!, onBack = { nav.popBackStack() })
+                val sid = e.arguments!!.getString("sessionId")!!
+                ChangesScreen(vm, sid, onBack = { nav.popBackStack() },
+                    onOpenFile = { path -> nav.navigate("diff/$sid/${encodePath(path)}") })
             }
-            composable("multimode") { MultimodeScreen(vm, onOpenChat = { nav.navigate("chat/$it") }) }
+            // What changed in one file; back returns to the Code changes page. The path is URL-safe Base64 so "/" cannot break the route.
+            composable("diff/{sessionId}/{path}", listOf(navArgument("sessionId") { type = NavType.StringType }, navArgument("path") { type = NavType.StringType })) { e ->
+                DiffScreen(vm, e.arguments!!.getString("sessionId")!!, decodePath(e.arguments!!.getString("path")!!), onBack = { nav.popBackStack() })
+            }
+            composable("multimode") { MultimodeScreen(vm, onOpenChat = { nav.navigate("chat/$it") }, onOpenChanges = { nav.navigate("changes/$it") }) }
             composable("settings") {
                 SettingsScreen(vm, onDisconnected = { nav.navigate("connect") { popUpTo(0) { inclusive = true } } })
             }

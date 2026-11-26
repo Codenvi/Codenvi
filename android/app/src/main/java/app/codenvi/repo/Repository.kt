@@ -12,6 +12,8 @@ import app.codenvi.crypto.E2E
 import app.codenvi.crypto.ErrorPlain
 import app.codenvi.crypto.ObjectTypes
 import app.codenvi.crypto.ProgressPlain
+import app.codenvi.notify.ReplyInfo
+import app.codenvi.speech.ReadAloud
 import app.codenvi.crypto.ProjectMeta
 import app.codenvi.crypto.PromptPlain
 import app.codenvi.crypto.ResultPlain
@@ -115,6 +117,9 @@ class Repository(
     /** Live progress lines per job (not persisted; the server keeps the last 200 per session). */
     private val _progress = MutableStateFlow<Map<String, List<String>>>(emptyMap())
     val progress: StateFlow<Map<String, List<String>>> = _progress
+
+    /** Called for every finished reply that arrives while the connection is open (the app turns it into a sound / pop-up). */
+    @Volatile var onReply: ((ReplyInfo) -> Unit)? = null
 
     val connected get() = ws.connected
     val revoked get() = http.revoked
@@ -464,6 +469,17 @@ class Repository(
         return Changes.parse(r.text)
     }
 
+    /** What changed in one uncommitted file (path as listed by [projectChanges]): a unified diff against the last commit. */
+    suspend fun fileDiff(projectId: String, path: String): String {
+        val r = try {
+            controlOk(projectId, ControlPlain(ControlCommands.DIFF, projectId, text = path))
+        } catch (e: UserException) {
+            if (e.message?.startsWith("Unknown command") == true) throw UserException("Update Codenvi on the PC to see what changed in a file.")
+            throw e
+        }
+        return r.text.orEmpty()
+    }
+
     /** Asks the PC to start the project's own saved script. No script text is sent: the PC runs what it has stored. */
     suspend fun runScript(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.RUN_SCRIPT, projectId)) }
 
@@ -608,6 +624,19 @@ class Repository(
         )
     }
 
+    /** Tells the app a reply has arrived: project and session name plus a short plain-text preview (needs the PC's key). */
+    private suspend fun announceReply(p: JobResultPayload) {
+        val listener = onReply ?: return
+        val s = dao.session(p.sessionId) ?: return
+        val project = dao.project(s.projectId) ?: return
+        val dev = project.deviceId
+        val projectName = projectMeta(project)?.name ?: return
+        val sessionName = decrypt<SessionMeta>(dev, Aad.meta(dev, ObjectTypes.SESSION_META, s.id), s.encMeta)?.name ?: return
+        val plain: ResultPlain? = decrypt(dev, Aad(dev, ObjectTypes.MESSAGE, p.messageId, Directions.D2P, p.clientCreatedAtMs), p.ciphertext)
+        val preview = ReadAloud.stripMarkdown(plain?.text ?: "").replace(Regex("\\s+"), " ").trim().take(160)
+        listener(ReplyInfo(p.sessionId, p.messageId, projectName, sessionName, preview))
+    }
+
     // ---------------- WebSocket events ----------------
     private suspend fun handle(env: Envelope) {
         when (env.type) {
@@ -630,6 +659,7 @@ class Repository(
             MessageTypes.JOB_RESULT -> {
                 val p: JobResultPayload = env.payload.convertTo()
                 runCatching { syncMessages(p.sessionId) }
+                if (p.isFinal) runCatching { announceReply(p) }
             }
             MessageTypes.CONTROL_RESPONSE -> {
                 val p: ControlResponsePayload = env.payload.convertTo()
