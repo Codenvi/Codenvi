@@ -93,7 +93,7 @@
 <article class="doc-section" id="general">
 <h1>General</h1>
 
-<p>Codenvi lets one person drive Claude Code on several Windows PCs from an Android phone. Each PC has registered project folders. The phone sends a prompt to a project, the PC runs Claude Code on it, commits the result to a development branch and sends the answer back.</p>
+<p>Codenvi lets one person drive Claude Code on several Windows PCs from an Android phone. Each PC has registered project folders. The phone sends a prompt to a project, the PC runs Claude Code on it in a development branch and sends the answer back. The changes stay uncommitted until you commit them.</p>
 <h2>Why Codenvi</h2>
 <ul>
 <li><strong>You own the server.</strong> One owner per installation. Prompts, replies, project names and commit messages are end-to-end encrypted, so the server only relays ciphertext.</li>
@@ -120,11 +120,11 @@ Android app ──HTTPS/WSS──▶ your VPS (nginx → Node.js server → Post
 <li>On the phone you pick a project and send a prompt. The app encrypts it with the key of that PC.</li>
 <li>The server relays the ciphertext. If the PC is offline the job waits and runs when the PC reconnects.</li>
 <li>The Windows app decrypts the prompt and runs Claude Code in the project folder (<code>claude -p</code>, prompt sent on stdin). Progress streams back live.</li>
-<li>The result is committed to the development branch (<code>codenvi-dev</code> by default). The reply is encrypted and sent to the phone.</li>
+<li>Claude's changes are left in the working tree of the development branch (<code>codenvi-dev</code> by default); you commit them from the phone or the PC. The reply is encrypted and sent to the phone.</li>
 <li>The phone decrypts and shows the reply. You can have it read aloud, or roll back to any earlier commit from the Commits list.</li>
 </ol>
 <h2>On the phone</h2>
-<p>Besides the chat per project, <strong>Multimode</strong> lists every project of every connected PC on one screen and sends your message to the selected one. Voice input uses the system speech recognizer and never auto-sends: you review the text first. Read aloud uses the system text-to-speech engine.</p>
+<p>Besides the chat per project, <strong>Multimode</strong> lists every project of every connected PC on one screen and sends your message to the selected one. Voice input records, then transcribes offline on the phone with Whisper (64-bit ARM phones; the model is downloaded once) and never auto-sends: you review the text first. Read aloud uses the system text-to-speech engine. A chime and a pop-up announce new replies. From the chat header you can see the uncommitted code changes and a diff per file, and Commit, Pull or Publish the dev branch.</p>
 <h2>What the dev branch means</h2>
 <p>Codenvi creates and checks out <code>codenvi-dev</code> when you register a project. Rolling back runs <code>git revert</code> on the later commits, so history is never rewritten. Merging the branch is left to you.</p>
 

@@ -37,6 +37,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Android: dictation no longer fails with "Speech recognition error (12)" when the offline language pack is missing; it retries online and with the phone's default language, and explains the error if it still fails.
 
 ### Changed
+- Android: the Devices list no longer prints "Online" or "Offline" under the device name; the green (online) or grey (offline) dot says it.
+- Documentation: the README, the website and the docs page no longer say the PC commits the result after each job (changes stay in the working tree until you Commit) or that Codenvi never pushes (Publish pushes); `docs/design.md` and the website now describe offline Whisper dictation, reply sound and notifications, and the Settings sections that exist today.
 - Documentation brought in line with the code: `docs/design.md` now lists every control command (script run/stop, commit, pull, publish), the QR pairing, the full schema (`jobs.delivered_at`, indexes, migrations `0002`/`0003`, no `GRANT`s), the demo data folder and the extra workflows; it no longer says Codenvi commits after each job or that a failed health check rolls the server back (it doesn't, in `design.md`, `building.md` and `self-hosting.md`); `codenvi-admin password` is listed.
 - Android: the in-chat commit, push and pull blocks show the action's icon (the same Commit, Publish and Pull icons as the chat header) instead of the words "Committed", "Pushed" and "Pulled", followed by the one-line message.
 - Windows: the project's Overview tab is gone; its folder, branch and git state block and buttons are now at the top of the Settings tab, and Sessions is the tab shown first.

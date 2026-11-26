@@ -19,7 +19,7 @@
 
 **Website:** <https://codenvi.github.io/Codenvi/> · **Repository:** <https://github.com/Codenvi/Codenvi>
 
-Codenvi lets one person drive Claude Code on several Windows PCs from an Android phone. Each PC has registered project folders. The phone sends a prompt to a project; the PC runs Claude Code on it, commits the result to a development branch (`codenvi-dev`) and sends the answer back. Prompts, replies, project names and commit messages are **end-to-end encrypted** with a key that only the PC and the phone hold - your server only relays ciphertext.
+Codenvi lets one person drive Claude Code on several Windows PCs from an Android phone. Each PC has registered project folders. The phone sends a prompt to a project; the PC runs Claude Code on it in the project's development branch (`codenvi-dev`) and sends the answer back. The changes stay in the working tree until you **Commit** them from the phone or the PC. Prompts, replies, project names and commit messages are **end-to-end encrypted** with a key that only the PC and the phone hold - your server only relays ciphertext.
 
 ```
 Android app ──HTTPS/WSS──▶ your VPS (nginx → Node.js server → PostgreSQL) ◀──HTTPS/WSS── Windows app ──▶ claude -p

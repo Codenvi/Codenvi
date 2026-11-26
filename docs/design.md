@@ -108,7 +108,7 @@ Rules:
 | Users | **Single owner, no registration and no sign-in screens.** Each app install connects once with a **one-time connection string** (pairing code) and then holds its own revocable credential (§4). |
 | Realtime | Plain **WebSockets** with one JSON envelope protocol, used by both clients. Desktop uses `ClientWebSocket` and Android uses OkHttp's WebSocket, so the listed Android stack needs no SignalR client. |
 | DB schema as code | **Drizzle ORM** schema (`server/src/db/schema.ts`) with generated SQL migrations in `server/drizzle/`, applied by `dist/migrate.js` on every deploy before the new release goes live. |
-| Speech-to-text | Android's built-in **`SpeechRecognizer`**, which is free, needs no API key and lets the speech service pick offline or online. |
+| Speech-to-text | **Offline Whisper** ([whisper.cpp](https://github.com/ggml-org/whisper.cpp), English 5-bit models downloaded once) on 64-bit ARM phones: record first, transcribe after (§10.4). Other phones fall back to Android's built-in **`SpeechRecognizer`**, which is free, needs no API key and lets the speech service pick offline or online. |
 | Text-to-speech | Android's built-in **`TextToSpeech`**. |
 | Visual design | **Dark mode with orange as the primary color** in both apps (§0.7). |
 | Repo | **Public monorepo on GitHub.** Deploys are chosen per push with **`[android]`**, **`[windows]`** and **`[server]`** in any commit message. Any combination works. Every workflow can also be run manually. |
@@ -858,7 +858,7 @@ okhttp = "4.12.0"
    - Send posts the message to the **selected session**. Until one is chosen it is the project's `default_session_id`, or else its first session.
    - After a send, the message block is locked and its **Send** button spins (tap it to stop the job) until that session's reply arrives; locking is per session. A project block shows a loading bar while it is working and a **white dot** (top right) for a reply not yet seen in a chat. The dot also appears before the name of the session pill the reply belongs to, and on the title-bar chat icon while the active project has one. It clears when that session's chat is opened, its reply is read aloud with the message-block speaker, or another message is sent in it.
    - A **chat icon** at the right end of the title bar opens the selected session's chat. Every chat page has a **Multimode icon** in the same slot: it presets Multimode to that chat's project and session and opens it, however the chat was reached.
-7. **Settings:** server host, paired installs (rename, **Revoke**), **Disconnect this phone**, TTS voice/speed, speech language, app version, and **About** (MIT license notice, third-party notices, repository link, disclaimer).
+7. **Settings:** server host, paired installs (rename, **Revoke**), **Disconnect this phone**, read-aloud voice/speed with a preview button, reply sound and notifications (§10.7), offline voice transcription (model choice, download, delete; §10.4), speech input language, app version, and **About** (MIT license notice, third-party notices, repository link, disclaimer).
 
 ### 10.4 Voice input (no paid AI API)
 

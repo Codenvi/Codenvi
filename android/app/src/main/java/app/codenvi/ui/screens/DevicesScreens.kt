@@ -116,7 +116,6 @@ fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> 
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(d.name, style = MaterialTheme.typography.titleMedium)
-                            Text(if (d.online) "Online" else "Offline", color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.bodyMedium)
                             if (d.id in runningDevices) Chip("Running", Tokens.Primary)
                             if (!d.hasCurrentKey) Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Filled.Lock, null, tint = Tokens.Warning, modifier = Modifier.padding(end = 4.dp))
