@@ -29,6 +29,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Tests now also run on pushes to `main`.
 
 ### Fixed
+- Android: the unseen-reply badge and dots (Devices, Projects, Sessions) could be missing when a reply finished while the phone was not connected, or in a session the phone had not loaded yet, because they are computed from the messages stored on the phone and those were only pulled when the chat was opened. On every (re)connect the phone now refreshes each project's sessions and pulls the messages of any session that changed, and a reply for an unknown session first reloads the device, project and session lists.
 - Windows/Android: the Publish button no longer shows when there is nothing to push. The "ahead" count is now measured against a freshly fetched `origin/main` (and is 0 when the files equal it, such as right after a Pull) instead of the local `main`.
 - Android: tapping the dictation button no longer plays the mic on, off, on sounds. The speech service now picks offline or online itself (the offline-only first attempt that failed and restarted the recognizer is gone), a restart is limited to one retry with the phone's default language, and the recognizer is cancelled silently. A tap while it is still starting now stops it instead of starting another round.
 - Android: the first tap on the dictation button no longer shows "Speech recognition error (11)"; the app quietly retries while the speech service is starting up.

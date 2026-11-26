@@ -63,6 +63,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -376,12 +377,21 @@ class Repository(
             val active = http.api().activeJobs(deviceId)
             dao.upsertJobs(active.map(::toEntity))
         }
+        for (p in list) runCatching { refreshSessions(p.id) }
     }
 
     suspend fun refreshSessions(projectId: String) = withContext(Dispatchers.IO) {
         val list = http.api().sessions(projectId)
+        val known = list.associate { it.id to dao.session(it.id)?.updatedAtMs }
         dao.upsertSessions(list.map { SessionEntity(it.id, it.projectId, it.encMeta, it.createdAtMs, it.updatedAtMs) })
         dao.deleteSessionsExcept(projectId, list.map { it.id })
+        // Catch up on replies that finished while the phone was not connected (or in a session it had never loaded):
+        // the unseen-reply indicators are computed from the local messages, so they must be pulled without opening the chat.
+        val baseline = settings.flow.first().unseenBaselineMs
+        for (s in list) {
+            val before = known[s.id]
+            if (if (before == null) s.updatedAtMs > baseline else s.updatedAtMs > before) runCatching { syncMessages(s.id) }
+        }
     }
 
     /** Pulls new messages after the last known seq, then job states (docs/design.md §10.2 "resyncs history"). */
@@ -658,6 +668,8 @@ class Repository(
             }
             MessageTypes.JOB_RESULT -> {
                 val p: JobResultPayload = env.payload.convertTo()
+                // A session the phone has not loaded yet has no row to attach the reply to (no dots, no notification).
+                if (dao.session(p.sessionId) == null) runCatching { refreshDevices() }
                 runCatching { syncMessages(p.sessionId) }
                 if (p.isFinal) runCatching { announceReply(p) }
             }
