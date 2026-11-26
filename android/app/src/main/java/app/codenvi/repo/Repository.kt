@@ -308,6 +308,12 @@ class Repository(
         }
     }
 
+    /** Sessions / devices that have a job running right now (the "Running" chips on the Devices and Sessions pages). */
+    val runningSessions: Flow<Set<String>> = dao.activeJobs()
+        .map { l -> l.filter { it.status == JobStatuses.RUNNING }.map { it.sessionId }.toSet() }.distinctUntilChanged()
+    val runningDevices: Flow<Set<String>> = dao.activeJobs()
+        .map { l -> l.filter { it.status == JobStatuses.RUNNING }.map { it.deviceId }.toSet() }.distinctUntilChanged()
+
     fun activeJobs(sessionId: String): Flow<List<JobEntity>> = dao.jobs(sessionId).map { l -> l.filter { it.status in JobStatuses.ACTIVE } }
 
     /** Replies the user has not seen in a chat (or heard read aloud) and has not answered since. */
@@ -446,6 +452,17 @@ class Repository(
     suspend fun writeMemory(projectId: String, text: String) { controlOk(projectId, ControlPlain(ControlCommands.MEMORY_SET, projectId, text = text)) }
     suspend fun rollback(projectId: String, hash: String) { controlOk(projectId, ControlPlain(ControlCommands.ROLLBACK, projectId, commitHash = hash)); refreshCommits(projectId) }
     suspend fun projectStatus(projectId: String) = controlOk(projectId, ControlPlain(ControlCommands.STATUS, projectId)).status
+
+    /** The uncommitted files of the project on the PC (paths and kinds only, no contents). An older PC answers "Unknown command". */
+    suspend fun projectChanges(projectId: String): ChangesResult {
+        val r = try {
+            controlOk(projectId, ControlPlain(ControlCommands.CHANGES, projectId))
+        } catch (e: UserException) {
+            if (e.message?.startsWith("Unknown command") == true) throw UserException("Update Codenvi on the PC to see code changes.")
+            throw e
+        }
+        return Changes.parse(r.text)
+    }
 
     /** Asks the PC to start the project's own saved script. No script text is sent: the PC runs what it has stored. */
     suspend fun runScript(projectId: String) { controlOk(projectId, ControlPlain(ControlCommands.RUN_SCRIPT, projectId)) }

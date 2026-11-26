@@ -41,6 +41,7 @@ object ControlCommands {
     const val MEMORY_SET = "project.memory.set"
     const val ROLLBACK = "project.rollback"
     const val STATUS = "project.status"
+    const val CHANGES = "project.changes"
     const val RUN_SCRIPT = "project.script.run"
     const val STOP_SCRIPT = "project.script.stop"
     const val COMMIT = "project.commit"

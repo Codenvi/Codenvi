@@ -18,10 +18,15 @@ import java.util.Locale
 private const val ERROR_LANGUAGE_NOT_SUPPORTED = 12
 private const val ERROR_LANGUAGE_UNAVAILABLE = 13
 private const val ERROR_SERVER_DISCONNECTED = 11
+private const val MAX_EMPTY_CYCLES = 60 // ~ many minutes of pure silence in continuous mode before dictation stops itself
+private const val RESTART_DELAY_MS = 150L
 
 /**
  * Speech-to-text with the built-in SpeechRecognizer (docs/design.md §10.4): free, no API key, prefers offline.
  * Partial results stream to [onPartial]; the final text goes to [onFinal]. Never auto-sends.
+ *
+ * Continuous mode (used by the chat): the recognizer ends by itself after a pause, so it is started again after every
+ * result or silence timeout until [stop] is called, and the user can take as long as they like between sentences.
  */
 class SpeechInput(private val context: Context) {
     private var recognizer: SpeechRecognizer? = null
@@ -37,19 +42,33 @@ class SpeechInput(private val context: Context) {
     @Volatile var active = false
         private set
 
+    private val _recording = MutableStateFlow(false)
+
+    /**
+     * True for the whole dictation, including the short gaps while the recognizer restarts in continuous mode
+     * (unlike [listening], which follows the recognizer). The record button follows this one, so it does not blink between sentences.
+     */
+    val recording: StateFlow<Boolean> = _recording
+
+    private fun setActive(value: Boolean) { active = value; _recording.value = value }
+
     /**
      * Every (re)start of the recognizer plays the system's mic-on / mic-off sounds, so attempts are kept to a minimum:
      * the first one lets the speech service choose offline or online itself; only if it rejects the language is there
      * one more, with the phone's own default language. (Trying "offline only" first made a missing offline pack cost
      * two extra start-stop cycles.)
      */
-    fun start(language: String?, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) {
+    fun start(language: String?, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit, continuous: Boolean = false) {
         session++
-        active = true
-        begin(language, 0, 0, onPartial, onFinal, onError)
+        setActive(true)
+        emptyCycles = 0
+        begin(language, 0, 0, continuous, onPartial, onFinal, onError)
     }
 
-    private fun begin(language: String?, step: Int, retries: Int = 0, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) {
+    /** Restarts in a row that heard nothing (continuous mode). It gives up after a long silence so the mic is not left open forever. */
+    private var emptyCycles = 0
+
+    private fun begin(language: String?, step: Int, retries: Int = 0, continuous: Boolean = false, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (String) -> Unit) {
         release()
         val mySession = session
         val r = SpeechRecognizer.createSpeechRecognizer(context)
@@ -66,8 +85,18 @@ class SpeechInput(private val context: Context) {
             }
             override fun onResults(results: Bundle?) {
                 _listening.value = false
-                active = false
-                results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let(onFinal) ?: onFinal("")
+                val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                if (continuous && mySession == session) {
+                    // Keep the microphone open: hand over this sentence, then listen again.
+                    if (text.isNullOrBlank()) emptyCycles++ else emptyCycles = 0
+                    onFinal(text ?: "")
+                    if (emptyCycles <= MAX_EMPTY_CYCLES) {
+                        Handler(Looper.getMainLooper()).postDelayed({ if (mySession == session) begin(language, step, 0, true, onPartial, onFinal, onError) }, RESTART_DELAY_MS)
+                        return
+                    }
+                }
+                if (mySession == session) setActive(false)
+                if (!continuous) onFinal(text ?: "")
             }
             override fun onError(error: Int) {
                 _listening.value = false
@@ -75,17 +104,22 @@ class SpeechInput(private val context: Context) {
                     val next = if (step == 0 && !language.isNullOrBlank()) 1 else -1
                     if (next >= 0) {
                         // Leave the recognizer callback before tearing it down, then try again with fewer demands.
-                        Handler(Looper.getMainLooper()).post { if (mySession == session) begin(language, next, 0, onPartial, onFinal, onError) }
+                        Handler(Looper.getMainLooper()).post { if (mySession == session) begin(language, next, 0, continuous, onPartial, onFinal, onError) }
                         return
                     }
+                }
+                // Continuous mode: a silence timeout or "no match" is just a pause in the user's talking, so listen again.
+                if (continuous && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) && ++emptyCycles <= MAX_EMPTY_CYCLES) {
+                    Handler(Looper.getMainLooper()).postDelayed({ if (mySession == session) begin(language, step, 0, true, onPartial, onFinal, onError) }, RESTART_DELAY_MS)
+                    return
                 }
                 // Error 11 (service disconnected) or 8 (busy) is typical on the first use, while the speech service is still
                 // starting. A fresh attempt a moment later works, so retry quietly instead of showing an error.
                 if ((error == ERROR_SERVER_DISCONNECTED || error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) && retries < 2) {
-                    Handler(Looper.getMainLooper()).postDelayed({ if (mySession == session) begin(language, step, retries + 1, onPartial, onFinal, onError) }, 500)
+                    Handler(Looper.getMainLooper()).postDelayed({ if (mySession == session) begin(language, step, retries + 1, continuous, onPartial, onFinal, onError) }, 500)
                     return
                 }
-                active = false
+                setActive(false)
                 onError(
                     when (error) {
                         ERROR_LANGUAGE_NOT_SUPPORTED, ERROR_LANGUAGE_UNAVAILABLE ->
@@ -105,6 +139,12 @@ class SpeechInput(private val context: Context) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            if (continuous) {
+                // Hints that ask the engine to wait longer before it decides the user has finished (not every engine obeys them).
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 10_000L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 10_000L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 10_000L)
+            }
             if (step == 0) putExtra(RecognizerIntent.EXTRA_LANGUAGE, language?.takeIf { it.isNotBlank() } ?: Locale.getDefault().toLanguageTag())
         }
         r.startListening(intent)
@@ -112,7 +152,7 @@ class SpeechInput(private val context: Context) {
 
     fun stop() {
         session++
-        active = false
+        setActive(false)
         release()
     }
 

@@ -365,6 +365,24 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
         return rollback;
     }
 
+    /// <summary>Most files listed in one answer, so it stays far below the 1 MB ciphertext limit.</summary>
+    public const int MaxChangedFiles = 3000;
+
+    /// <summary>The Code changes answer: one "N|U|D, tab, path" line per file, then "+", tab and a count when it was cut.</summary>
+    public async Task<string> ChangesAsync(Guid projectId)
+    {
+        var p = db.Project(projectId) ?? throw new ProjectException("Unknown project.");
+        return FormatChanges(await git.ChangedFilesAsync(p.FolderPath));
+    }
+
+    public static string FormatChanges(IReadOnlyList<FileChange> files)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var f in files.Take(MaxChangedFiles)) sb.Append(f.Kind).Append('\t').Append(f.Path.Replace('\n', ' ')).Append('\n');
+        if (files.Count > MaxChangedFiles) sb.Append("+\t").Append(files.Count - MaxChangedFiles).Append('\n');
+        return sb.ToString();
+    }
+
     public async Task<ProjectStatusPlain> StatusAsync(Guid projectId)
     {
         var p = db.Project(projectId) ?? throw new ProjectException("Unknown project.");
@@ -372,8 +390,8 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
         var dirty = await git.IsDirtyAsync(p.FolderPath);
         var head = await git.HeadAsync(p.FolderPath);
         var info = head is null ? null : await git.CommitInfoAsync(p.FolderPath, head);
+        await git.FetchOriginAsync(p.FolderPath, MainBranch); // first: "ahead" is measured against the fresh origin/main
         var ahead = await git.CountAheadAsync(p.FolderPath, p.DevBranch, MainBranch);
-        await git.FetchOriginAsync(p.FolderPath, MainBranch);
         var behind = await git.CountBehindOriginAsync(p.FolderPath, p.DevBranch, MainBranch);
         return new ProjectStatusPlain(branch, dirty, head, info?.Subject, Scheduler.RunningJob(projectId), branch == p.DevBranch, ahead, behind);
     }

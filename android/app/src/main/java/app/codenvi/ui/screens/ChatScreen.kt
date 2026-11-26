@@ -25,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -49,15 +48,15 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.codenvi.CodenviApp
-import app.codenvi.crypto.ProjectStatusPlain
 import app.codenvi.data.AppSettings
 import app.codenvi.net.JobStatuses
 import app.codenvi.repo.ChatItem
 import app.codenvi.ui.AppViewModel
-import app.codenvi.ui.components.ConfirmDialog
 import app.codenvi.ui.components.MarkdownText
 import app.codenvi.ui.components.ModelEffortPicker
 import app.codenvi.ui.components.rememberDictation
+import app.codenvi.ui.components.ChangesIcon
+import app.codenvi.ui.components.CopyIcon
 import app.codenvi.ui.components.GridIcon
 import app.codenvi.ui.components.PublishIcon
 import app.codenvi.ui.components.PullIcon
@@ -72,7 +71,7 @@ import kotlinx.coroutines.launch
 
 /** Chat per session (docs/design.md §10.3 screen 5). */
 @Composable
-fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultimode: () -> Unit) {
+fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultimode: () -> Unit, onChanges: () -> Unit = {}) {
     val repo = vm.repo
     val session by remember(sessionId) { repo.session(sessionId) }.collectAsStateWithLifecycle(null)
     val project by remember(session?.projectId) { session?.projectId?.let { repo.project(it) } ?: emptyFlow() }.collectAsStateWithLifecycle(null)
@@ -80,48 +79,20 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
     val active by remember(sessionId) { repo.activeJobs(sessionId) }.collectAsStateWithLifecycle(emptyList())
     val progress by repo.progress.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    var status by remember(sessionId) { mutableStateOf<ProjectStatusPlain?>(null) }
-    var confirmCommit by remember { mutableStateOf(false) }
-    var confirmPublish by remember { mutableStateOf(false) }
-    var confirmPull by remember { mutableStateOf(false) }
-    var pulling by remember { mutableStateOf(false) }
-    var committing by remember { mutableStateOf(false) }
-    var publishing by remember { mutableStateOf(false) }
-
-    fun refreshStatus(projectId: String) {
-        vm.run { status = runCatching { repo.projectStatus(projectId) }.getOrNull() }
-    }
+    val git = rememberGitActions(vm, sessionId)
 
     LaunchedEffect(sessionId) { vm.run { repo.syncMessages(sessionId) } }
     // Everything in an open chat counts as seen (clears the red dot on the Multimode grid), including replies arriving now.
     LaunchedEffect(sessionId, chatItems.lastOrNull()?.id) { if (chatItems.isNotEmpty()) repo.markSeen(sessionId) }
     LaunchedEffect(chatItems.size) { if (chatItems.isNotEmpty()) listState.animateScrollToItem(chatItems.lastIndex) }
     // Also re-checks when a new message arrives: the PC no longer commits automatically, so the Commit button must show up after a reply.
-    LaunchedEffect(project?.id, project?.deviceOnline, chatItems.lastOrNull()?.id) { project?.let { if (it.deviceOnline) refreshStatus(it.id) } }
+    LaunchedEffect(project?.id, project?.deviceOnline, chatItems.lastOrNull()?.id) { project?.let { if (it.deviceOnline) git.refresh(it.id) } }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         CodenviTopBar(session?.name ?: "Chat", onBack) {
-            // Commit/Publish only show up once we know the PC's git state, and only while that PC is online.
-            // While a commit/publish is running its icon is replaced by a spinner (and stays put until the PC answers).
-            if (committing || (project?.deviceOnline == true && status?.dirty == true)) {
-                IconButton(enabled = !committing, onClick = { confirmCommit = true }) {
-                    if (committing) CircularProgressIndicator(Modifier.size(20.dp), color = Tokens.Primary, strokeWidth = 2.dp)
-                    else Icon(SaveIcon, "Commit uncommitted changes on the PC")
-                }
-            }
-            // Pull: only when origin/main has commits the dev branch does not have yet.
-            if (pulling || (project?.deviceOnline == true && (status?.behindOrigin ?: 0) > 0)) {
-                IconButton(enabled = !pulling, onClick = { confirmPull = true }) {
-                    if (pulling) CircularProgressIndicator(Modifier.size(20.dp), color = Tokens.Primary, strokeWidth = 2.dp)
-                    else Icon(PullIcon, "Pull from origin/main")
-                }
-            }
-            if (publishing || (project?.deviceOnline == true && (status?.aheadOfMain ?: 0) > 0)) {
-                IconButton(enabled = !publishing, onClick = { confirmPublish = true }) {
-                    if (publishing) CircularProgressIndicator(Modifier.size(20.dp), color = Tokens.Primary, strokeWidth = 2.dp)
-                    else Icon(PublishIcon, "Publish to main")
-                }
-            }
+            GitHeaderButtons(git, project)
+            // Always available: opens the list of uncommitted files of this project.
+            IconButton(enabled = session != null, onClick = onChanges) { Icon(ChangesIcon, "Code changes") }
             // Always available: presets Multimode to this chat's project and session, then switches to it.
             IconButton(enabled = session != null, onClick = {
                 session?.let { s ->
@@ -143,56 +114,7 @@ fun ChatScreen(vm: AppViewModel, sessionId: String, onBack: () -> Unit, onMultim
         PromptBar(vm, onSend = { text, model, effort -> repo.sendPrompt(sessionId, text, model, effort) })
     }
 
-    if (confirmCommit) project?.let { p ->
-        var message by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { confirmCommit = false },
-            title = { Text("Commit") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Commit the uncommitted changes on \"${p.name}\" (${p.deviceName}), branch ${p.devBranch}. This text becomes the whole commit message.",
-                        color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
-                    OutlinedTextField(
-                        value = message, onValueChange = { message = it }, placeholder = { Text("Commit message") },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 220.dp),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(enabled = message.isNotBlank(), onClick = {
-                    val text = message
-                    confirmCommit = false
-                    committing = true
-                    vm.run(onOk = { vm.ok("Committed on the PC."); refreshStatus(p.id) }) {
-                        try { repo.commitLeftovers(p.id, sessionId, text) } finally { committing = false }
-                    }
-                }) { Text("Commit") }
-            },
-            dismissButton = { TextButton(onClick = { confirmCommit = false }) { Text("Cancel") } },
-        )
-    }
-    if (confirmPull) project?.let { p ->
-        ConfirmDialog("Pull", "Fetch origin/main and merge it into ${p.devBranch}, on \"${p.name}\" (${p.deviceName})? Uncommitted changes must be committed first.", "Pull",
-            onConfirm = {
-                confirmPull = false
-                pulling = true
-                vm.run(onOk = { vm.ok("Pulled origin/main on the PC."); refreshStatus(p.id) }) {
-                    try { repo.pull(p.id, sessionId) } finally { pulling = false }
-                }
-            },
-            onDismiss = { confirmPull = false })
-    }
-    if (confirmPublish) project?.let { p ->
-        ConfirmDialog("Publish", "Merge ${p.devBranch} into main and push main to origin, on \"${p.name}\" (${p.deviceName})?", "Publish",
-            onConfirm = {
-                confirmPublish = false
-                publishing = true
-                vm.run(onOk = { vm.ok("Published to main."); refreshStatus(p.id) }) {
-                    try { repo.publish(p.id, sessionId) } finally { publishing = false }
-                }
-            },
-            onDismiss = { confirmPublish = false })
-    }
+    GitActionDialogs(git, project)
 }
 
 @Composable
@@ -216,7 +138,13 @@ fun ChatBubble(vm: AppViewModel, item: ChatItem) {
             } else {
                 SelectionContainer { MarkdownText(item.text) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val meta = listOfNotNull(item.commitHash?.take(7)?.let { "commit $it" }, item.costUsd?.let { "$" + "%.4f".format(it) })
+                    // Copy icon at the bottom left: puts the whole reply (as received, Markdown included) on the clipboard.
+                    IconButton(onClick = {
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Codenvi reply", item.text))
+                        vm.ok("Copied.")
+                    }) { Icon(CopyIcon, "Copy message", tint = Tokens.OnSurfaceMuted) }
+                    val meta = listOfNotNull(item.commitHash?.take(7)?.let { "commit $it" })
                     Text(meta.joinToString(" · "), color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
                     IconButton(onClick = {
                         readAloud.configure(settings.ttsSpeed, settings.ttsVoice)
@@ -356,6 +284,7 @@ fun PromptBar(
                 }
             },
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp, max = 200.dp), enabled = enabled && !busy,
+            shape = RoundedCornerShape(20.dp),
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(1f)) { ModelEffortPicker(catalog, model, effort) { m, e -> model = m; effort = e } }

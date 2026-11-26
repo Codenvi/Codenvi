@@ -53,8 +53,6 @@ import app.codenvi.ui.components.ConfirmDialog
 import app.codenvi.ui.components.InputDialog
 import app.codenvi.ui.components.SaveIcon
 import app.codenvi.ui.components.UnseenDot
-import app.codenvi.ui.components.color
-import app.codenvi.ui.components.label
 import app.codenvi.ui.theme.MonoStyle
 import app.codenvi.ui.theme.Tokens
 import java.text.DateFormat
@@ -91,7 +89,6 @@ fun ProjectScreen(vm: AppViewModel, projectId: String, onBack: () -> Unit, onCha
         }
         project?.let { p ->
             Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Chip(p.state.label(), p.state.color())
                 Text("${p.deviceName}${if (p.deviceOnline) "" else " · offline"}", color = Tokens.OnSurfaceMuted)
             }
         }
@@ -121,6 +118,7 @@ private fun SessionsTab(
 ) {
     val sessions by remember(projectId) { vm.repo.sessions(projectId) }.collectAsStateWithLifecycle(emptyList())
     val unseenSessions by vm.repo.unseenSessions.collectAsStateWithLifecycle(emptySet())
+    val runningSessions by vm.repo.runningSessions.collectAsStateWithLifecycle(emptySet())
     var rename by remember { mutableStateOf<SessionUi?>(null) }
     var clear by remember { mutableStateOf<SessionUi?>(null) }
     var delete by remember { mutableStateOf<SessionUi?>(null) }
@@ -134,6 +132,7 @@ private fun SessionsTab(
                     modifier = Modifier.fillMaxWidth().clickable(enabled = !s.locked) { onChat(s.id) }) {
                     Row(Modifier.padding(start = 16.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(s.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        if (s.id in runningSessions) { Chip("Running", Tokens.Primary); Spacer(Modifier.width(8.dp)) }
                         if (s.id == defaultSessionId) Icon(Icons.Filled.Star, "Default session", tint = Tokens.Primary)
                         // White dot just before the 3-dot button: this session has a reply you have not seen yet.
                         if (s.id in unseenSessions) { UnseenDot(); Spacer(Modifier.width(4.dp)) }

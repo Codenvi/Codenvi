@@ -123,6 +123,7 @@ Encrypted `{command, projectId, sessionId?, name?, text?, commitHash?}`; result 
 | `project.memory.get` / `project.memory.set` | read / write `CLAUDE.md` |
 | `project.rollback` | revert every commit after `commitHash` in one commit |
 | `project.status` | `{branch, dirty, lastCommitHash, lastCommitMessage, runningJobId, branchOk, aheadOfMain, behindOrigin}` |
+| `project.changes` | list the uncommitted files (`git status --porcelain=v1 -z --untracked-files=all`) as `text` lines `N`, `U` or `D` (new, updated, deleted), a tab, then the path; a rename is the new path `N` plus the old path `D`. At most 3000 lines, then `+`, a tab and the number left out. Paths only, never contents. An older PC answers `Unknown command`. |
 | `project.script.run` | start the project's PC-local shell script (cmd.exe commands, one per line, in the project folder) in the background and answer `Script started` at once; errors if none is saved or it is already running. The command carries no script text: the PC only runs what the user saved on the PC. |
 | `project.script.stop` | stop the script the PC started for the project (kills its process tree). Answers ok even when none is running. |
 | `project.commit` | commit whatever is uncommitted in the dev branch working tree, with `text` as the whole commit message (default `Codenvi: keep changes`); answers the new commit hash in `text`, or `"Nothing to commit"` if the tree was already clean |

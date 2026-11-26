@@ -32,6 +32,8 @@ public static class ControlCommands
     public const string MemorySet = "project.memory.set";
     public const string Rollback = "project.rollback";
     public const string Status = "project.status";
+    /// <summary>Lists the uncommitted files (paths only) as text lines "N|U|D, tab, path" for the phone's Code changes page.</summary>
+    public const string Changes = "project.changes";
     /// <summary>Runs the PC-local shell script of the project in the background. Carries no script text.</summary>
     public const string RunScript = "project.script.run";
     /// <summary>Stops the script the PC started for this project (kills its process tree).</summary>
@@ -49,7 +51,7 @@ public sealed record ControlPlain(string Command, Guid ProjectId, Guid? SessionI
 public sealed record ControlResultPlain(bool Ok, string? Error = null, string? Text = null, ProjectStatusPlain? Status = null);
 
 /// <summary>
-/// AheadOfMain is how many dev-branch commits are not yet on "main" (0 when there is no local "main" branch).
+/// AheadOfMain is how much Publish still has to push: commits not yet on origin/main (or, without an origin/main, not yet on the local "main"), 0 when nothing differs.
 /// BehindOrigin is how many commits on origin/main are not yet in the dev branch (0 when there is no origin/main).
 /// </summary>
 public sealed record ProjectStatusPlain(string Branch, bool Dirty, string? LastCommitHash, string? LastCommitMessage,
