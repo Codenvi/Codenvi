@@ -41,6 +41,7 @@ import app.codenvi.ui.components.GridIcon
 import app.codenvi.ui.components.Toast
 import app.codenvi.ui.components.ToastHost
 import app.codenvi.ui.components.ToastKind
+import app.codenvi.ui.screens.ChangesScreen
 import app.codenvi.ui.screens.ChatScreen
 import app.codenvi.ui.screens.ConnectScreen
 import app.codenvi.ui.screens.DevicesScreen
@@ -153,7 +154,11 @@ private fun Root(activity: MainActivity) {
                     vm, e.arguments!!.getString("sessionId")!!, onBack = { nav.popBackStack() },
                     // Opens the Multimode tab; the chat screen has already preset its project and session there.
                     onMultimode = { nav.navigate("multimode") { popUpTo("devices"); launchSingleTop = true } },
+                    onChanges = { nav.navigate("changes/${e.arguments!!.getString("sessionId")!!}") },
                 )
+            }
+            composable("changes/{sessionId}", listOf(navArgument("sessionId") { type = NavType.StringType })) { e ->
+                ChangesScreen(vm, e.arguments!!.getString("sessionId")!!, onBack = { nav.popBackStack() })
             }
             composable("multimode") { MultimodeScreen(vm, onOpenChat = { nav.navigate("chat/$it") }) }
             composable("settings") {

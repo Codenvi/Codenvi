@@ -129,7 +129,8 @@ fun InputDialog(title: String, initial: String, confirm: String = "Save", single
 class Dictation(private val speech: SpeechInput) {
     private var base: TextFieldValue? = null
 
-    val listening get() = speech.listening
+    /** True from the first tap until the user stops it (or it gives up), including the gaps between sentences. */
+    val listening get() = speech.recording
     val isActive get() = speech.active
     val available get() = speech.isAvailable
 
@@ -137,14 +138,18 @@ class Dictation(private val speech: SpeechInput) {
         // active (not listening) so a tap while the recognizer is still starting or restarting stops it instead of starting another.
         if (speech.active) { speech.stop(); return }
         base = current
+        // Continuous: it keeps listening through pauses until the user taps the button again. Each finished sentence is
+        // added to the field and becomes the base for the next one.
         speech.start(language,
             onPartial = { update(insert(base ?: current, it, moveCursor = false)) },
             onFinal = { text ->
                 val b = base ?: current
-                update(if (text.isBlank()) b else insert(b, text, moveCursor = true))
-                base = null
+                val v = if (text.isBlank()) b else insert(b, text, moveCursor = true)
+                update(v)
+                base = v
             },
             onError = { msg -> base?.let(update); base = null; onError(msg) },
+            continuous = true,
         )
     }
 

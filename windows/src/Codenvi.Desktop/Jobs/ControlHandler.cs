@@ -90,6 +90,8 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
             }
             case ControlCommands.Status:
                 return new ControlResultPlain(true, Status: await projects.StatusAsync(project.Id));
+            case ControlCommands.Changes:
+                return new ControlResultPlain(true, Text: await projects.ChangesAsync(project.Id));
             case ControlCommands.Commit:
             {
                 if (string.IsNullOrWhiteSpace(cmd.Text)) return new ControlResultPlain(false, "Enter a commit message.");

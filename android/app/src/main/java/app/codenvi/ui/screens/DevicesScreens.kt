@@ -76,6 +76,7 @@ fun CodenviTopBar(title: String, onBack: (() -> Unit)? = null, actions: @Composa
 fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> Unit) {
     val devices by vm.repo.devices.collectAsStateWithLifecycle(emptyList())
     val unseenByDevice by vm.repo.unseenCountByDevice.collectAsStateWithLifecycle(emptyMap())
+    val runningDevices by vm.repo.runningDevices.collectAsStateWithLifecycle(emptySet())
     val connected by vm.repo.connected.collectAsStateWithLifecycle()
     var keyFor by remember { mutableStateOf<DeviceUi?>(null) }
     var keyString by remember { mutableStateOf(false) }
@@ -109,6 +110,7 @@ fun DevicesScreen(vm: AppViewModel, activity: MainActivity, onOpen: (String) -> 
                         Column(Modifier.weight(1f)) {
                             Text(d.name, style = MaterialTheme.typography.titleMedium)
                             Text(if (d.online) "Online" else "Offline", color = Tokens.OnSurfaceMuted, style = MaterialTheme.typography.bodyMedium)
+                            if (d.id in runningDevices) Chip("Running", Tokens.Primary)
                             if (!d.hasCurrentKey) Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Filled.Lock, null, tint = Tokens.Warning, modifier = Modifier.padding(end = 4.dp))
                                 Text(if (d.hasKey) "New key needed (key was rotated)" else "Key needed - tap to add", color = Tokens.Warning)

@@ -5,6 +5,9 @@ namespace Codenvi.Desktop.Git;
 
 public sealed record GitCommitInfo(string Hash, string Subject, int FilesChanged, int Insertions, int Deletions, DateTimeOffset When);
 
+/// <summary>One uncommitted file. Kind: 'N' new, 'U' updated, 'D' deleted.</summary>
+public sealed record FileChange(string Path, char Kind);
+
 public sealed class GitException(string message) : Exception(message);
 
 /// <summary>
@@ -201,13 +204,69 @@ public sealed class GitService
         await Git(folder, ["clean", "-fd"]);
     }
 
+    /// <summary>The uncommitted files of the working tree (paths only, never contents), for the phone's Code changes page.</summary>
+    public async Task<IReadOnlyList<FileChange>> ChangedFilesAsync(string folder) =>
+        ParseChangedFiles((await Git(folder, ["status", "--porcelain=v1", "-z", "--untracked-files=all"])).StdOut);
+
+    /// <summary>
+    /// Parses <c>git status --porcelain=v1 -z</c> ("XY path", NUL separated; a rename or copy is followed by the old path).
+    /// Untracked or added = New, deleted = Deleted, anything else (modified, type change, unmerged) = Updated.
+    /// A rename shows as the new path New plus the old path Deleted.
+    /// </summary>
+    public static IReadOnlyList<FileChange> ParseChangedFiles(string porcelainZ)
+    {
+        var result = new List<FileChange>();
+        var parts = porcelainZ.Split('\0');
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var e = parts[i];
+            if (e.Length < 4 || e[2] != ' ') continue;
+            char x = e[0], y = e[1];
+            var path = e[3..];
+            if (x is 'R' or 'C' || y is 'R' or 'C')
+            {
+                result.Add(new FileChange(path, 'N'));
+                if (i + 1 < parts.Length && parts[i + 1].Length > 0)
+                {
+                    if (x == 'R' || y == 'R') result.Add(new FileChange(parts[i + 1], 'D'));
+                    i++;
+                }
+                continue;
+            }
+            var kind = x is '?' or 'A' || y is '?' or 'A' ? 'N' : x == 'D' || y == 'D' ? 'D' : 'U';
+            result.Add(new FileChange(path, kind));
+        }
+        return result;
+    }
+
     public async Task<string> StatusShortAsync(string folder) => (await Git(folder, ["status", "--short", "--branch"])).StdOut.Trim();
 
-    /// <summary>Commits on <paramref name="branch"/> not yet on <paramref name="baseBranch"/>; 0 if <paramref name="baseBranch"/> does not exist locally.</summary>
+    /// <summary>
+    /// How much Publish would still have to do. With an origin/<paramref name="baseBranch"/>: the commits of the dev branch (or of a
+    /// local main that was merged but never pushed) that origin/main does not have, or 0 when the files are identical to origin/main
+    /// (for example right after a Pull, which only adds a merge commit). Without one: the commits of <paramref name="branch"/> not
+    /// yet on the local <paramref name="baseBranch"/> (0 if that branch does not exist).
+    /// </summary>
     public async Task<int> CountAheadAsync(string folder, string branch, string baseBranch)
     {
-        if (!await BranchExistsAsync(folder, baseBranch)) return 0;
-        var r = await Git(folder, ["rev-list", "--count", $"{baseBranch}..{branch}"], check: false);
+        var remote = $"refs/remotes/origin/{baseBranch}";
+        var hasRemote = (await Git(folder, ["rev-parse", "--verify", "--quiet", remote], check: false)).ExitCode == 0;
+        var hasLocal = await BranchExistsAsync(folder, baseBranch);
+        if (!hasRemote)
+        {
+            if (!hasLocal) return 0;
+            return await CountAsync(folder, [$"{baseBranch}..{branch}"]);
+        }
+        var n = await CountAsync(folder, hasLocal ? [branch, baseBranch, "^" + remote] : [branch, "^" + remote]);
+        if (n == 0) return 0;
+        var devSame = (await Git(folder, ["diff", "--quiet", remote, branch, "--"], check: false)).ExitCode == 0;
+        var mainSame = !hasLocal || (await Git(folder, ["diff", "--quiet", remote, baseBranch, "--"], check: false)).ExitCode == 0;
+        return devSame && mainSame ? 0 : n;
+    }
+
+    private async Task<int> CountAsync(string folder, string[] revs)
+    {
+        var r = await Git(folder, ["rev-list", "--count", .. revs], check: false);
         return r.ExitCode == 0 && int.TryParse(r.StdOut.Trim(), out var n) ? n : 0;
     }
 

@@ -5,6 +5,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Android: voice dictation in the chat is now continuous. Tap the mic once to start and again to stop; it keeps listening through pauses (the recognizer is restarted after each sentence or silence), so you can talk slowly and think in between.
+- Android: a **Code changes** button in the chat header (just before Multimode) opens a page that lists the project's uncommitted files as a folder tree, with a green (new), blue (updated) or red (deleted) dot per file and no code shown. Its header has the same Commit, Pull and Publish buttons and a chat button that returns to the chat. New control command `project.changes`; an older PC answers "Unknown command", which the phone shows as "Update Codenvi on the PC".
+- Android: a copy button on each reply copies the reply text; the reply's cost is no longer shown. The chat input field has rounded corners, and the Devices and Sessions lists show a "Running" chip for the device and session that is running.
 - Android chat header: a **Pull** button (new control command `project.pull`) that fetches `origin/main` and merges it into the dev branch, shown only when `origin/main` has commits the dev branch lacks (`behindOrigin` in the project status). Commit, Publish and Pull show a spinner until the PC answers.
 - Android: the Commit dialog's text is the whole commit message, and Codenvi no longer commits automatically after a job; changes from an unfinished job are kept in the working tree until you commit them.
 - Android: the in-chat commit, push and pull blocks show a commit message on one line (cut with "…" if long) and no commit id: the typed message for a commit, the dev branch's newest commit message for a push, the newest pulled commit's message for a pull (the PC's `project.pull` answer now carries it). The push block is green and the pull block blue.
@@ -18,6 +21,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Tests now also run on pushes to `main`.
 
 ### Fixed
+- Windows/Android: the Publish button no longer shows when there is nothing to push. The "ahead" count is now measured against a freshly fetched `origin/main` (and is 0 when the files equal it, such as right after a Pull) instead of the local `main`.
 - Android: tapping the dictation button no longer plays the mic on, off, on sounds. The speech service now picks offline or online itself (the offline-only first attempt that failed and restarted the recognizer is gone), a restart is limited to one retry with the phone's default language, and the recognizer is cancelled silently. A tap while it is still starting now stops it instead of starting another round.
 - Android: the first tap on the dictation button no longer shows "Speech recognition error (11)"; the app quietly retries while the speech service is starting up.
 - Android: the Devices, Projects, project (Sessions, Memory, Commits) and Multimode pages now fill the screen height; the page area no longer double-counts the status bar and no longer shrinks to its content.

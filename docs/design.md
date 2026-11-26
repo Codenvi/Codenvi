@@ -548,6 +548,7 @@ These change state that lives on the PC, so they travel encrypted and the deskto
 | `project.memory.get` / `project.memory.set {text}` | Read/write the project's `CLAUDE.md` |
 | `project.rollback {commitHash}` | §9.3 |
 | `project.status` | Branch, dirty state, last commit, running job |
+| `project.changes` | The uncommitted files (path + new/updated/deleted) for the phone's Code changes page |
 
 The response is a `control.response` with encrypted JSON. Control requests also get the replay check (§5.4).
 
@@ -759,7 +760,7 @@ Triggered only by the phone's `project.publish` command - there is no desktop bu
 6. On success, `git push origin main` (skipped if there is no `origin`). A push failure is reported but the local merge is kept.
 7. Always switch back to the dev branch at the end, whether Publish succeeded or failed, so the job scheduler finds the PC where it expects it.
 
-`project.status`'s `aheadOfMain` (`git rev-list --count main..<devBranch>`, 0 if there is no local `main`) is what the phone uses to decide whether to show the Publish button at all.
+`project.status`'s `aheadOfMain` is what the phone uses to decide whether to show the Publish button at all. After a fresh `git fetch`, with an `origin/main` it counts the commits of the dev branch (and of a local `main` that was never pushed) that `origin/main` does not have, and is 0 when the files equal `origin/main` (e.g. right after a Pull, which only adds a merge commit); without `origin/main` it is `git rev-list --count main..<devBranch>` (0 if there is no local `main`).
 
 ### 9.5 Pull (merge origin/main into the dev branch)
 
@@ -833,6 +834,7 @@ okhttp = "4.12.0"
    - A **🔊 Read aloud** icon on every assistant message.
    - Status per prompt: queued / delivered / running / done / failed (with error text). "Waiting for Claude sign-in" tells the user to sign in to Claude Code on that PC.
    - While the PC is online, a **Commit** icon (next to Multimode) shows up when `project.status` reports the dev branch dirty, a **Pull** icon (down arrow, before Publish) when it reports `behindOrigin` above 0, and a **Publish** icon when it reports commits ahead of `main`. Each asks for confirmation (Commit also asks for the commit message), then runs `project.commit` / `project.pull` / `project.publish` (§9.2, §9.4, §9.5) and refreshes the status. While one runs, its icon is replaced by a spinner until the PC answers.
+   - A **Code changes** icon (always shown, just before Multimode) opens the Code changes page: the project's uncommitted files from `project.changes` as a folder tree (paths only, no diffs, expanded by default, vertical scrolling without a visible scrollbar), with a dot on the right of each file: green = new, blue = updated, red = deleted (folders have no dot). Its header has the same Commit / Pull / Publish buttons as the chat (they leave the same markers in the chat and reload the list) and a chat icon on the right that returns to the chat.
    - Each finished action leaves a small centred marker in the chat, on one line and cut with "…" if long: yellow commit icon + `<commit message>`, green publish icon + `<message of the dev branch's newest commit>`, blue pull icon + `<message of the newest pulled commit>`. The icons are the ones the chat header uses for Commit, Publish and Pull; there is no "Committed"/"Pushed"/"Pulled" word. No commit id is shown. The markers are stored on the phone only.
 6. **Multimode:**
    - **Top:** a row of the selected project's sessions (tap one to choose it), then the multi-line `OutlinedTextField`, the model and effort dropdowns beneath it, then the mic and **Send** buttons.
@@ -848,6 +850,7 @@ okhttp = "4.12.0"
 - The `RECORD_AUDIO` runtime permission is requested on first mic tap.
 - The manifest needs a `<queries>` entry for `android.speech.RecognitionService` (Android 11+ package visibility).
 - Partial results appear live in the message field. The final text is **inserted at the cursor** of the field, and **the app never auto-sends** - you review and edit, then press Send.
+- Dictation is **continuous**: the recognizer stops by itself after a pause, so it is started again after every result or silence timeout, and each finished sentence is added to the field. It keeps going until you tap the mic button again (or send, or clear the field); after about 60 silent restarts in a row it stops by itself. The button keeps pulsing red between sentences. The system may play its mic sounds at each restart, and a few speech engines ignore the "wait longer" silence hints.
 - If `SpeechRecognizer.isRecognitionAvailable()` is false, the mic button is hidden and a hint explains that Google speech services or an offline language pack is needed.
 
 ### 10.5 Read aloud
