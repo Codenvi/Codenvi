@@ -553,6 +553,18 @@ class Repository(
     }
 
     // ---------------- Projects & sessions ----------------
+    /** Asks the PC to remove the project from Codenvi and the server (its folder and commits on the PC stay). */
+    suspend fun removeProject(projectId: String) = withContext(Dispatchers.IO) {
+        val deviceId = dao.project(projectId)?.deviceId ?: throw UserException("Unknown project.")
+        try {
+            controlOk(projectId, ControlPlain(ControlCommands.PROJECT_DELETE, projectId))
+        } catch (e: UserException) {
+            if (e.message?.startsWith("Unknown command") == true) throw UserException("Update Codenvi on the PC to remove projects from the phone.")
+            throw e
+        }
+        refreshProjects(deviceId) // drops the removed project (and its sessions) from the local list
+    }
+
     suspend fun renameProject(projectId: String, name: String) = withContext(Dispatchers.IO) {
         val p = dao.project(projectId) ?: throw UserException("Unknown project.")
         val d = dao.device(p.deviceId) ?: throw UserException("Unknown PC.")

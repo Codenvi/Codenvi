@@ -53,6 +53,8 @@ object ControlCommands {
     const val PULL = "project.pull"
     /** PC-level: projectId is the all-zero id; the PC creates a folder named [ControlPlain.name] in its projects location and registers it. */
     const val PROJECT_CREATE = "project.create"
+    /** Removes the project from Codenvi and the server; the PC never deletes its folder, branch or commits. */
+    const val PROJECT_DELETE = "project.delete"
 }
 
 @JsonClass(generateAdapter = true)

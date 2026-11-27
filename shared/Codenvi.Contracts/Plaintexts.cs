@@ -48,6 +48,8 @@ public static class ControlCommands
     public const string Pull = "project.pull";
     /// <summary>PC-level command (ProjectId is Guid.Empty): creates a folder named Name in the PC's projects location, initializes git and registers it as a project.</summary>
     public const string ProjectCreate = "project.create";
+    /// <summary>Removes the project from Codenvi and the server. Never deletes the folder, branch or commits on the PC.</summary>
+    public const string ProjectDelete = "project.delete";
 }
 
 public sealed record ControlPlain(string Command, Guid ProjectId, Guid? SessionId = null, string? Name = null, string? Text = null, string? CommitHash = null);

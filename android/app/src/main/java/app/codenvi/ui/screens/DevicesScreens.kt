@@ -178,6 +178,7 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
     var runScript by remember { mutableStateOf<ProjectUi?>(null) }
     var stopScript by remember { mutableStateOf<ProjectUi?>(null) }
     var newProject by remember { mutableStateOf(false) }
+    var remove by remember { mutableStateOf<ProjectUi?>(null) }
     LaunchedEffect(deviceId) { vm.run { vm.repo.refreshProjects(deviceId) } }
 
     Column(Modifier.fillMaxSize()) {
@@ -212,6 +213,7 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
                             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                                 DropdownMenuItem(text = { Text("Rename") }, enabled = !p.locked, onClick = { menu = false; rename = p })
+                                DropdownMenuItem(text = { Text("Remove project", color = Tokens.Error) }, onClick = { menu = false; remove = p })
                             }
                         }
                     }
@@ -222,6 +224,11 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
     if (newProject) InputDialog("New project name", "", confirm = "Create", onConfirm = { n ->
         vm.run(onOk = { vm.ok("Project created on the PC.") }) { vm.repo.createProject(deviceId, n) }
     }, onDismiss = { newProject = false })
+    remove?.let { p ->
+        ConfirmDialog("Remove project", "Remove \"${p.name}\" from Codenvi? Its folder and files on ${p.deviceName} are not deleted.", "Remove",
+            onConfirm = { vm.run(onOk = { vm.ok("Project removed.") }) { vm.repo.removeProject(p.id) } },
+            onDismiss = { remove = null }, destructive = true)
+    }
     runScript?.let { p ->
         ConfirmDialog("Run script", "Run the script of \"${p.name}\" on ${p.deviceName}?", "Run",
             onConfirm = { vm.run(onOk = { vm.ok("Script started on the PC.") }) { vm.repo.runScript(p.id) } },

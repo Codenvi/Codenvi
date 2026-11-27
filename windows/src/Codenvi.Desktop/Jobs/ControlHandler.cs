@@ -120,6 +120,9 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
                 // The answer carries the message of the newest pulled commit; older PCs answered with the new HEAD hash.
                 return new ControlResultPlain(true, Text: await projects.PulledMessageAsync(project.Id) ?? hash);
             }
+            case ControlCommands.ProjectDelete:
+                await projects.DeleteAsync(project);
+                return new ControlResultPlain(true);
             case ControlCommands.RunScript:
             {
                 // The script text is never taken from the phone: only the PC-local one runs.
