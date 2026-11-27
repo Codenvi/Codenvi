@@ -7,6 +7,7 @@ import app.codenvi.crypto.CommitMeta
 import app.codenvi.crypto.ControlCommands
 import app.codenvi.crypto.ControlPlain
 import app.codenvi.crypto.ControlResultPlain
+import app.codenvi.crypto.NO_PROJECT
 import app.codenvi.crypto.Directions
 import app.codenvi.crypto.E2E
 import app.codenvi.crypto.ErrorPlain
@@ -439,7 +440,26 @@ class Repository(
 
     // ---------------- Control commands (docs/design.md §7.5) ----------------
     suspend fun control(projectId: String, cmd: ControlPlain): ControlResultPlain = withContext(Dispatchers.IO) {
-        val d = deviceOf(projectId)
+        sendControl(deviceOf(projectId), cmd) { req -> http.api().control(projectId, req) }
+    }
+
+    /** PC-level command (no project involved); [cmd] must carry the all-zero project id. */
+    private suspend fun deviceControl(deviceId: String, cmd: ControlPlain): ControlResultPlain = withContext(Dispatchers.IO) {
+        val d = dao.device(deviceId) ?: throw UserException("Unknown PC.")
+        sendControl(d, cmd) { req -> http.api().deviceControl(deviceId, req) }
+    }
+
+    /** Asks the PC to create a folder named [name] in its projects location and register it as a project. */
+    suspend fun createProject(deviceId: String, name: String) = withContext(Dispatchers.IO) {
+        val r = deviceControl(deviceId, ControlPlain(ControlCommands.PROJECT_CREATE, NO_PROJECT, name = name.trim()))
+        if (!r.ok) {
+            val err = r.error ?: "The PC could not create the project."
+            throw UserException(if (err.startsWith("Unknown command")) "Update Codenvi on the PC to create projects from the phone." else err)
+        }
+        runCatching { refreshProjects(deviceId) }
+    }
+
+    private suspend fun sendControl(d: DeviceEntity, cmd: ControlPlain, post: suspend (ControlRequest) -> Response<Unit>): ControlResultPlain {
         if (!d.online) throw UserException("${d.name} is offline.")
         val key = currentKey(d.id, d.keyVersion)
         val requestId = UUID.randomUUID().toString()
@@ -447,8 +467,8 @@ class Repository(
         val ct = E2E.encrypt(key, d.keyVersion, Aad(d.id, ObjectTypes.CONTROL, requestId, Directions.P2D, now), cmd.toJsonBytes())
         val waiter = CompletableDeferred<ControlResultPlain>()
         pendingControl[requestId] = waiter
-        try {
-            val res = http.api().control(projectId, ControlRequest(requestId, ct, now))
+        return try {
+            val res = post(ControlRequest(requestId, ct, now))
             if (res.code() == 409) throw UserException("${d.name} is offline.")
             check(res)
             withTimeout(90_000) { waiter.await() }

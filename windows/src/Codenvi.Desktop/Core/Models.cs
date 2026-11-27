@@ -82,4 +82,8 @@ public sealed class AppSettings
     public bool AutoSwitchBranch { get; set; }
     public bool DisclaimerAccepted { get; set; }
     public bool PauseAll { get; set; }
+    /// <summary>Folder in which projects created from the phone get their own sub-folder. Defaults to the Windows Desktop folder.</summary>
+    public string ProjectsLocation { get; set; } = DefaultProjectsLocation;
+
+    public static string DefaultProjectsLocation => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
 }

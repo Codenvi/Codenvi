@@ -33,6 +33,8 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
             result = new ControlResultPlain(false, "This request is too old.");
         else if (cmd.ProjectId != req.ProjectId)
             result = new ControlResultPlain(false, "Request does not match the project.");
+        else if (cmd.Command == ControlCommands.ProjectCreate && cmd.ProjectId != Guid.Empty)
+            result = new ControlResultPlain(false, "Request does not match the PC.");
         else
         {
             try { result = await ExecuteAsync(cmd); }
@@ -55,6 +57,12 @@ public sealed class ControlHandler(LocalDb db, CryptoService crypto, WsClient ws
 
     private async Task<ControlResultPlain> ExecuteAsync(ControlPlain cmd)
     {
+        if (cmd.Command == ControlCommands.ProjectCreate)
+        {
+            var created = await projects.CreateInProjectsLocationAsync(cmd.Name ?? "");
+            state.RaiseProjectsListChanged();
+            return new ControlResultPlain(true, Text: created.Id.ToString());
+        }
         var project = db.Project(cmd.ProjectId) ?? throw new ProjectException("This project is not registered on the PC.");
         switch (cmd.Command)
         {

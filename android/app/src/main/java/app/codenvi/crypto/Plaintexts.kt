@@ -34,6 +34,9 @@ data class CommitMeta(val message: String, val filesChanged: Int, val insertions
 @JsonClass(generateAdapter = true)
 data class ErrorPlain(val summary: String, val detail: String?)
 
+/** The "project id" of PC-level control commands (no project involved). */
+const val NO_PROJECT = "00000000-0000-0000-0000-000000000000"
+
 object ControlCommands {
     const val SESSION_CREATE = "session.create"
     const val SESSION_CLEAR_MEMORY = "session.clearMemory"
@@ -48,6 +51,8 @@ object ControlCommands {
     const val COMMIT = "project.commit"
     const val PUBLISH = "project.publish"
     const val PULL = "project.pull"
+    /** PC-level: projectId is the all-zero id; the PC creates a folder named [ControlPlain.name] in its projects location and registers it. */
+    const val PROJECT_CREATE = "project.create"
 }
 
 @JsonClass(generateAdapter = true)

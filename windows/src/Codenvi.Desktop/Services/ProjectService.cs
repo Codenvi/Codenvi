@@ -100,6 +100,60 @@ public sealed class ProjectService(LocalDb db, ApiClient api, CryptoService cryp
         return project;
     }
 
+    /// <summary>Answers every question silently: only used for a brand-new empty folder, where nothing can be lost.</summary>
+    private sealed class SilentPrompts : IUserPrompts
+    {
+        public bool Confirm(string title, string message) => true;
+        public int Choose(string title, string message, params string[] options) => -1;
+        public void Info(string title, string message) { }
+    }
+
+    /// <summary>Validates a folder name typed on the phone. Returns an error text, or null when it is a safe single folder name.</summary>
+    public static string? ValidateFolderName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Enter a project name.";
+        name = name.Trim();
+        if (name.Length > 100) return "The project name is too long.";
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || name.EndsWith('.') || name.StartsWith('.'))
+            return "The project name cannot contain \\ / : * ? \" < > | and cannot start or end with a dot.";
+        var reserved = new[] { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+            "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
+        var stem = name.Split('.')[0].TrimEnd();
+        if (reserved.Contains(stem, StringComparer.OrdinalIgnoreCase)) return "That name is reserved by Windows.";
+        return null;
+    }
+
+    /// <summary>Creates a new project folder inside the configured projects location and registers it (phone "new project").</summary>
+    public async Task<LocalProject> CreateInProjectsLocationAsync(string name)
+    {
+        var root = state.Settings.ProjectsLocation?.Trim();
+        if (string.IsNullOrEmpty(root)) root = AppSettings.DefaultProjectsLocation;
+        if (!Directory.Exists(root))
+            throw new ProjectException($"The projects location does not exist on the PC: {root}");
+        if (ValidateFolderName(name) is { } bad) throw new ProjectException(bad);
+        name = name.Trim();
+
+        var rootFull = Path.GetFullPath(root);
+        var folder = Path.GetFullPath(Path.Combine(rootFull, name));
+        if (!string.Equals(Path.GetDirectoryName(folder), rootFull.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
+            throw new ProjectException("Invalid project name.");
+        if (Directory.Exists(folder) || File.Exists(folder))
+            throw new ProjectException($"A folder named \"{name}\" already exists in the projects location.");
+
+        Directory.CreateDirectory(folder);
+        try
+        {
+            return await RegisterAsync(folder, name, new SilentPrompts())
+                ?? throw new ProjectException("Git was not found on the PC; the project could not be set up.");
+        }
+        catch
+        {
+            // Nothing was registered and the folder is still empty (git failed before writing anything): do not leave it behind.
+            try { Directory.Delete(folder, recursive: false); } catch (IOException) { }
+            throw;
+        }
+    }
+
     public static LocalSession NewLocalSession(Guid projectId, Guid id, string name) => new()
     {
         Id = id, ProjectId = projectId, Name = name, ClaudeSessionId = Guid.NewGuid(), Started = false, CreatedAt = DateTime.UtcNow,

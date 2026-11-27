@@ -134,6 +134,22 @@ workRoutes.post("/projects/:id/control", guidParams("id"), promptLimiter, async 
   res.status(202).end();
 });
 
+// PC-level control (no project yet, e.g. "create project"): the request carries the all-zero project id.
+workRoutes.post("/devices/:id/control", guidParams("id"), promptLimiter, async (req, res) => {
+  const id = req.params.id as string;
+  const body = z.object({ requestId: uuidSchema, ciphertext: b64Schema, clientCreatedAtMs: z.number().int() }).parse(req.body);
+  if (b64Length(body.ciphertext) > config.maxCiphertextBytes) throw tooLarge();
+  if (!(await exists(db, sql`SELECT 1 FROM devices WHERE id = ${id}::uuid AND deleted_at IS NULL`))) throw notFound();
+  const device = hub.forDevice(id);
+  if (!device) return sendProblem(res, 409, "Device offline");
+  registerControl(body.requestId, req.auth!.installId, id);
+  device.send(createEnvelope(MessageTypes.ControlRequest, {
+    requestId: body.requestId, deviceId: id, projectId: "00000000-0000-0000-0000-000000000000",
+    ciphertext: body.ciphertext, clientCreatedAtMs: body.clientCreatedAtMs,
+  }));
+  res.status(202).end();
+});
+
 // ---------------- Catalog ----------------
 workRoutes.get("/catalog/models", async (_req, res) => {
   const r = await rows<{ alias: string; label: string; efforts: string[]; enabled: boolean; sort_order: number }>(

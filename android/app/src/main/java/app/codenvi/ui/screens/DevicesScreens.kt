@@ -168,7 +168,7 @@ fun KeyDialog(activity: MainActivity, title: String, onDismiss: () -> Unit, onMe
     )
 }
 
-/** Device → Projects (screen 3). Projects are created on the desktop only. */
+/** Device → Projects (screen 3). + creates a project folder on the PC (in its projects location). */
 @Composable
 fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpen: (String) -> Unit) {
     val projects by remember(deviceId) { vm.repo.projects(deviceId) }.collectAsStateWithLifecycle(emptyList())
@@ -177,13 +177,15 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
     var rename by remember { mutableStateOf<ProjectUi?>(null) }
     var runScript by remember { mutableStateOf<ProjectUi?>(null) }
     var stopScript by remember { mutableStateOf<ProjectUi?>(null) }
+    var newProject by remember { mutableStateOf(false) }
     LaunchedEffect(deviceId) { vm.run { vm.repo.refreshProjects(deviceId) } }
 
     Column(Modifier.fillMaxSize()) {
         CodenviTopBar(devices.firstOrNull { it.id == deviceId }?.name ?: "Projects", onBack) {
+            IconButton(onClick = { newProject = true }) { Icon(Icons.Filled.Add, "New project") }
             IconButton(onClick = { vm.run { vm.repo.refreshProjects(deviceId) } }) { Icon(Icons.Filled.Refresh, "Refresh") }
         }
-        if (projects.isEmpty()) Text("No projects. Register a project folder in Codenvi on the PC.", color = Tokens.OnSurfaceMuted,
+        if (projects.isEmpty()) Text("No projects. Tap + to create one, or register a project folder in Codenvi on the PC.", color = Tokens.OnSurfaceMuted,
             modifier = Modifier.padding(16.dp))
         LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(projects, key = { it.id }) { p ->
@@ -217,6 +219,9 @@ fun ProjectsScreen(vm: AppViewModel, deviceId: String, onBack: () -> Unit, onOpe
             }
         }
     }
+    if (newProject) InputDialog("New project name", "", confirm = "Create", onConfirm = { n ->
+        vm.run(onOk = { vm.ok("Project created on the PC.") }) { vm.repo.createProject(deviceId, n) }
+    }, onDismiss = { newProject = false })
     runScript?.let { p ->
         ConfirmDialog("Run script", "Run the script of \"${p.name}\" on ${p.deviceName}?", "Run",
             onConfirm = { vm.run(onOk = { vm.ok("Script started on the PC.") }) { vm.repo.runScript(p.id) } },

@@ -42,5 +42,7 @@ interface CodenviApi {
     @GET("api/v1/projects/{id}/commits") suspend fun commits(@Path("id") projectId: String): List<CommitDto>
     @POST("api/v1/projects/{id}/control") suspend fun control(@Path("id") projectId: String, @Body req: ControlRequest): Response<Unit>
 
+    @POST("api/v1/devices/{id}/control") suspend fun deviceControl(@Path("id") deviceId: String, @Body req: ControlRequest): Response<Unit>
+
     @GET("api/v1/catalog/models") suspend fun models(): List<ModelCatalogEntry>
 }

@@ -44,6 +44,7 @@ public partial class SettingsView : UserControl
         GitEmail.Text = s.GitAuthorEmail;
         DevBranch.Text = s.DefaultDevBranch;
         StaleHours.Text = s.StaleJobHours.ToString();
+        ProjectsLocation.Text = string.IsNullOrWhiteSpace(s.ProjectsLocation) ? AppSettings.DefaultProjectsLocation : s.ProjectsLocation;
         Loaded += async (_, _) => await LoadInstallsAsync();
     }
 
@@ -55,8 +56,15 @@ public partial class SettingsView : UserControl
 
     private void OnSave(object sender, RoutedEventArgs e)
     {
+        var location = ProjectsLocation.Text.Trim();
+        if (location.Length == 0) location = AppSettings.DefaultProjectsLocation;
+        if (!Directory.Exists(location))
+        {
+            Dialogs.Error(Win, "The projects location folder does not exist.");
+            return;
+        }
         var s = _state.Settings;
-        s.StartWithWindows = StartWithWindows.IsChecked == true;
+        s.StartWithWindows =StartWithWindows.IsChecked == true;
         s.MinimizeToTray = MinimizeToTray.IsChecked == true;
         s.AutoSwitchBranch = AutoSwitchBranch.IsChecked == true;
         s.DeleteTranscriptsOnClear = DeleteTranscripts.IsChecked == true;
@@ -65,6 +73,7 @@ public partial class SettingsView : UserControl
         s.GitAuthorEmail = string.IsNullOrWhiteSpace(GitEmail.Text) ? "codenvi@local" : GitEmail.Text.Trim();
         s.DefaultDevBranch = string.IsNullOrWhiteSpace(DevBranch.Text) ? "codenvi-dev" : DevBranch.Text.Trim();
         s.StaleJobHours = int.TryParse(StaleHours.Text, out var sh) ? Math.Clamp(sh, 1, 24 * 30) : 24;
+        s.ProjectsLocation = location;
         _state.SaveSettings(s);
         ApplyStartWithWindows(s.StartWithWindows);
         App.Services.GetRequiredService<Jobs.JobScheduler>().Wake();
@@ -77,6 +86,17 @@ public partial class SettingsView : UserControl
         using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true) ?? Registry.CurrentUser.CreateSubKey(RunKey);
         if (on) key.SetValue("Codenvi", $"\"{Environment.ProcessPath}\"");
         else key.DeleteValue("Codenvi", throwOnMissingValue: false);
+    }
+
+    private void OnBrowseProjectsLocation(object sender, RoutedEventArgs e)
+    {
+        using var dlg = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "Folder in which new projects (created from the phone) are made",
+            UseDescriptionForTitle = true,
+            SelectedPath = ProjectsLocation.Text,
+        };
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK) ProjectsLocation.Text = dlg.SelectedPath;
     }
 
     private void OnClose(object sender, RoutedEventArgs e) => _vm.ShowProjects();

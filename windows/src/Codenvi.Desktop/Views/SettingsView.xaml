@@ -35,7 +35,7 @@
 
         <Grid Margin="0,10,0,0">
           <Grid.ColumnDefinitions><ColumnDefinition Width="240" /><ColumnDefinition /></Grid.ColumnDefinitions>
-          <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+          <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
           <TextBlock Text="Max parallel projects" VerticalAlignment="Center" />
           <TextBox x:Name="MaxParallel" Grid.Column="1" Width="80" HorizontalAlignment="Left" Margin="0,4" />
           <TextBlock Grid.Row="1" Text="Git author name" VerticalAlignment="Center" />
@@ -46,7 +46,14 @@
           <TextBox x:Name="DevBranch" Grid.Row="3" Grid.Column="1" Margin="0,4" />
           <TextBlock Grid.Row="4" Text="Stale job limit (hours)" VerticalAlignment="Center" />
           <TextBox x:Name="StaleHours" Grid.Row="4" Grid.Column="1" Width="80" HorizontalAlignment="Left" Margin="0,4" />
+          <TextBlock Grid.Row="5" Text="Projects location" VerticalAlignment="Center" />
+          <DockPanel Grid.Row="5" Grid.Column="1" Margin="0,4">
+            <Button DockPanel.Dock="Right" Content="Browse…" Click="OnBrowseProjectsLocation" Margin="6,0,0,0" />
+            <TextBox x:Name="ProjectsLocation" />
+          </DockPanel>
         </Grid>
+        <TextBlock Style="{StaticResource Muted}" Margin="0,2,0,0" TextWrapping="Wrap"
+                   Text="Projects created from the Android app (+ on a device's project list) get a new folder in this location." />
 
         <TextBlock Text="Danger zone" Style="{StaticResource Heading}" Margin="0,20,0,8" />
         <Button Content="Disconnect this PC" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Click="OnDisconnect" />
